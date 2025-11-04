@@ -18,7 +18,14 @@ public class PROJ_2025 : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate"
+			"Slate",
+			"SlateCore",
+			"Json",
+			"JsonUtilities",
+			"HTTP",
+			"OnlineSubsystem",
+			"OnlineSubsystemUtils",
+			"UMG"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
