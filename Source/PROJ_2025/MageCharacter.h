@@ -1,0 +1,45 @@
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Character.h"
+#include "Logging/LogMacros.h"
+#include "MageCharacter.generated.h"
+
+class USpringArmComponent;
+class UCameraComponent;
+class UInputAction;
+struct FInputActionValue;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogMageCharacter, Log, All);
+
+UCLASS(abstract)
+class AMageCharacter : public ACharacter
+{
+ GENERATED_BODY()
+
+ UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+ USpringArmComponent* CameraBoom;
+
+ UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+ UCameraComponent* FollowCamera;
+
+public:
+
+ AMageCharacter();
+
+ virtual void Tick(float DeltaTime) override;
+
+protected:
+ virtual void BeginPlay() override;
+ 
+ //virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+ 
+
+ /** Returns CameraBoom subobject **/
+ FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+ /** Returns FollowCamera subobject **/
+ FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+};
