@@ -35,19 +35,30 @@ void AMageController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ControlledCharacter = Cast<ACharacter>(GetPawn());
+	FTimerHandle TimerHandle;
 
-	if (!ControlledCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AMageController, Controlled Character is NULL!"));
-	}
+	GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		[this] ()
+		{
+			ControlledCharacter = Cast<ACharacter>(GetPawn());
 
-	MovementComponent = ControlledCharacter->GetCharacterMovement();
+			if (!ControlledCharacter)
+			{
+				UE_LOG(LogTemp, Error, TEXT("AMageController, Controlled Character is NULL!"));
+				return;
+			}
 
-	if (!MovementComponent)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AMageController, Character MoveComp is NULL"));
-	}
+			MovementComponent = ControlledCharacter->GetCharacterMovement();
+
+			if (!MovementComponent)
+			{
+				UE_LOG(LogTemp, Error, TEXT("AMageController, Character MoveComp is NULL"));
+			}
+		},
+		0.5f,
+		false
+		);
 }
 
 void AMageController::EndPlay(const EEndPlayReason::Type EndPlayReason)
