@@ -23,16 +23,19 @@ class PROJ_2025_API ACombatManager : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 	// Sets default values for this actor's properties
 	ACombatManager();
 
 	UFUNCTION(Server, Reliable, BlueprintCallable)
-	void Server_StartWave();
+	void Server_StartWave(int index);
 
-	void StartWave_Internal();
+	void StartWave_Internal(int index);
 
-
+	void RegisterEnemyDeath();
 protected:
 
 public:	
@@ -41,6 +44,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
 	TArray<FCombatWave> Waves;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int RemainingEnemies;
 
 	
 };

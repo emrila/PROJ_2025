@@ -57,9 +57,15 @@ float AMushroomCharacter::TakeDamage(float DamageAmount, struct FDamageEvent con
 	class AController* EventInstigator, AActor* DamageCauser)
 {
 	Health -= DamageAmount;
+	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
 	if (Health <= 0)
 	{
-		Destroy(true);
+		if (CombatManager && CombatManager->HasAuthority())
+		{
+			CombatManager->RegisterEnemyDeath();
+			UE_LOG(LogTemp, Log, TEXT("Combat Death!"));
+		}
+		Destroy();
 	}
 	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
