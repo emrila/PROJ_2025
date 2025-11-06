@@ -2,6 +2,7 @@
 
 #include "MageCharacter.h"
 
+#include "AttackComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -51,7 +52,24 @@ AMageCharacter::AMageCharacter()
 void AMageCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	AttackComponent = FindComponentByClass<UAttackComponent>();
+
+	if (!AttackComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MageCharacter, BeginPlay, AttackComponent is NULL"));
+	}
 	
+}
+
+UAttackComponent* AMageCharacter::GetAttackComponent() const
+{
+	if (!AttackComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MageCharacter, GetAttackComp, AttackComp is NULL!"));
+		return nullptr;
+	}
+	return AttackComponent;
 }
 
 void AMageCharacter::Tick(float DeltaTime)
