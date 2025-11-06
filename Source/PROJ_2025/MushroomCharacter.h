@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CombatManager.h"
 #include "GameFramework/Character.h"
 #include "MushroomCharacter.generated.h"
 
@@ -39,8 +40,11 @@ public:
 	bool bIsAttacking;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	float Health;
+	float Health = 30.f;
 
 	UFUNCTION(BlueprintCallable)
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	UPROPERTY()
+	ACombatManager* CombatManager;
 };
