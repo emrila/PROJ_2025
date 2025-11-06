@@ -39,6 +39,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ProjectileSpawnSocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector SpawnLocationOffset;
+
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnProjectile(FVector SpawnLocation, FRotator SpawnRotation);
+
+	FTransform GetProjectileTransform();
+
 	UPROPERTY()
 	ACharacter* OwnerCharacter;
 

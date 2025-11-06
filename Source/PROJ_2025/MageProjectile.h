@@ -47,6 +47,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProjectileSpeed = 1000.0f;
 
+	float GetProjectileSpeed() const { return ProjectileSpeed; }
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LifeTime = 5.0f;
 	

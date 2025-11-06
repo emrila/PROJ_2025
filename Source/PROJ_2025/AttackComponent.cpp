@@ -46,6 +46,34 @@ void UAttackComponent::BeginPlay()
 	
 }
 
+void UAttackComponent::Server_SpawnProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+{
+}
+
+FTransform UAttackComponent::GetProjectileTransform()
+{
+	FVector SpawnLocation = FVector::ZeroVector;
+	FRotator SpawnRotation = FRotator::ZeroRotator;
+
+	if (OwnerCharacter)
+	{
+		USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
+
+		if (MeshComp && MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
+		{
+			SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
+			SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
+		}
+		else
+		{
+			SpawnLocation = OwnerCharacter->GetActorLocation() + SpawnLocationOffset;
+			SpawnRotation = OwnerCharacter->GetActorRotation();
+		}
+	}
+
+	return FTransform();
+}
+
 void UAttackComponent::ResetAttackCooldown()
 {
 	bCanAttack = true;
