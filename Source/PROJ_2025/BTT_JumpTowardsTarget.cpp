@@ -136,7 +136,7 @@ bool UBTT_JumpTowardsTarget::TestDirection(const FJumpDirection Direction, FRota
 	return bHit;
 }
 
-void UBTT_JumpTowardsTarget::Jump(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength)
+void UBTT_JumpTowardsTarget::Jump_Implementation(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength)
 {
 	RotationToPlayer.Yaw += Angle;
 

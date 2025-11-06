@@ -26,6 +26,7 @@ protected:
 private:
 	bool TestDirection(const FJumpDirection Direction, const FRotator RotationToPlayer, const APawn* Pawn);
 
+	UFUNCTION(NetMulticast, Reliable)
 	void Jump(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength);
 
 	void CheckIfLanded();
