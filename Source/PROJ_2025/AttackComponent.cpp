@@ -24,8 +24,6 @@ void UAttackComponent::StartAttack()
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("StartAttack"));
-
 	bCanAttack = false;
 	
 	PerformAttack();
@@ -58,20 +56,30 @@ void UAttackComponent::Server_SpawnProjectile_Implementation(FVector SpawnLocati
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Server_SpawnProjectile"));
+	if (!OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+
 	UWorld* const World = GetWorld();
 	if (!World)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, World is NULL"));
 		return;
 	}
-
+	
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
-	//SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
+	
+	
 	World->SpawnActor<AMageProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParameters);
+	
+}
+
+bool UAttackComponent::Server_SpawnProjectile_Validate(FVector SpawnLocation, FRotator SpawnRotation)
+{
+	return !SpawnLocation.IsZero() && !SpawnRotation.IsZero();
 }
 
 void UAttackComponent::PerformAttack()
@@ -87,8 +95,8 @@ void UAttackComponent::PerformAttack()
 	//TODO: Handle Animation from here?
 
 	FTransform SpawnTransform = GetProjectileTransform();
-
-	Server_SpawnProjectile_Implementation(SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator());
+	
+	Server_SpawnProjectile(SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator());
 }
 
 FTransform UAttackComponent::GetProjectileTransform()
@@ -121,7 +129,7 @@ FTransform UAttackComponent::GetProjectileTransform()
 		}
 	}
 
-	//SpawnLocation += SpawnRotation.RotateVector(SpawnLocationOffset);
+	SpawnLocation += SpawnRotation.RotateVector(SpawnLocationOffset);
 	
 	return FTransform(SpawnRotation, SpawnLocation);
 }

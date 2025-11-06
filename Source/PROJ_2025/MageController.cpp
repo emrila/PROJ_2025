@@ -7,6 +7,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "MageCharacter.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 
 AMageController::AMageController()
@@ -60,6 +61,14 @@ void AMageController::BeginPlay()
 		0.1f,
 		false
 		);
+
+	if (IsLocalPlayerController())
+	{
+		if (HUD)
+		{
+			HUD->AddToViewport();
+		}
+	}
 }
 
 void AMageController::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -117,13 +126,10 @@ void AMageController::DoMove(float Right, float Forward)
 	const FRotator Rotation = GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
-	// get forward vector
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
-	// get right vector 
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	// add movement 
 	ControlledCharacter->AddMovementInput(ForwardDirection, Forward);
 	ControlledCharacter->AddMovementInput(RightDirection, Right);
 		
