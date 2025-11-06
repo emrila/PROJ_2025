@@ -28,6 +28,7 @@ class PROJ_2025_API AMushroomAIController : public AAIController
 {
 	GENERATED_BODY()
 public:
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float JumpHeight = 200.0f;
 
@@ -39,10 +40,13 @@ public:
 
 
 	void StartAttackCooldown();
+	
 
 	bool AttackIsOnCooldown = false;
 
 private:
 	void ResetAttackCooldown();
 	FTimerHandle AttackCooldownHandle;
+
+	
 };

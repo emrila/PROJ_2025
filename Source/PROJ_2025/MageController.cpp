@@ -2,9 +2,11 @@
 
 #include "MageController.h"
 
+#include "AttackComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "MageCharacter.h"
 #include "GameFramework/Character.h"
 
 AMageController::AMageController()
@@ -34,9 +36,8 @@ void AMageController::Look(const FInputActionValue& Value)
 void AMageController::BeginPlay()
 {
 	Super::BeginPlay();
-
+	
 	FTimerHandle TimerHandle;
-
 	GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
 		[this] ()
@@ -56,7 +57,7 @@ void AMageController::BeginPlay()
 				UE_LOG(LogTemp, Error, TEXT("AMageController, Character MoveComp is NULL"));
 			}
 		},
-		0.5f,
+		0.1f,
 		false
 		);
 }
@@ -101,7 +102,7 @@ void AMageController::SetupInputComponent()
 		EnhancedInputComponent->BindAction(
 			MouseLookAction, ETriggerEvent::Triggered, this, &AMageController::Look);
 
-		//EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMageController::Look);
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AMageController::DoShoot);
 	}
 }
 
@@ -159,4 +160,23 @@ void AMageController::DoJumpEnd()
 		return;
 	}
 	ControlledCharacter->StopJumping();
+}
+
+void AMageController::DoShoot()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Shooting"));
+	if (!ControlledCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MageController, DoShoot, Controlled Character is NULL"));
+		return;
+	}
+	
+	AMageCharacter* MageCharacter = Cast<AMageCharacter>(ControlledCharacter);
+	if (!MageCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("MageController, DoShoot, Mage Character is NULL"));
+		return;
+	}
+
+	MageCharacter->GetAttackComponent()->StartAttack();
 }
