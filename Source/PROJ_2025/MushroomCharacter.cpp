@@ -3,6 +3,8 @@
 
 #include "MushroomCharacter.h"
 
+#include "Net/UnrealNetwork.h"
+
 // Sets default values
 AMushroomCharacter::AMushroomCharacter()
 {
@@ -11,9 +13,22 @@ AMushroomCharacter::AMushroomCharacter()
 
 }
 
+void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AMushroomCharacter, AttackIsOnCooldown);
+	DOREPLIFETIME(AMushroomCharacter, bIsAttacking);
+}
+
 void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength)
 {
-	
+	RotationToPlayer.Yaw += Angle;
+	FVector JumpDir = RotationToPlayer.Vector().GetSafeNormal();
+	FVector LaunchVelocity = JumpDir * ForwardStrength + FVector(0, 0, JumpStrength);
+
+	SetActorRotation(RotationToPlayer);
+	LaunchCharacter(LaunchVelocity, true, true);
 }
 
 // Called when the game starts or when spawned

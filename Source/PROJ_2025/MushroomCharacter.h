@@ -15,7 +15,9 @@ public:
 	// Sets default values for this character's properties
 	AMushroomCharacter();
 
-	UFUNCTION(NetMulticast, Reliable)
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(Server, Reliable)
 	void Multicast_Jump(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength);
 
 protected:
@@ -29,4 +31,10 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	bool AttackIsOnCooldown = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	bool bIsAttacking;
 };

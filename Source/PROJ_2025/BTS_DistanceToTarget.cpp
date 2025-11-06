@@ -7,6 +7,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
 #include "MushroomAIController.h"
+#include "MushroomCharacter.h"
 #include "GameFramework/Pawn.h"
 
 UBTS_DistanceToTarget::UBTS_DistanceToTarget()
@@ -35,10 +36,14 @@ void UBTS_DistanceToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	if (!TargetActor)
 	{
 		Blackboard->SetValueAsBool("canAttack", false);
+		Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = false;
+		
 		return;
 	}
 	
 	float Distance = FVector::Dist(AIPawn->GetActorLocation(), TargetActor->GetActorLocation());
 	Blackboard->SetValueAsBool("canAttack", Distance <= AttackRange && !AttackIsOnCooldown);
+	Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = Distance <= AttackRange && !AttackIsOnCooldown;
+
 	
 }

@@ -143,13 +143,11 @@ void UBTT_JumpTowardsTarget::Jump(float Angle, FRotator RotationToPlayer, APawn*
 {
 	if (Pawn->HasAuthority())
 	{
-		RotationToPlayer.Yaw += Angle;
-		FVector JumpDir = RotationToPlayer.Vector().GetSafeNormal();
-		FVector LaunchVelocity = JumpDir * ForwardStrength + FVector(0, 0, JumpStrength);
-
-		Pawn->SetActorRotation(RotationToPlayer);
-		AMushroomCharacter* Char = Cast<AMushroomCharacter>(Pawn);
-		Char->LaunchCharacter(LaunchVelocity, true, true);
+		AMushroomCharacter* MushroomChar = Cast<AMushroomCharacter>(Pawn);
+		if (MushroomChar)
+		{
+			MushroomChar->Multicast_Jump(Angle, RotationToPlayer, JumpStrength, ForwardStrength);
+		}
 	}
 }
 
