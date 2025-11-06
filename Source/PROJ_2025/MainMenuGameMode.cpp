@@ -16,6 +16,7 @@ void AMainMenuGameMode::BeginPlay()
 	{
 		LoginSystem->OnUsernameRequired.AddDynamic(this, &AMainMenuGameMode::ShowUsernameInputWidget);
 		LoginSystem->OnLoginSuccess.AddDynamic(this, &AMainMenuGameMode::ShowMainMenu);
+		LoginSystem->StartLoginProcess();
 	}
 }
 
