@@ -32,12 +32,25 @@ protected:
 	float DamageAmount = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackCoolDown = 3.f;
+	float AttackCoolDown = 1.f;
 
 	FTimerHandle AttackCoolDownTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ProjectileSpawnSocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector SpawnLocationOffset;
+
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnProjectile(FVector SpawnLocation, FRotator SpawnRotation);
+
+	void PerformAttack();
+
+	FTransform GetProjectileTransform();
 
 	UPROPERTY()
 	ACharacter* OwnerCharacter;

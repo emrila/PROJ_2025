@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "MageCharacter.generated.h"
 
+class UAttackComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
@@ -17,29 +18,33 @@ DECLARE_LOG_CATEGORY_EXTERN(LogMageCharacter, Log, All);
 UCLASS(abstract)
 class AMageCharacter : public ACharacter
 {
- GENERATED_BODY()
+	GENERATED_BODY()
 
- UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
- USpringArmComponent* CameraBoom;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	USpringArmComponent* CameraBoom;
 
- UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
- UCameraComponent* FollowCamera;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	UCameraComponent* FollowCamera;
 
 public:
+	AMageCharacter();
 
- AMageCharacter();
+	virtual void Tick(float DeltaTime) override;
 
- virtual void Tick(float DeltaTime) override;
+	UAttackComponent* GetAttackComponent() const;
 
 protected:
- virtual void BeginPlay() override;
- 
- //virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
- 
+	virtual void BeginPlay() override;
 
- /** Returns CameraBoom subobject **/
- FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	UPROPERTY()
+	UAttackComponent* AttackComponent;
 
- /** Returns FollowCamera subobject **/
- FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+
+	/** Returns CameraBoom subobject **/
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	/** Returns FollowCamera subobject **/
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };

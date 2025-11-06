@@ -41,6 +41,8 @@ protected:
 
 	virtual void DoJumpEnd();
 
+	virtual void DoShoot();
+
 
 	UPROPERTY()
 	UCharacterMovementComponent* MovementComponent;
@@ -59,8 +61,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MoveAction;
 
-	/*UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* LookAction;*/
+	UPROPERTY(EditAnywhere, Category="Input")
+	UInputAction* ShootAction;
 
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;

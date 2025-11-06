@@ -19,6 +19,7 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 
 	DOREPLIFETIME(AMushroomCharacter, AttackIsOnCooldown);
 	DOREPLIFETIME(AMushroomCharacter, bIsAttacking);
+	DOREPLIFETIME(AMushroomCharacter, Health);
 }
 
 void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength)
@@ -50,5 +51,16 @@ void AMushroomCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputC
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+}
+
+float AMushroomCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
+{
+	Health -= DamageAmount;
+	if (Health <= 0)
+	{
+		Destroy(true);
+	}
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 

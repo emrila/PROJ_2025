@@ -37,4 +37,10 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bIsAttacking;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	float Health;
+
+	UFUNCTION(BlueprintCallable)
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 };
