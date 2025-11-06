@@ -73,7 +73,7 @@ void UAttackComponent::Server_SpawnProjectile_Implementation(FVector SpawnLocati
 	SpawnParameters.Instigator = OwnerCharacter;
 	
 	
-	World->SpawnActor<AMageProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParameters))
+	World->SpawnActor<AMageProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParameters);
 	
 }
 
