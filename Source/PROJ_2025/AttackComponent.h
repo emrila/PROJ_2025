@@ -15,7 +15,7 @@ class PROJ_2025_API UAttackComponent : public UActorComponent
 
 public:
 	UAttackComponent();
-
+	
 	void StartAttack();
 
 protected:
@@ -40,12 +40,12 @@ protected:
 	TSubclassOf<AMageProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ProjectileSpawnSocketName;
+	FName ProjectileSpawnSocketName;  // = "spine_05Socket";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector SpawnLocationOffset;
 
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SpawnProjectile(FVector SpawnLocation, FRotator SpawnRotation);
 
 	void PerformAttack();

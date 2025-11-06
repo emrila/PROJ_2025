@@ -66,4 +66,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
+
+
+	//UI
+	UPROPERTY(EditAnywhere, Category="HUD")
+	UUserWidget* HUD;
 };
