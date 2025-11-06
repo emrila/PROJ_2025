@@ -19,7 +19,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	void OnProjectileOverlap(
 		UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor,

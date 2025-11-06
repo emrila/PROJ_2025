@@ -3,7 +3,18 @@
 
 #include "CombatManager.h"
 
+#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
+
 #include "EnemySpawn.h"
+#include "MushroomCharacter.h"
+#include "Net/UnrealNetwork.h"
+
+void ACombatManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(ACombatManager, RemainingEnemies);
+}
 
 // Sets default values
 ACombatManager::ACombatManager()
@@ -13,28 +24,44 @@ ACombatManager::ACombatManager()
 
 }
 
-void ACombatManager::Server_StartWave_Implementation()
+void ACombatManager::Server_StartWave_Implementation(int index)
 {
-	StartWave_Internal();
+	StartWave_Internal(index);
 }
 
 
-void ACombatManager::StartWave_Internal()
+void ACombatManager::StartWave_Internal(int index)
 {
-	if (!Waves.IsValidIndex(0)) return;
-
-	for (AEnemySpawn* SpawnPoint : Waves[0].Enemies)
+	if (!Waves.IsValidIndex(index)) return;
+	RemainingEnemies = Waves[index].Enemies.Num();
+	for (AEnemySpawn* SpawnPoint : Waves[index].Enemies)
 	{
 		if (SpawnPoint && SpawnPoint->EnemyClass)
 		{
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-			GetWorld()->SpawnActor<AActor>(
+			AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
 				SpawnPoint->EnemyClass,
 				SpawnPoint->GetActorLocation(),
 				SpawnPoint->GetActorRotation()
 			);
+			if (AMushroomCharacter* Mush = Cast<AMushroomCharacter>(SpawnedActor))
+			{
+				Mush->CombatManager = this;
+			}
 		}
+	}
+}
+
+void ACombatManager::RegisterEnemyDeath()
+{
+	if (!HasAuthority()) return;
+	
+	RemainingEnemies--;
+	if (RemainingEnemies == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("wave2"));
+		Server_StartWave(1);
 	}
 }
 
