@@ -9,11 +9,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Interfaces/IHttpRequest.h"
 
-void UPlayerLoginSystem::Initialize(FSubsystemCollectionBase& Collection)
-{
-	Super::Initialize(Collection);
-	StartLoginProcess(); //har den här här for now men kan kalla det från gameinstance eller nåt senare
-}
+
 
 void UPlayerLoginSystem::StartLoginProcess()
 {
@@ -26,7 +22,8 @@ void UPlayerLoginSystem::StartLoginProcess()
 				FString SteamID = UserId->ToString();
 				PlayerProfile.SteamID = SteamID;
 				UE_LOG(LogTemp, Log, TEXT("Steam ID: %s"), *SteamID);
-				SendCheckPlayerRequest(SteamID);
+				OnUsernameRequired.Broadcast(); // ta bort sen
+				//SendCheckPlayerRequest(SteamID);
 			}
 		}
 	}
@@ -106,6 +103,8 @@ void UPlayerLoginSystem::SendCreatePlayerRequest(const FString& Username)
 	PlayerProfile.Level = 0;
 	PlayerProfile.Gold = 0;
 
+	OnLoginSuccess.Broadcast(); // ta bort sen
+	/*
 	const TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
 	JsonObject->SetStringField(TEXT("steam_id"), PlayerProfile.SteamID);
 	JsonObject->SetStringField(TEXT("username"), PlayerProfile.Username);
@@ -122,6 +121,7 @@ void UPlayerLoginSystem::SendCreatePlayerRequest(const FString& Username)
 	Request->SetContentAsString(RequestBody);
 	Request->OnProcessRequestComplete().BindUObject(this, &UPlayerLoginSystem::OnCreatePlayerResponse);
 	Request->ProcessRequest();
+	*/
 }
 
 void UPlayerLoginSystem::OnCreatePlayerResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful) const

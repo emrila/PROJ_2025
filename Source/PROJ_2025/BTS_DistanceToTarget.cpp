@@ -31,6 +31,8 @@ void UBTS_DistanceToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	if (!Blackboard) return;
 
 	bool AttackIsOnCooldown = Blackboard->GetValueAsBool("AttackIsOnCooldown");
+
+	bool IsOnDifferentZ = Blackboard->GetValueAsBool("IsOnDifferentZ");
 	
 	AActor* TargetActor = Cast<AActor>(Blackboard->GetValueAsObject(GetSelectedBlackboardKey()));
 	if (!TargetActor)
@@ -42,8 +44,8 @@ void UBTS_DistanceToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 	}
 	
 	float Distance = FVector::Dist(AIPawn->GetActorLocation(), TargetActor->GetActorLocation());
-	Blackboard->SetValueAsBool("canAttack", Distance <= AttackRange && !AttackIsOnCooldown);
-	Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = Distance <= AttackRange && !AttackIsOnCooldown;
+	Blackboard->SetValueAsBool("canAttack", Distance <= AttackRange && !AttackIsOnCooldown && !IsOnDifferentZ);
+	Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = Distance <= AttackRange && !AttackIsOnCooldown && !IsOnDifferentZ;
 
 	
 }
