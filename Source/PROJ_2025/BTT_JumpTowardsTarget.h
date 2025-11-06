@@ -20,15 +20,15 @@ class PROJ_2025_API UBTT_JumpTowardsTarget : public UBTTask_BlackboardBase
 public:
 	UBTT_JumpTowardsTarget();
 
+
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 private:
 	bool TestDirection(const FJumpDirection Direction, const FRotator RotationToPlayer, const APawn* Pawn);
-
-	UFUNCTION(NetMulticast, Reliable)
+	
 	void Jump(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength);
-
+	
 	void CheckIfLanded();
 	
 };

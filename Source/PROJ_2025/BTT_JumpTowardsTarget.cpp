@@ -6,11 +6,13 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/Character.h"    
 #include "MushroomAIController.h"
+#include "MushroomCharacter.h"
 
 UBTT_JumpTowardsTarget::UBTT_JumpTowardsTarget()
 {
 	NodeName = "Jump Towards Target";
 }
+
 
 EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
@@ -136,21 +138,16 @@ bool UBTT_JumpTowardsTarget::TestDirection(const FJumpDirection Direction, FRota
 	return bHit;
 }
 
-void UBTT_JumpTowardsTarget::Jump_Implementation(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength)
+
+void UBTT_JumpTowardsTarget::Jump(float Angle, FRotator RotationToPlayer, APawn* Pawn, float JumpStrength, float ForwardStrength)
 {
-	RotationToPlayer.Yaw += Angle;
-
-	FVector JumpDir = RotationToPlayer.Vector().GetSafeNormal();
-
-	Pawn->SetActorRotation(RotationToPlayer);
-
-	ACharacter* Character = Cast<ACharacter>(Pawn);
-	if (Character && Character->GetCharacterMovement())
+	if (Pawn->HasAuthority())
 	{
-		
-		FVector LaunchVelocity = JumpDir * ForwardStrength + FVector(0, 0, JumpStrength);
-
-		Character->LaunchCharacter(LaunchVelocity, true, true);
+		AMushroomCharacter* MushroomChar = Cast<AMushroomCharacter>(Pawn);
+		if (MushroomChar)
+		{
+			MushroomChar->Multicast_Jump(Angle, RotationToPlayer, JumpStrength, ForwardStrength);
+		}
 	}
 }
 
