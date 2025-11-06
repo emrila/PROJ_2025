@@ -13,7 +13,7 @@ UAttackComponent::UAttackComponent()
 
 void UAttackComponent::StartAttack()
 {
-	if (!bCanAttack || !OwnerCharacter || !ProjectileClass)
+	if (!bCanAttack)
 	{
 		return;
 	}
@@ -23,8 +23,12 @@ void UAttackComponent::StartAttack()
 		UE_LOG(LogTemp, Warning, TEXT("AttackComponent, OwnerCharacter or ProjectileClass is NULL!"));
 		return;
 	}
-	
 
+	UE_LOG(LogTemp, Warning, TEXT("StartAttack"));
+
+	bCanAttack = false;
+	
+	PerformAttack();
 
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCoolDownTimerHandle,
@@ -48,6 +52,43 @@ void UAttackComponent::BeginPlay()
 
 void UAttackComponent::Server_SpawnProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
 {
+	if (!OwnerCharacter || !ProjectileClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Server_SpawnProjectile"));
+	UWorld* const World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, World is NULL"));
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = OwnerCharacter;
+	SpawnParameters.Instigator = OwnerCharacter;
+	//SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	World->SpawnActor<AMageProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, SpawnParameters);
+}
+
+void UAttackComponent::PerformAttack()
+{
+	if (!OwnerCharacter || !ProjectileClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("PerformAttack"));
+
+	//TODO: Handle Animation from here?
+
+	FTransform SpawnTransform = GetProjectileTransform();
+
+	Server_SpawnProjectile_Implementation(SpawnTransform.GetLocation(), SpawnTransform.GetRotation().Rotator());
 }
 
 FTransform UAttackComponent::GetProjectileTransform()
@@ -61,17 +102,28 @@ FTransform UAttackComponent::GetProjectileTransform()
 
 		if (MeshComp && MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Socket exists"));
 			SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
 			SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
 		}
-		else
+		else  //Fallback if the socket is not found or does not exist
 		{
-			SpawnLocation = OwnerCharacter->GetActorLocation() + SpawnLocationOffset;
+			SpawnLocation = OwnerCharacter->GetActorLocation();
 			SpawnRotation = OwnerCharacter->GetActorRotation();
+			
+			FVector EyeLocation;
+			FRotator EyeRotation;
+			
+			OwnerCharacter->GetActorEyesViewPoint(EyeLocation, EyeRotation);
+
+			SpawnLocation = EyeLocation + EyeRotation.Vector() * 80.f;
+			SpawnRotation = EyeRotation;
 		}
 	}
 
-	return FTransform();
+	//SpawnLocation += SpawnRotation.RotateVector(SpawnLocationOffset);
+	
+	return FTransform(SpawnRotation, SpawnLocation);
 }
 
 void UAttackComponent::ResetAttackCooldown()
