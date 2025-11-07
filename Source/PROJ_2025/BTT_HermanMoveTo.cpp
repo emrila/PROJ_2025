@@ -1,9 +1,9 @@
 // Furkan approves of this
 
-#include "BehaviorTree/BlackboardComponent.h"
 
 #include "BTT_HermanMoveTo.h"
 
+#include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
