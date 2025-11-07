@@ -20,6 +20,8 @@ public:
 
 	AMageController();
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void Move(const FInputActionValue& Value);
@@ -31,6 +33,7 @@ protected:
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
+	UFUNCTION(NetMulticast, Reliable)
 	virtual void SetupInputComponent() override;
 
 	virtual void DoMove(float Right, float Forward);
@@ -47,7 +50,7 @@ protected:
 	UPROPERTY()
 	UCharacterMovementComponent* MovementComponent;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	ACharacter* ControlledCharacter;
 
 
@@ -71,4 +74,7 @@ protected:
 	//UI
 	UPROPERTY(EditAnywhere, Category="HUD")
 	UUserWidget* HUD;
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void OnPossess(APawn* InPawn) override;
 };

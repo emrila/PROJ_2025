@@ -62,6 +62,11 @@ void AMageCharacter::BeginPlay()
 	
 }
 
+void AMageCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+}
+
 UAttackComponent* AMageCharacter::GetAttackComponent() const
 {
 	if (!AttackComponent)

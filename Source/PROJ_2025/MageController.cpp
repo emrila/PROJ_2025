@@ -9,9 +9,16 @@
 #include "MageCharacter.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 
 AMageController::AMageController()
 {
+}
+
+void AMageController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMageController, ControlledCharacter);
 }
 
 void AMageController::Tick(float DeltaSeconds)
@@ -84,7 +91,7 @@ void AMageController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	MovementComponent = nullptr;
 }
 
-void AMageController::SetupInputComponent()
+void AMageController::SetupInputComponent_Implementation()
 {
 	Super::SetupInputComponent();
 
@@ -134,7 +141,6 @@ void AMageController::DoMove(float Right, float Forward)
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
-
 	ControlledCharacter->AddMovementInput(ForwardDirection, Forward);
 	ControlledCharacter->AddMovementInput(RightDirection, Right);*/
 
@@ -197,3 +203,14 @@ void AMageController::DoShoot()
 
 	MageCharacter->GetAttackComponent()->StartAttack();
 }
+
+void AMageController::OnPossess_Implementation(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	ControlledCharacter = Cast<AMageCharacter>(InPawn);
+	UE_LOG(LogTemp, Error, TEXT("Mawfafw"));
+
+	SetupInputComponent_Implementation();
+	
+}
+
