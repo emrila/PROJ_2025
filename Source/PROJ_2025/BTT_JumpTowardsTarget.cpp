@@ -13,7 +13,6 @@ UBTT_JumpTowardsTarget::UBTT_JumpTowardsTarget()
 	NodeName = "Jump Towards Target";
 }
 
-
 EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	int CurrentIndex = 9;
@@ -55,11 +54,9 @@ EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& 
 	while (CheckedAngle.Num() < 17)
 	{
 		FJumpDirection Direction = MushroomAICon->JumpDirections[CurrentIndex];
-		if (!TestDirection(Direction, RotToPlayer, AIPawn))
+		if (TestDirection(Direction, RotToPlayer, AIPawn))
 		{
-			float Rand = FMath::FRand();
-			UE_LOG(LogTemp, Display, TEXT("Rand: %f"), Rand);
-			UE_LOG(LogTemp, Display, TEXT("ChanceToJump: %f"), Direction.ChanceToStay);
+
 			bool isGonnaJump = FMath::FRand() <= Direction.ChanceToStay;
 			
 			if (isGonnaJump)
@@ -86,6 +83,10 @@ EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& 
 				return EBTNodeResult::Succeeded;
 			}
 			CheckedAngle.Add(LastWorkingAngle);
+			if (CheckedAngle.Num() == 18)
+			{
+				Jump(0.f, RotToPlayer, AIPawn, MushroomAICon->JumpHeight, MushroomAICon->MoveSpeed);
+			}
 			if (Increment)
 			{
 				CurrentIndex++;
@@ -118,7 +119,7 @@ bool UBTT_JumpTowardsTarget::TestDirection(const FJumpDirection Direction, FRota
 
 	FVector NormalizedDir = RotationToPlayer.Vector().GetSafeNormal();
 	
-	FVector Start = Pawn->GetActorLocation() + FVector(0, 0, 100);
+	FVector Start = Pawn->GetActorLocation();
 	FVector End = Start + NormalizedDir * 300.f;
 
 	FHitResult Hit;
@@ -132,10 +133,19 @@ bool UBTT_JumpTowardsTarget::TestDirection(const FJumpDirection Direction, FRota
 		ECC_Visibility,
 		Params
 	);
-	
+	Hit = FHitResult();
 	//DrawDebugLine(Pawn->GetWorld(), Start, End, bHit ? FColor::Red : FColor::Green, false, 1.f, 0, 2.f);
+	bool bIsThereGround = Pawn->GetWorld()->LineTraceSingleByChannel(
+		Hit,
+		End,
+		End-FVector(0, 0, 200),
+		ECC_Visibility,
+		Params
+	);
+	//DrawDebugLine(Pawn->GetWorld(), End, End-FVector(0, 0, 200), bHit ? FColor::Red : FColor::Green, false, 1.f, 0, 2.f);
+
 	
-	return bHit;
+	return !bHit && bIsThereGround;
 }
 
 

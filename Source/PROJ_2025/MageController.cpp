@@ -31,7 +31,12 @@ void AMageController::Move(const FInputActionValue& Value)
 	
 	FVector2D MovementVector = Value.Get<FVector2D>();
 
-	DoMove(MovementVector.X, MovementVector.Y);
+	const FVector Direction = ControlledCharacter->GetActorForwardVector();
+	const FVector RightVector = ControlledCharacter->GetActorRightVector();
+
+	ControlledCharacter->AddMovementInput(Direction, MovementVector.Y);
+	ControlledCharacter->AddMovementInput(RightVector, MovementVector.X);
+	//DoMove(MovementVector.X, MovementVector.Y);
 }
 
 void AMageController::Look(const FInputActionValue& Value)
@@ -130,14 +135,20 @@ void AMageController::DoMove(float Right, float Forward)
 		return;
 	}
 
-	const FRotator Rotation = GetControlRotation();
+	/*const FRotator Rotation = GetControlRotation();
 	const FRotator YawRotation(0, Rotation.Yaw, 0);
 
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 	ControlledCharacter->AddMovementInput(ForwardDirection, Forward);
-	ControlledCharacter->AddMovementInput(RightDirection, Right);
+	ControlledCharacter->AddMovementInput(RightDirection, Right);*/
+
+	const FVector Direction = ControlledCharacter->GetActorForwardVector();
+	const FVector RightVector = ControlledCharacter->GetActorRightVector();
+
+	ControlledCharacter->AddMovementInput(Direction, Forward);
+	ControlledCharacter->AddMovementInput(RightVector, Right);
 		
 }
 

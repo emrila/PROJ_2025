@@ -40,7 +40,6 @@ class PROJ_2025_API UPlayerLoginSystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	UFUNCTION(BlueprintCallable)
 	void StartLoginProcess();
