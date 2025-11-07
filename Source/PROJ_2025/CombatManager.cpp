@@ -3,8 +3,7 @@
 
 #include "CombatManager.h"
 
-#include <ThirdParty/ShaderConductor/ShaderConductor/External/DirectXShaderCompiler/include/dxc/DXIL/DxilConstants.h>
-
+#include "BomberCharacter.h"
 #include "EnemySpawn.h"
 #include "MushroomCharacter.h"
 #include "Net/UnrealNetwork.h"
@@ -48,6 +47,10 @@ void ACombatManager::StartWave_Internal(int index)
 			if (AMushroomCharacter* Mush = Cast<AMushroomCharacter>(SpawnedActor))
 			{
 				Mush->CombatManager = this;
+			}
+			if (ABomberCharacter* Bomber = Cast<ABomberCharacter>(SpawnedActor))
+			{
+				Bomber->CombatManager = this;
 			}
 		}
 	}
