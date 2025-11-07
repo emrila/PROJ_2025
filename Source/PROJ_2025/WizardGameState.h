@@ -28,16 +28,16 @@ public:
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UFUNCTION(BlueprintCallable, NetMulticast, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void DamageHealth(float DamageAmount);
 
-	UFUNCTION(BlueprintCallable, NetMulticast, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void RestoreHealth(float RestoreAmount);
 	
-	UFUNCTION(BlueprintCallable, NetMulticast, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void SetMaxHealth(float HealthAmount);
 
-	UFUNCTION(BlueprintCallable, NetMulticast, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void SetHealth(float HealthAmount);
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)

@@ -5,11 +5,16 @@
 
 #include "VectorUtil.h"
 #include "Blueprint/UserWidget.h"
+#include "Net/UnrealNetwork.h"
 
 
 void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AWizardGameState, Health);
+	DOREPLIFETIME(AWizardGameState, MaxHealth);
+	DOREPLIFETIME(AWizardGameState, HealthPercent);
 }
 
 bool AWizardGameState::SetHealth_Validate(float HealthAmount)
