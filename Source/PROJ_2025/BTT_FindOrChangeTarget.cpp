@@ -14,16 +14,24 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 {
 	AAIController* AICon = OwnerComp.GetAIOwner();
 	if (!AICon)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AIController not found"));
 		return EBTNodeResult::Failed;
+	}
 
 	APawn* AIPawn = AICon->GetPawn();
 	if (!AIPawn)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PAwn not found"));
 		return EBTNodeResult::Failed;
+	}
 
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	if (!Blackboard)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Blackboard not found"));
 		return EBTNodeResult::Failed;
-	
+	}
 	AActor* CurrentTarget = Cast<AActor>(Blackboard->GetValueAsObject(GetSelectedBlackboardKey()));
 	
 	TArray<AActor*> PlayerPawns;
@@ -76,6 +84,7 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 			Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
 			return EBTNodeResult::Succeeded;
 		}
-	
+
+	UE_LOG(LogTemp, Error, TEXT("Players not found"));
 	return EBTNodeResult::Failed; // Här är det lite rip. Den får försöka igen ig
 }
