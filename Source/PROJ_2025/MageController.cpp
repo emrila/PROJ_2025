@@ -208,7 +208,6 @@ void AMageController::OnPossess_Implementation(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 	ControlledCharacter = Cast<AMageCharacter>(InPawn);
-	UE_LOG(LogTemp, Error, TEXT("Mawfafw"));
 
 	SetupInputComponent_Implementation();
 	
