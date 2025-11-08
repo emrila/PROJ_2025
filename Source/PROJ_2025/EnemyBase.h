@@ -30,6 +30,8 @@ protected:
 	float Health;
 
 	virtual void HandleDeath();
+
+	virtual void HandleHit();
 	
 
 };
