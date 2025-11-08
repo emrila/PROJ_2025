@@ -40,11 +40,6 @@ public:
 	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void SetHealth(float HealthAmount);
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TSubclassOf<UUserWidget> GameOverWidgetClass;
-
-	UPROPERTY()
-	UUserWidget* GameOverWidget;
 
 	
 };

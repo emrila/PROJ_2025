@@ -59,14 +59,6 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 	
-	if (Health <= 0 && HealthPercent > 0)
-	{
-		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
-		{
-			GameOverWidget = CreateWidget<UUserWidget>(PC, GameOverWidgetClass);
-			GameOverWidget->AddToViewport();
-		}
-	}
 	HealthPercent = Health/MaxHealth;
 
 	

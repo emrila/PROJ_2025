@@ -44,13 +44,9 @@ void ACombatManager::StartWave_Internal(int index)
 				SpawnPoint->GetActorLocation(),
 				SpawnPoint->GetActorRotation()
 			);
-			if (AMushroomCharacter* Mush = Cast<AMushroomCharacter>(SpawnedActor))
+			if (AEnemyBase* Enemy = Cast<AEnemyBase>(SpawnedActor))
 			{
-				Mush->CombatManager = this;
-			}
-			if (ABomberCharacter* Bomber = Cast<ABomberCharacter>(SpawnedActor))
-			{
-				Bomber->CombatManager = this;
+				Enemy->CombatManager = this;
 			}
 		}
 	}
