@@ -5,10 +5,8 @@
 
 #include "Net/UnrealNetwork.h"
 
-// Sets default values
 AMushroomCharacter::AMushroomCharacter()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 }
@@ -19,7 +17,13 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 
 	DOREPLIFETIME(AMushroomCharacter, AttackIsOnCooldown);
 	DOREPLIFETIME(AMushroomCharacter, bIsAttacking);
-	DOREPLIFETIME(AMushroomCharacter, Health);
+	DOREPLIFETIME(AMushroomCharacter, bIsRunning);
+}
+
+void AMushroomCharacter::HandleHit()
+{
+	Super::HandleHit();
+	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
 }
 
 void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength)
@@ -32,41 +36,7 @@ void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator Rot
 	LaunchCharacter(LaunchVelocity, true, true);
 }
 
-// Called when the game starts or when spawned
-void AMushroomCharacter::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
 
-// Called every frame
-void AMushroomCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 
-}
 
-// Called to bind functionality to input
-void AMushroomCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
-
-float AMushroomCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
-	class AController* EventInstigator, AActor* DamageCauser)
-{
-	Health -= DamageAmount;
-	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
-	if (Health <= 0)
-	{
-		if (CombatManager && CombatManager->HasAuthority())
-		{
-			CombatManager->RegisterEnemyDeath();
-			UE_LOG(LogTemp, Log, TEXT("Combat Death!"));
-		}
-		Destroy();
-	}
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-}
 
