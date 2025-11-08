@@ -28,4 +28,6 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool bIsRunning = false;
 
+	virtual void HandleHit() override;
+
 };

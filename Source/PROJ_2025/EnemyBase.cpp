@@ -18,7 +18,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 	class AController* EventInstigator, AActor* DamageCauser)
 {
 	Health -= DamageAmount;
-	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
+	HandleHit();
 	if (Health <= 0)
 	{
 		HandleDeath();
@@ -44,6 +44,13 @@ void AEnemyBase::HandleDeath()
 
 	Destroy();
 }
+
+void AEnemyBase::HandleHit()
+{
+	//idk
+}
+
+
 
 
 

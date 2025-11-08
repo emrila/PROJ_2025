@@ -20,6 +20,12 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME(AMushroomCharacter, bIsRunning);
 }
 
+void AMushroomCharacter::HandleHit()
+{
+	Super::HandleHit();
+	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
+}
+
 void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength)
 {
 	RotationToPlayer.Yaw += Angle;
