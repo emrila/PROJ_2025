@@ -59,7 +59,7 @@ EBTNodeResult::Type UBTT_BomberAttack::ExecuteTask(UBehaviorTreeComponent& Owner
 	if (Character && Character->GetCharacterMovement())
 	{
 		
-		FVector LaunchVelocity = JumpDir * BomberAICon->MoveSpeed*2.8 + FVector(0, 0, BomberAICon->JumpHeight*1.5);
+		FVector LaunchVelocity = JumpDir * BomberAICon->MoveSpeed*3.1 + FVector(0, 0, BomberAICon->JumpHeight*1.5);
 
 		Character->LaunchCharacter(LaunchVelocity, true, true);
 	}
