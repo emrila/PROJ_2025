@@ -12,7 +12,7 @@ APlayerCharacterBase::APlayerCharacterBase()
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Use controller desired yaw rotation so the character rotates with mouse input
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 
 	//Adjusting rotation rates, can be changed in the editor to suit gameplay
 	GetCharacterMovement()->RotationRate = FRotator(250.f, 250.0f, 250.0f);
