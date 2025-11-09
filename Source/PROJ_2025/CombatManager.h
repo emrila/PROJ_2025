@@ -38,12 +38,13 @@ public:
 
 	void RegisterEnemyDeath();
 protected:
+	virtual void BeginPlay() override;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
+	UPROPERTY()
 	TArray<FCombatWave> Waves;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)

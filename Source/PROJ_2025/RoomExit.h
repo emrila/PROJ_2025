@@ -20,7 +20,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 
-	UPROPERTY(ReplicatedUsing=OnRep_LinkedRoomData)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LinkedRoomData)
 	URoomData* LinkedRoomData;
 
 	UFUNCTION()

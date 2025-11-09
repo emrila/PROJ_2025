@@ -15,7 +15,6 @@ void AMushroomAIController::StartAttackCooldown()
 	{
 		Cast<AMushroomCharacter>(GetPawn())->AttackIsOnCooldown = true;
 		Blackboard->SetValueAsBool("AttackIsOnCooldown", true);
-		UE_LOG(LogTemp, Warning, TEXT("ATTACK COOLDOWN"));
 	}
 
 	GetWorldTimerManager().SetTimer(

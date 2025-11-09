@@ -4,6 +4,7 @@
 #include "RoomManagerBase.h"
 
 #include "WizardGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 ARoomManagerBase::ARoomManagerBase()
 {
@@ -17,24 +18,42 @@ void ARoomManagerBase::BeginPlay()
 
 	if (!HasAuthority()) return;
 
-	// Example: Get your custom GameInstance for persistence
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
 
-	// Example pool of all possible room data assets (could come from GI or DataTable)
 	TArray<URoomData*> AllRooms = GI->GetAllRoomData();
 
-	// Shuffle or filter rooms based on logic
-	TArray<URoomData*> ChosenRooms;
-	const int32 NumChoices = FMath::Min(RoomExits.Num(), AllRooms.Num());
+	TArray<AActor*> FoundExits;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
-	for (int32 i = 0; i < NumChoices; ++i)
+	TArray<ARoomExit*> RoomExits;
+	for (AActor* Actor : FoundExits)
+	{
+		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
+		{
+			RoomExits.Add(Exit);
+		}
+	}
+	TArray<URoomData*> ChosenRooms;
+
+	for (int32 i = 0; i < AllRooms.Num(); i++)
+	{
+		URoomData* RandomRoom = AllRooms[i];
+		UE_LOG(LogTemp, Display, TEXT("ROOM: %s"), *RandomRoom->GetName());
+	}
+	if (GI->CurrentRoom != nullptr)
+	{
+		AllRooms.Remove(GI->CurrentRoom);
+	}
+	
+	
+	for (int32 i = 0; i < RoomExits.Num(); i++)
 	{
 		URoomData* RandomRoom = AllRooms[FMath::RandRange(0, AllRooms.Num() - 1)];
+		AllRooms.Remove(RandomRoom);
 		ChosenRooms.Add(RandomRoom);
 	}
 
-	// Assign each exit one of the chosen rooms
 	for (int32 i = 0; i < RoomExits.Num(); ++i)
 	{
 		if (!RoomExits[i]) continue;
@@ -44,7 +63,6 @@ void ARoomManagerBase::BeginPlay()
 
 		if (RoomData)
 		{
-			// Call blueprint event to update visuals/icons
 			RoomExits[i]->OnRoomLinked();
 		}
 	}

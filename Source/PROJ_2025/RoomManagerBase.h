@@ -38,9 +38,6 @@ class PROJ_2025_API ARoomManagerBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ARoomManagerBase();
-	
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite)
-	TArray<ARoomExit*> RoomExits;
 
 protected:
 	// Called when the game starts or when spawned
