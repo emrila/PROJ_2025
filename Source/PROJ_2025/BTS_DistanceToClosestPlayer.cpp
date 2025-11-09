@@ -16,21 +16,18 @@ void UBTS_DistanceToClosestPlayer::TickNode(UBehaviorTreeComponent& OwnerComp, u
 	AAIController* AICon = OwnerComp.GetAIOwner();
 	if (!AICon)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AIController not found"));
 		return;
 	}
 
 	APawn* AIPawn = AICon->GetPawn();
 	if (!AIPawn)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Pawn not found"));
 		return;
 	}
 
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	if (!Blackboard)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Blackboard not found"));
 		return;
 	}
 

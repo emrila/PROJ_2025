@@ -6,6 +6,7 @@
 #include "BomberCharacter.h"
 #include "EnemySpawn.h"
 #include "MushroomCharacter.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 void ACombatManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -64,7 +65,34 @@ void ACombatManager::RegisterEnemyDeath()
 	}
 }
 
-// Called every frame
+void ACombatManager::BeginPlay()
+{
+	Super::BeginPlay();
+	TArray<AActor*> FoundSpawns;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemySpawn::StaticClass(), FoundSpawns);
+
+	TMap<int32, TArray<AEnemySpawn*>> WaveMap;
+
+	for (AActor* Actor : FoundSpawns)
+	{
+		if (AEnemySpawn* Spawn = Cast<AEnemySpawn>(Actor))
+		{
+			WaveMap.FindOrAdd(Spawn->WaveNumber).Add(Spawn);
+		}
+	}
+
+	WaveMap.KeySort([](int32 A, int32 B) { return A < B; });
+
+	for (auto& Pair : WaveMap)
+	{
+		FCombatWave Wave;
+		Wave.Enemies = Pair.Value;
+		Waves.Add(Wave);
+
+		UE_LOG(LogTemp, Display, TEXT("Wave %d has %d spawns"), Pair.Key, Pair.Value.Num());
+	}
+}
+
 void ACombatManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
