@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UpgradeDisplayData.h"
+#include "../../Core/UpgradeDisplayData.h"
 #include "Blueprint/UserWidget.h"
 #include "UpgradeAlternativeWidget.generated.h"
 
@@ -15,5 +15,10 @@ class UPGRADE_API UUpgradeAlternativeWidget : public UUserWidget
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnSetUpgradeDisplayData(const FUpgradeDisplayData& Data);
-	void OnSetUpgradeDisplayData_Implementation(const FUpgradeDisplayData& Data){};
+	void OnSetUpgradeDisplayData_Implementation(const FUpgradeDisplayData& Data){}
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnUpgradeSelected(bool bIsSelected);
+	void OnUpgradeSelected_Implementation(bool bIsSelected){}
+
 };
