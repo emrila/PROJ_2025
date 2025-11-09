@@ -21,11 +21,21 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_ShootProjectile(FVector SpawnLocation, FRotator SpawnRotation);
 
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnSpikeExplosion(FVector SpawnLocation, FRotator SpawnRotation);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> SpikeExplosionClass;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	bool bIsBurrowing;
 	
 protected:
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaSeconds) override;
 	
 };
