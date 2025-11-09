@@ -1,5 +1,6 @@
 ﻿#include "PlayerCharacterMage.h"
 #include "Player/Components/AttackComponentBase.h"
+#include "Player/Components/MageFirstAttackComp.h"
 
 DEFINE_LOG_CATEGORY(MageLog);
 
@@ -16,6 +17,8 @@ void APlayerCharacterMage::Tick(float DeltaTime)
 void APlayerCharacterMage::BeginPlay()
 {
 	Super::BeginPlay();
+
+	FirstAttackComponent = FindComponentByClass<UMageFirstAttackComp>();
 	
 }
 

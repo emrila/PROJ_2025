@@ -1,6 +1,7 @@
 ﻿#include "MageFirstAttackComp.h"
 #include "MageProjectile.h"
 #include "GameFramework/Character.h"
+#include "Player/Characters/PlayerCharacterMage.h"
 
 
 UMageFirstAttackComp::UMageFirstAttackComp()
@@ -29,20 +30,20 @@ void UMageFirstAttackComp::BeginPlay()
 void UMageFirstAttackComp::PerformAttack()
 {
 	//Super::PerformAttack();
-	//const FTransform SpawnTransform = GetProjectileTransform();
+	//const FVector SpawnLocation = GetProjectileSpawnLocation();
 
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, PerformAttack, OwnerCharacter is NULL!"));
 		return;
 	}
-
-	const FVector SpawnLocation = GetProjectileSpawnLocation();
 	
-	Server_SpawnProjectile(SpawnLocation);
+	const FTransform SpawnTransform = GetProjectileTransform();
+	
+	Server_SpawnProjectile(SpawnTransform);
 }
 
-void UMageFirstAttackComp::Server_SpawnProjectile_Implementation(const FVector SpawnLocation)
+void UMageFirstAttackComp::Server_SpawnProjectile_Implementation(const FTransform SpawnTransform)
 {
 	if (!OwnerCharacter || !ProjectileClass)
 	{
@@ -59,30 +60,28 @@ void UMageFirstAttackComp::Server_SpawnProjectile_Implementation(const FVector S
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
 	
-	GetWorld()->SpawnActor<AMageProjectile>(ProjectileClass, SpawnLocation, OwnerCharacter->GetControlRotation(), SpawnParameters);
+	GetWorld()->SpawnActor<AMageProjectile>(ProjectileClass, SpawnTransform, SpawnParameters);
 }
 
 FTransform UMageFirstAttackComp::GetProjectileTransform()
 {
 	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileTransform, OwnerCharacter is NULL!"));
+		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnTransform, OwnerCharacter is NULL!"));
+		return FTransform::Identity;
+	}
+
+	const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
+
+	if (!MeshComp || !MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
+	{
+		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnTransform, MeshComp is NULL or Socket does not exist!"));
 		return FTransform::Identity;
 	}
 	
-	FVector SpawnLocation;
-	FRotator SpawnRotation;
-
-	if (
-		const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
-		MeshComp && MeshComp->DoesSocketExist(ProjectileSpawnSocketName)
-		)
-	{
-		SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
-		SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
-	}
-
-	SpawnLocation += SpawnRotation.RotateVector(SpawnLocationOffset);
+	FVector SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
+	//FRotator SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
+	FRotator SpawnRotation = OwnerCharacter->GetActorForwardVector().Rotation();
 	
 	return FTransform(SpawnRotation, SpawnLocation);
 }

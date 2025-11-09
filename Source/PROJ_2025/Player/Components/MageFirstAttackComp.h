@@ -22,7 +22,7 @@ protected:
 	virtual void PerformAttack() override;
 
 	UFUNCTION(Server, Reliable)
-	virtual void Server_SpawnProjectile(const FVector SpawnLocation);
+	virtual void Server_SpawnProjectile(const FTransform SpawnTransform);
 
 	virtual FTransform GetProjectileTransform();
 
