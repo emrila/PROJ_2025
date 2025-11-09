@@ -2,7 +2,7 @@
 
 #include "MageCharacter.h"
 
-#include "AttackComponent.h"
+#include "Player/Components/AttackComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"

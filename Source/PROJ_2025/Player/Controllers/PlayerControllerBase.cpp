@@ -1,7 +1,7 @@
 ﻿#include "PlayerControllerBase.h"
 
 #include "EnhancedInputSubsystems.h"
-#include "PlayerCharacterBase.h"
+#include "../Characters/PlayerCharacterBase.h"
 #include "Net/UnrealNetwork.h"
 
 APlayerControllerBase::APlayerControllerBase()

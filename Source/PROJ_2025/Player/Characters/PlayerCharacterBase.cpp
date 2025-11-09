@@ -94,3 +94,8 @@ UAttackComponent* APlayerCharacterBase::GetFirstAttackComponent() const
 	return FirstAttackComponent;
 }
 
+UAttackComponent* APlayerCharacterBase::GetSecondAttackComponent() const
+{
+	return SecondAttackComponent;
+}
+

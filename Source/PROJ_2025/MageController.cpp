@@ -2,7 +2,7 @@
 
 #include "MageController.h"
 
-#include "AttackComponent.h"
+#include "Player/Components/AttackComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"

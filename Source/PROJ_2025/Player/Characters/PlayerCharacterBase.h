@@ -36,6 +36,8 @@ public:
 
 	UAttackComponent* GetFirstAttackComponent() const;
 
+	UAttackComponent* GetSecondAttackComponent() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -62,6 +64,9 @@ protected:
 
 	UPROPERTY()
 	UAttackComponent* FirstAttackComponent;
+
+	UPROPERTY()
+	UAttackComponent* SecondAttackComponent;
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
