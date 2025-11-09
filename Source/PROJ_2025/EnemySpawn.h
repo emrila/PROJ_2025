@@ -18,16 +18,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawn")
 	TSubclassOf<AActor> EnemyClass;
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Spawn")
+	int WaveNumber;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Editor")
 	USkeletalMeshComponent* PreviewMesh;
 
 protected:
-	// Editor-only visual components
+
 #if WITH_EDITORONLY_DATA
-	// Shows the enemy mesh
 
 
-	// Always-visible box
+
 	UPROPERTY(VisibleAnywhere, Category="Editor")
 	UBoxComponent* SpawnBox;
 #endif
