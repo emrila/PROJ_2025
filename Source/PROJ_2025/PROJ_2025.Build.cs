@@ -25,7 +25,8 @@ public class PROJ_2025 : ModuleRules
 			"HTTP",
 			"OnlineSubsystem",
 			"OnlineSubsystemUtils",
-			"UMG"
+			"UMG",
+			"NavigationSystem"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { });
