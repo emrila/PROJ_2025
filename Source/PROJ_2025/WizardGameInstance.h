@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "RoomManagerBase.h"
 #include "WizardGameInstance.generated.h"
 
 /**
@@ -13,5 +14,9 @@ UCLASS()
 class PROJ_2025_API UWizardGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
+public:
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	TArray<URoomData*> GetAllRoomData() const;
 	
 };
