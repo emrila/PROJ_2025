@@ -2,6 +2,7 @@
 
 #include "EnhancedInputSubsystems.h"
 #include "../Characters/PlayerCharacterBase.h"
+#include "Blueprint/UserWidget.h"
 #include "Net/UnrealNetwork.h"
 
 APlayerControllerBase::APlayerControllerBase()
@@ -27,6 +28,11 @@ void APlayerControllerBase::BeginPlay()
 	if (!ControlledPlayer)
 	{
 		ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
+	}
+
+	if (HealthBarWidget)
+	{
+		HealthBarWidget->AddToViewport();
 	}
 }
 
