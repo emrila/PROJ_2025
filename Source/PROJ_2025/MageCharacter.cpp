@@ -2,7 +2,7 @@
 
 #include "MageCharacter.h"
 
-#include "Player/Components/AttackComponent.h"
+#include "Player/Components/AttackComponentBase.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -53,7 +53,7 @@ void AMageCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AttackComponent = FindComponentByClass<UAttackComponent>();
+	AttackComponent = FindComponentByClass<UAttackComponentBase>();
 
 	if (!AttackComponent)
 	{
@@ -67,7 +67,7 @@ void AMageCharacter::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 }
 
-UAttackComponent* AMageCharacter::GetAttackComponent() const
+UAttackComponentBase* AMageCharacter::GetAttackComponent() const
 {
 	if (!AttackComponent)
 	{

@@ -7,6 +7,8 @@
 #include "GameFramework/SpringArmComponent.h"
 
 
+DEFINE_LOG_CATEGORY(PlayerBaseLog);
+
 APlayerCharacterBase::APlayerCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -63,6 +65,16 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
+void APlayerCharacterBase::UseFirstAttackComponent()
+{
+	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseFirstAttackComponent called"));
+}
+
+void APlayerCharacterBase::UseSecondAttackComponent()
+{
+	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseSecondAttackComponent called"));
+}
+
 void APlayerCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -85,16 +97,20 @@ void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(class UInput
 		EnhancedInputComponent->BindAction(
 			MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
 
-		//EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AMageController::DoShoot);
+		EnhancedInputComponent->BindAction(
+			FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
+
+		EnhancedInputComponent->BindAction(
+			SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
 	}
 }
 
-UAttackComponent* APlayerCharacterBase::GetFirstAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetFirstAttackComponent() const
 {
 	return FirstAttackComponent;
 }
 
-UAttackComponent* APlayerCharacterBase::GetSecondAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetSecondAttackComponent() const
 {
 	return SecondAttackComponent;
 }

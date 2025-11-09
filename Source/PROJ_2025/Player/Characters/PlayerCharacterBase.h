@@ -8,7 +8,7 @@
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
-class UAttackComponent;
+class UAttackComponentBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
@@ -34,9 +34,9 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UAttackComponent* GetFirstAttackComponent() const;
+	UAttackComponentBase* GetFirstAttackComponent() const;
 
-	UAttackComponent* GetSecondAttackComponent() const;
+	UAttackComponentBase* GetSecondAttackComponent() const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,8 +50,9 @@ protected:
 
 	virtual void Look(const FInputActionValue& Value);
 
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
-	UInputMappingContext* PlayerBaseMappingContext;*/
+	virtual void UseFirstAttackComponent();
+
+	virtual void UseSecondAttackComponent();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	UInputAction* MoveAction;
@@ -62,11 +63,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	UInputAction* JumpAction;
 
-	UPROPERTY()
-	UAttackComponent* FirstAttackComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UInputAction* FirstAttackAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UInputAction* SecondAttackAction;
 
 	UPROPERTY()
-	UAttackComponent* SecondAttackComponent;
+	UAttackComponentBase* FirstAttackComponent;
+
+	UPROPERTY()
+	UAttackComponentBase* SecondAttackComponent;
 
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 

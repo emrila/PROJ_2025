@@ -7,7 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "MageCharacter.generated.h"
 
-class UAttackComponent;
+class UAttackComponentBase;
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
@@ -31,13 +31,13 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-	UAttackComponent* GetAttackComponent() const;
+	UAttackComponentBase* GetAttackComponent() const;
 
 protected:
 	virtual void BeginPlay() override;
 
 	UPROPERTY()
-	UAttackComponent* AttackComponent;
+	UAttackComponentBase* AttackComponent;
 
 	//virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
