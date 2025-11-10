@@ -32,6 +32,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = true;
+
+	Tags.Add(TEXT("Player"));
 }
 
 void APlayerCharacterBase::BeginPlay()

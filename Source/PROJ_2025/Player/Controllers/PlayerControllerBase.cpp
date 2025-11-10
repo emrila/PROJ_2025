@@ -34,6 +34,11 @@ void APlayerControllerBase::BeginPlay()
 	{
 		HealthBarWidget->AddToViewport();
 	}
+
+	if (HudWidget)
+	{
+		HudWidget->AddToViewport();
+	}
 }
 
 void APlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
