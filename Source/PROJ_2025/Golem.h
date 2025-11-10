@@ -19,7 +19,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float RageBuildup = 0;
 
-	float Health = 500;
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool Charging;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -33,5 +34,9 @@ public:
 	bool bIsRunning = false;
 
 	virtual void HandleHit() override;
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	
 	
 };
