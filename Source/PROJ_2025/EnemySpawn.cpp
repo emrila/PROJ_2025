@@ -22,7 +22,7 @@ AEnemySpawn::AEnemySpawn()
 	SpawnBox->bHiddenInGame = true; 
 	SpawnBox->SetMobility(EComponentMobility::Movable);
 
-	SpawnBox->ShapeColor = FColor::Red;  // Red color
+	SpawnBox->ShapeColor = FColor::Red;  
 	SpawnBox->SetLineThickness(10.0f);
 
 #endif

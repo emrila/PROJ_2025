@@ -63,7 +63,6 @@ EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& 
 			{
 				//Jump to current
 				Jump(Direction.Angle, RotToPlayer, AIPawn, MushroomAICon->JumpHeight, MushroomAICon->MoveSpeed);
-				UE_LOG(LogTemp, Warning, TEXT("Jumping"));
 				return EBTNodeResult::Succeeded;
 			}
 			LastWorkingAngle = Direction.Angle;
@@ -79,7 +78,6 @@ EBTNodeResult::Type UBTT_JumpTowardsTarget::ExecuteTask(UBehaviorTreeComponent& 
 			if (LastWorkingAngle != 180.f)
 			{
 				Jump(LastWorkingAngle, RotToPlayer, AIPawn, MushroomAICon->JumpHeight, MushroomAICon->MoveSpeed);
-				UE_LOG(LogTemp, Warning, TEXT("Jumping"));
 				return EBTNodeResult::Succeeded;
 			}
 			CheckedAngle.Add(LastWorkingAngle);

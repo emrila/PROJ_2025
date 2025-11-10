@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RoomManagerBase.h"
 #include "GameFramework/Actor.h"
 #include "CombatManager.generated.h"
 
@@ -19,7 +20,7 @@ struct FCombatWave
 	TArray<AEnemySpawn*> Enemies;
 };
 UCLASS()
-class PROJ_2025_API ACombatManager : public AActor
+class PROJ_2025_API ACombatManager : public ARoomManagerBase
 {
 	GENERATED_BODY()
 	
@@ -37,12 +38,13 @@ public:
 
 	void RegisterEnemyDeath();
 protected:
+	virtual void BeginPlay() override;
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
+	UPROPERTY()
 	TArray<FCombatWave> Waves;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
