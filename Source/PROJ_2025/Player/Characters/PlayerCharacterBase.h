@@ -2,9 +2,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UWidgetComponent;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -32,7 +34,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UAttackComponentBase* GetFirstAttackComponent() const;
 
@@ -46,12 +48,7 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 
 	UFUNCTION(BlueprintCallable)
-	virtual float TakeDamage(
-		float DamageAmount,
-		struct FDamageEvent const& DamageEvent,
-		class AController* EventInstigator,
-		AActor* DamageCauser
-		) override;
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	
 	//Input
 	virtual void Move(const FInputActionValue& Value);
@@ -83,8 +80,34 @@ protected:
 	UPROPERTY()
 	UAttackComponentBase* SecondAttackComponent;
 
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UWidgetComponent> PlayerNameWidgetComponent;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_CustomPlayerName, BlueprintReadWrite, meta=(AllowPrivateAccess=true))
+	FName CustomPlayerName = NAME_None;
+
+	UFUNCTION()
+	void OnRep_CustomPlayerName();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SetCustomPlayerName(const FName& InPlayerName);
+
+	void SetCustomPlayerNameLocal();
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 };
+
+UCLASS()
+class PROJ_2025_API UPlayerNameWidget : public UUserWidget
+{
+	GENERATED_BODY()
+	
+public:
+	UFUNCTION(BlueprintImplementableEvent)
+	void SetPlayerName(const FName& InPlayerName);
+};
+	
