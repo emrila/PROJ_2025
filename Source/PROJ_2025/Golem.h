@@ -16,6 +16,7 @@ class PROJ_2025_API AGolem : public AEnemyBase
 public:
 	AGolem();
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
 	float RageBuildup = 0;
 
 	float Health = 500;
