@@ -11,6 +11,10 @@ UMageFirstAttackComp::UMageFirstAttackComp()
 
 void UMageFirstAttackComp::StartAttack()
 {
+	if (!bCanAttack)
+	{
+		return;
+	}
 	Super::StartAttack();
 	
 	if (!ProjectileClass)
@@ -71,19 +75,58 @@ FTransform UMageFirstAttackComp::GetProjectileTransform()
 		return FTransform::Identity;
 	}
 
-	const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
+	/*const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
 
 	if (!MeshComp || !MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
 	{
 		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnTransform, MeshComp is NULL or Socket does not exist!"));
 		return FTransform::Identity;
-	}
+	}*/
 	
-	FVector SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
+	//FVector SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
 	//FRotator SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
-	FRotator SpawnRotation = OwnerCharacter->GetActorForwardVector().Rotation();
+	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
+	const FVector OwnerForwardVector = OwnerCharacter->GetActorForwardVector();
+	const FVector OwnerCharacterRightVector = OwnerCharacter->GetActorRightVector();
+	FVector SpawnLocation = (OwnerLocation + OwnerCharacterRightVector * 80) + OwnerForwardVector ;
+	FRotator SpawnRotation = GetProjectileSpawnRotation();
 	
 	return FTransform(SpawnRotation, SpawnLocation);
+}
+
+FRotator UMageFirstAttackComp::GetProjectileSpawnRotation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, OwnerCharacter is NULL"));
+		return FRotator::ZeroRotator;
+	}
+
+	APlayerController* PlayerController = OwnerCharacter->GetLocalViewingPlayerController();
+
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, PlayerController is NULL"));
+		return FRotator::ZeroRotator;
+	}
+
+	int32 ViewPortX, ViewPortY;
+
+	PlayerController->GetViewportSize(ViewPortX, ViewPortY);
+
+	FVector2D ScreenCenter(ViewPortX / 2, ViewPortY / 2);
+
+	FVector WorldLocation, WorldDirection;
+
+	if (PlayerController->DeprojectScreenPositionToWorld(
+		ScreenCenter.X, ScreenCenter.Y, WorldLocation, WorldDirection))
+	{
+		return WorldDirection.Rotation();
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, Unable to get screen center rotation"));
+
+	return FRotator::ZeroRotator;
 }
 
 FVector UMageFirstAttackComp::GetProjectileSpawnLocation()

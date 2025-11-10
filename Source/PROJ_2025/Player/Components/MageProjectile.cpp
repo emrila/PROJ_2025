@@ -46,6 +46,11 @@ void AMageProjectile::OnProjectileOverlap(
 	const FHitResult& SweepResult
 	)
 {
+	if (OtherActor->ActorHasTag(TEXT("Player")))
+	{
+		UE_LOG(LogTemp, Display, TEXT("AMageProjectile Overlap with Player"));
+		return;
+	}
 	if (OtherActor)
 	{
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
