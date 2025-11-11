@@ -2,9 +2,12 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
+#include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 
 DEFINE_LOG_CATEGORY(PlayerBaseLog);
@@ -29,6 +32,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = true;
+
+	Tags.Add(TEXT("Player"));
 }
 
 void APlayerCharacterBase::BeginPlay()
@@ -46,6 +51,19 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 }
 
+float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
+{
+	AWizardGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AWizardGameState>() : nullptr;
+	if (GameState)
+	{
+		GameState->DamageHealth(DamageAmount);
+		return DamageAmount;
+	}
+	
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+}
+
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -55,6 +73,9 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 	AddMovementInput(Direction, MovementVector.Y);
 	AddMovementInput(RightVector, MovementVector.X);
+
+	//FDamageEvent DamageEvent;
+	//TakeDamage(5.0f, DamageEvent, GetController(), this); // For testing damage
 }
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)

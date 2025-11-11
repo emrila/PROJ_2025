@@ -35,5 +35,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	UInputMappingContext* PlayerBaseMappingContext;
+
+
+	//UI
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="HealthBar")
+	UUserWidget* HealthBarWidget;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hud")
+	UUserWidget* HudWidget;
 };
