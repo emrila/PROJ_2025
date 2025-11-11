@@ -21,7 +21,10 @@ namespace UpgradeCheck
 
 	bool IsValidProperty(const FProperty* Property)
 	{
-		return Property && Property->IsA<FFloatProperty>();
+		return Property && (
+			Property->IsA<FFloatProperty>() ||
+			Property->IsA<FIntProperty>()
+		);
 	}
 
 	FFloatProperty* GetFloatProperty(float& OutValue, FProperty* Property, const UObject* Owner)
@@ -35,12 +38,14 @@ namespace UpgradeCheck
 		OutValue = FloatProp->GetPropertyValue_InContainer(Owner);
 		return FloatProp;
 	}
+	
 	void GetFloatValue(float& OutValue, FProperty* Property, const UObject* Owner)
 	{
 		const FFloatProperty* FloatProp = CastFieldChecked<FFloatProperty>(Property);
 		OutValue = FloatProp->GetPropertyValue_InContainer(Owner);
 	}
-	void SetFloatValue(float InValue, FProperty* Property, UObject* Owner)
+	
+	void SetFloatValue(const float InValue, FProperty* Property, UObject* Owner)
 	{
 		if (!IsValidProperty(Property))
 		{
@@ -97,7 +102,7 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 	FProperty* Prop = UpgradeCheck::GetProperty(Owner, PropertyName);
 	if (!UpgradeCheck::IsValidProperty(Prop))
 	{
-		UPGRADE_ERROR(TEXT("%hs: Property %s is invalid on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeCheck::GetClassNameKey(Owner));
+		UPGRADE_ERROR(TEXT("%hs: Property %s is invalid on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeCheck::GetClassNameKey(Owner));		
 		return;
 	}
 
@@ -115,10 +120,13 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		return;
 	}
 
+	// ---------FLOAT SPECIFIC
 	float InitialValue = 0.f;
 	UpgradeCheck::GetFloatValue(InitialValue, Prop, Owner);
+	//----------------------------------
 	TUniquePtr<FAttributeData> NewAttribute = MakeUnique<FAttributeData>(Owner, Prop, RowName, InitialValue);
 	FAttributeData* NewAttributeRaw = NewAttribute.Get();
+	
 	NewAttributeRaw->OnAttributeModified.AddLambda([NewAttributeRaw, UpgradeData]
 	{
 		if (!NewAttributeRaw->Owner.IsValid())
@@ -129,19 +137,19 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 
 		if (UpgradeData->MaxNumberOfUpgrades <= NewAttributeRaw->CurrentUpgradeLevel && UpgradeData->MaxNumberOfUpgrades != -1)
 		{
-			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__,
-				*UpgradeCheck::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
+			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeCheck::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
 		NewAttributeRaw->CurrentUpgradeLevel++;
 
+		// ---------FLOAT SPECIFIC
 		float Current = 0.f;
 		UpgradeCheck::GetFloatValue(Current, NewAttributeRaw->Property, NewAttributeRaw->Owner.Get());
 		Current += NewAttributeRaw->InitialValue * UpgradeData->Multiplier;
 		UpgradeCheck::SetFloatValue(Current, NewAttributeRaw->Property, NewAttributeRaw->Owner.Get());
+		//----------------------------------
 
-		UPGRADE_DISPLAY(TEXT("%hs: Upgraded attribute %s to level %d. New value: %f"), __FUNCTION__,
-			*UpgradeCheck::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel, Current);
+		UPGRADE_DISPLAY(TEXT("%hs: Upgraded attribute %s to level %d. New value: %f"), __FUNCTION__, *UpgradeCheck::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel, Current);
 	});
 
 	// Lägg till i alla listor/loop-ups
@@ -161,7 +169,6 @@ void UUpgradeSubsystem::BindDependentAttribute(UObject* Owner, const FName Prope
 	{
 		return;
 	}
-
 	FProperty* Prop = UpgradeCheck::GetProperty(Owner, PropertyName);
 	if (!UpgradeCheck::IsValidProperty(Prop))
 	{
@@ -194,20 +201,25 @@ void UUpgradeSubsystem::BindDependentAttribute(UObject* Owner, const FName Prope
 		{
 			return;
 		}
+
+		// ---------FLOAT SPECIFIC
 		float Current = 0.f;
 		UpgradeCheck::GetFloatValue(Current, DependentAttributeRaw->Property, DepOwner);
 		if (DependentAttributeRaw->bOverrideOnModified)
 		{
+			// ---------FLOAT SPECIFIC
 			float TargetsCurrent =	0.f;
 			UpgradeCheck::GetFloatValue(TargetsCurrent, TargetAttribute->Property, TaOwner);
 			Current = TargetsCurrent;
 		}
 		else
 		{
+			// ---------FLOAT SPECIFIC
 			Current += TargetAttribute->InitialValue * UpgradeData->Multiplier;
 		}
-
+		// ---------FLOAT SPECIFIC
 		UpgradeCheck::SetFloatValue(Current, DependentAttributeRaw->Property, DepOwner);
+		//----------------------------------
 	});
 
 	RegisteredDependentAttributes.Add(MoveTemp(NewDependentAttribute));
