@@ -20,5 +20,9 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnUpgradeSelected(bool bIsSelected);
 	void OnUpgradeSelected_Implementation(bool bIsSelected){}
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnAlternativeStatusChanged(EUpgradeSelectionStatus Status);
+	void OnAlternativeStatusChanged_Implementation(EUpgradeSelectionStatus Status){}
 
 };
