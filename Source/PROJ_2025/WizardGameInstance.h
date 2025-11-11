@@ -7,6 +7,7 @@
 #include "RoomManagerBase.h"
 #include "WizardGameInstance.generated.h"
 
+
 /**
  * 
  */
@@ -19,7 +20,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	TArray<URoomData*> GetAllRoomData() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	URoomData* CurrentRoom = nullptr;
-	
+	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
+	class ARoomLoader* RoomLoader = nullptr;
+
 };
