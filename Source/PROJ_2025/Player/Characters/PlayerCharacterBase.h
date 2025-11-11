@@ -38,6 +38,10 @@ public:
 
 	UAttackComponentBase* GetSecondAttackComponent() const;
 
+	FVector GetRightHandSocketLocation() const;
+
+	FVector GetLeftHandSocketLocation() const;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -77,14 +81,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	UInputAction* SecondAttackAction;
 
-	UPROPERTY()
-	UAttackComponentBase* FirstAttackComponent;
-
-	UPROPERTY()
-	UAttackComponentBase* SecondAttackComponent;
-
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	UAttackComponentBase* FirstAttackComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	UAttackComponentBase* SecondAttackComponent;
+	
+	//Socket Names
+	UPROPERTY(VisibleAnywhere, Category="Socket Names")
+	FName RightHandSocket = TEXT("HandGrip_R");
+
+	UPROPERTY(VisibleAnywhere, Category="Socket Names")
+	FName LeftHandSocket = TEXT("HandGrip_L");
 	
 };

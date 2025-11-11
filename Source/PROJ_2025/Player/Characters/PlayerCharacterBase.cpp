@@ -1,13 +1,11 @@
 ﻿#include "PlayerCharacterBase.h"
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
-#include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/GameplayStatics.h"
+#include "Player/Components/AttackComponentBase.h"
 
 
 DEFINE_LOG_CATEGORY(PlayerBaseLog);
@@ -88,7 +86,12 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 
 void APlayerCharacterBase::UseFirstAttackComponent()
 {
-	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseFirstAttackComponent called"));
+	if (!FirstAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
+	}
+
+	GetFirstAttackComponent()->StartAttack();
 }
 
 void APlayerCharacterBase::UseSecondAttackComponent()
@@ -134,5 +137,29 @@ UAttackComponentBase* APlayerCharacterBase::GetFirstAttackComponent() const
 UAttackComponentBase* APlayerCharacterBase::GetSecondAttackComponent() const
 {
 	return SecondAttackComponent;
+}
+
+FVector APlayerCharacterBase::GetRightHandSocketLocation() const
+{
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (MeshComp->DoesSocketExist(RightHandSocket))
+		{
+			return MeshComp->GetSocketLocation(RightHandSocket);
+		}
+	}
+	return FVector::ZeroVector;
+}
+
+FVector APlayerCharacterBase::GetLeftHandSocketLocation() const
+{
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (MeshComp->DoesSocketExist(LeftHandSocket))
+		{
+			return MeshComp->GetSocketLocation(LeftHandSocket);
+		}
+	}
+	return FVector::ZeroVector;
 }
 
