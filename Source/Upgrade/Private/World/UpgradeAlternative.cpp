@@ -31,7 +31,6 @@ AUpgradeAlternative::AUpgradeAlternative()
 	bReplicates = true;
 	bAlwaysRelevant = true;
 
-	// Add this to force replication to all clients
 	SetNetCullDistanceSquared(0.0);// Disable distance culling
 	SetNetUpdateFrequency(10.0f);// Update more frequently
 	SetMinNetUpdateFrequency(2.0f);
@@ -76,11 +75,10 @@ void AUpgradeAlternative::NotifyUpgradeSelected() const
 	{
 		if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
 		{
-			UpgradeSubsystem->UpgradeByRow(FName("TestFloat")); //TODO: make dynamic
-			UpgradeSubsystem->DowngradeByRow(FName("TestInt")); //TODO: make dynamic
+			UpgradeSubsystem->UpgradeByRow(UpgradeDisplayData.RowName);			
 		}
+		
 		OnUpgrade.Broadcast();
-
 	}
 }
 
@@ -118,16 +116,23 @@ void AUpgradeAlternative::OnRep_UpgradeSelected()
 	NotifyUpgradeSelected();
 }
 
+void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
+{
+	Server_NotifyUpgradeSelected(true);
+	NotifyUpgradeSelected();
+	CurrentSelectionStatus = EUpgradeSelectionStatus::Selected;
+	OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
+}
+
+bool AUpgradeAlternative::CanInteract_Implementation(UObject* Interactor)
+{
+	return CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered;
+}
+
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor) )
-	{
-		if (CurrentSelectionStatus == EUpgradeSelectionStatus::Locked ||
-			CurrentSelectionStatus == EUpgradeSelectionStatus::Selected ||
-			CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered)
-		{
-			return;
-		}
+	if (IsTargetPlayer(OtherActor) && Execute_CanInteract(this, OtherActor))
+	{		
 		CurrentSelectionStatus = EUpgradeSelectionStatus::Hovered;
 		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
 

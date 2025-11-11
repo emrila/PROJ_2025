@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Interact.h"
 #include "../Core/UpgradeDisplayData.h"
 #include "GameFramework/Actor.h"
 #include "UpgradeAlternative.generated.h"
@@ -26,7 +27,7 @@ UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatusChanged, EUpgradeSelectionStatus, NewStatus, int32, Index);
 
 UCLASS()
-class UPGRADE_API AUpgradeAlternative : public AActor
+class UPGRADE_API AUpgradeAlternative : public AActor, public IInteract
 {
 	GENERATED_BODY()
 
@@ -87,10 +88,16 @@ protected:
 	UFUNCTION()
 	void OnRep_UpgradeSelected();
 
+public:
+	virtual void OnInteract_Implementation(UObject* Interactor) override;
+	virtual bool CanInteract_Implementation(UObject* Interactor) override;
+
+protected:
 	friend class AUpgradeSpawner;
 public:
-	//TODO: Explicit stages of upgrade process (selected, applied, etc)?	
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
 	FOnUpgrade OnUpgrade;
+	
+	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
 	FOnStatusChanged OnStatusChanged;
 };
