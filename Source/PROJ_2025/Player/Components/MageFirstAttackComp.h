@@ -26,13 +26,15 @@ protected:
 
 	virtual FTransform GetProjectileTransform();
 
+	virtual FRotator GetProjectileSpawnRotation();
+
 	virtual FVector GetProjectileSpawnLocation();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ProjectileSpawnSocketName; // = "spine_05Socket";
+	FName ProjectileSpawnSocketName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector SpawnLocationOffset;
