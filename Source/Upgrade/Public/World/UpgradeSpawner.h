@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "UpgradeAlternative.h"
 #include "../Core/UpgradeDisplayData.h"
 #include "Components/SplineComponent.h"
 #include "GameFramework/Actor.h"
@@ -47,6 +48,8 @@ public:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_Spawn();
+	UFUNCTION()
+	void OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStatus, int32 Index);
 
 protected:
 	virtual void BeginPlay() override;

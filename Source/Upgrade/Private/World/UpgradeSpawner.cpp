@@ -3,9 +3,9 @@
 
 #include "World/UpgradeSpawner.h"
 
-#include "World/UpgradeAlternative.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
+#include "World/UpgradeAlternative.h"
 
 AUpgradeSpawner::AUpgradeSpawner()
 {
@@ -30,8 +30,11 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		if (UpgradeAlternativePair.Alternative)
 		{
 			UpgradeAlternativePair.Alternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
-			UpgradeAlternativePair.Alternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-			UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
+			if (!UpgradeAlternativePair.Alternative->OnUpgrade.IsAlreadyBound( this, &AUpgradeSpawner::OnUpgradeSelected))
+			{
+				UpgradeAlternativePair.Alternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
+				UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
+			}
 		}
 		else
 		{
@@ -74,15 +77,15 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 			continue; // Or break?
 		}
 		SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
-
 		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArray.Num() - 1);
 		if (!UpgradeDataArray.IsValidIndex(RandomIndex))  //Shouldn't be needed... But just in case
 		{
 			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArray.Num());
 			break;
 		}
-
+		SpawnedAlternative->OnStatusChanged.AddDynamic(this, &AUpgradeSpawner::OnAlternativeStatusChanged);
 		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, UpgradeDataArray[RandomIndex]); //Waiting to trigger OnRep on clients after all alternatives are spawned
+		SpawnedAlternative->Index = LocalUpgradeAlternativePairs.Num() - 1;
 		UpgradeDataArray.RemoveAt(RandomIndex); // To avoid duplicates
 		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, RandomIndex);
 	}
@@ -94,7 +97,49 @@ bool AUpgradeSpawner::Server_Spawn_Validate()
 	return true;
 }
 
+void AUpgradeSpawner::OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStatus, int32 Index)
+{
+	const auto IsSelectedOrHovered = [](const EUpgradeSelectionStatus Status)
+	{
+		return Status == EUpgradeSelectionStatus::Selected || Status == EUpgradeSelectionStatus::Hovered;
+	};
+	bool bStopStatusChange = false;
+	AUpgradeAlternative* UpgradeAlternativeCaller = nullptr;
 
+	for (int i = 0; i < UpgradeAlternativePairs.Num(); ++i)
+	{
+		AUpgradeAlternative* UpgradeAlternative = UpgradeAlternativePairs[i].Alternative;
+
+		if (!UpgradeAlternative)
+		{
+			continue;
+		}
+		if (i == Index) // Found Caller
+		{
+			UpgradeAlternativeCaller = UpgradeAlternative;
+			UPGRADE_DISPLAY(TEXT("%hs: Found caller at index %d."), __FUNCTION__, Index);
+			continue;
+		}
+
+		if (IsSelectedOrHovered(NewStatus) && IsSelectedOrHovered(UpgradeAlternative->CurrentSelectionStatus))
+		{
+			// Another alternative is already selected or hovered, disallow change
+			UPGRADE_DISPLAY(TEXT("%hs: Another alternative is already selected or hovered, disallowing change."), __FUNCTION__);
+			bStopStatusChange = true;
+			break;
+		}
+
+		UPGRADE_DISPLAY(TEXT("%hs: Setting alternative at index %d status to NotSelected."), __FUNCTION__, i);
+		UpgradeAlternative->SetCurrentSelectionStatus(EUpgradeSelectionStatus::NotSelected);
+	}
+
+	if (UpgradeAlternativeCaller)
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Setting caller status to %s."), __FUNCTION__, bStopStatusChange ? TEXT("NotSelected") : TEXT("Hovered"));
+		UpgradeAlternativeCaller->SetCurrentSelectionStatus(bStopStatusChange ? EUpgradeSelectionStatus::NotSelected : EUpgradeSelectionStatus::Hovered);
+	}
+
+}
 
 void AUpgradeSpawner::BeginPlay()
 {
@@ -113,8 +158,6 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AUpgradeSpawner, PlayerUpgradeDisplayEntry);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeAlternativePairs);
 }
-
-
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
 {

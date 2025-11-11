@@ -13,6 +13,18 @@ class UWidgetComponent;
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUpgrade);
 
+UENUM(BlueprintType)
+enum class EUpgradeSelectionStatus: uint8
+{
+	NotSelected		UMETA(DisplayName = "Not Selected"),
+	Locked			UMETA(DisplayName = "Locked"),
+	Hovered			UMETA(DisplayName = "Hovered"),
+	Selected		UMETA(DisplayName = "Selected")
+};
+
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatusChanged, EUpgradeSelectionStatus, NewStatus, int32, Index);
+
 UCLASS()
 class UPGRADE_API AUpgradeAlternative : public AActor
 {
@@ -63,11 +75,22 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeSelected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	bool bUpgradeSelected;
+
+	void SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus);
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	EUpgradeSelectionStatus CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	int32 Index = -1;
+
 	UFUNCTION()
 	void OnRep_UpgradeSelected();
 
+	friend class AUpgradeSpawner;
 public:
 	//TODO: Explicit stages of upgrade process (selected, applied, etc)?	
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnUpgrade OnUpgrade;	
+	FOnUpgrade OnUpgrade;
+	FOnStatusChanged OnStatusChanged;
 };

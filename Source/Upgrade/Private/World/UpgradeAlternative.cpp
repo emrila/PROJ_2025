@@ -77,8 +77,10 @@ void AUpgradeAlternative::NotifyUpgradeSelected() const
 		if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
 		{
 			UpgradeSubsystem->UpgradeByRow(FName("TestFloat")); //TODO: make dynamic
+			UpgradeSubsystem->DowngradeByRow(FName("TestInt")); //TODO: make dynamic
 		}
 		OnUpgrade.Broadcast();
+
 	}
 }
 
@@ -102,27 +104,48 @@ bool AUpgradeAlternative::Server_NotifyUpgradeSelected_Validate(bool bInUpgradeS
 	return true;
 }
 
+void AUpgradeAlternative::SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus)
+{
+	CurrentSelectionStatus = NewStatus;
+	const bool bShowAsUpgradeSelected = NewStatus == EUpgradeSelectionStatus::Selected || NewStatus == EUpgradeSelectionStatus::Hovered;
+	Server_NotifyUpgradeSelected_Implementation(bShowAsUpgradeSelected);
+	NotifyUpgradeSelected();
+}
+
 void AUpgradeAlternative::OnRep_UpgradeSelected()
 {
 	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bUpgradeSelected ? TEXT("true") : TEXT("false"));
 	NotifyUpgradeSelected();
 }
 
-void AUpgradeAlternative::OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor))		
+	if (IsTargetPlayer(OtherActor) )
 	{
+		if (CurrentSelectionStatus == EUpgradeSelectionStatus::Locked ||
+			CurrentSelectionStatus == EUpgradeSelectionStatus::Selected ||
+			CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered)
+		{
+			return;
+		}
+		CurrentSelectionStatus = EUpgradeSelectionStatus::Hovered;
+		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
+
+		/*
 		Server_NotifyUpgradeSelected(true);
-		NotifyUpgradeSelected();
+		*/
+		//NotifyUpgradeSelected();
 	}	
 }
 
-void AUpgradeAlternative::OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex)
 {
 	if (IsTargetPlayer(OtherActor))
 	{
-		Server_NotifyUpgradeSelected(false);
-		NotifyUpgradeSelected();
+		CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;
+		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
+		/*Server_NotifyUpgradeSelected(false);
+		NotifyUpgradeSelected();*/
 	}
 }
 
@@ -142,4 +165,7 @@ void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
+	DOREPLIFETIME(AUpgradeAlternative, bUpgradeSelected);
+	DOREPLIFETIME(AUpgradeAlternative, CurrentSelectionStatus);
+	DOREPLIFETIME(AUpgradeAlternative, Index);
 }
