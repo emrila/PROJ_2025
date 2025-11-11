@@ -38,16 +38,31 @@ USTRUCT(BlueprintType)
 struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 {
 	GENERATED_USTRUCT_BODY()
+
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override
 	{
 		UpgradeDisplayData.RowName = InRowName;
 	}
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite upgrades"))
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FUpgradeDisplayData UpgradeDisplayData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite upgrades"))
 	int32 MaxNumberOfUpgrades = -1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite downgrades"))
+	int32 MaxNumberOfDowngrades = -1;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value += InitialValue * Multiplier"))
-	float Multiplier = 0.1f; //percental increase per upgrade level
+	float Multiplier = 0.1f;
+
+	bool CanUpgrade(const int32 CurrentLevel) const
+	{
+		return MaxNumberOfUpgrades > CurrentLevel || MaxNumberOfUpgrades == -1;
+	}
+
+	bool CanDowngrade(const int32 CurrentLevel) const
+	{
+		return MaxNumberOfDowngrades < CurrentLevel || MaxNumberOfDowngrades == -1;
+	}
 };
