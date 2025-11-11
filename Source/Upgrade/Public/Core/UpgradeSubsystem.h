@@ -7,6 +7,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "UpgradeSubsystem.generated.h"
 
+using FAttributeData = FAttributeBase;
 UCLASS()
 class UPGRADE_API UUpgradeSubsystem : public UGameInstanceSubsystem
 {
@@ -19,9 +20,10 @@ public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category, bool bFindOnReload = false);
-	void BindDependentAttribute(UObject* Owner, FName PropertyName, bool OverrideOnModified, UObject* TargetOwner, FName TargetPropertyName);
+	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
+	//void BindDependentAttribute(UObject* Owner, FName PropertyName, bool OverrideOnModified, UObject* TargetOwner, FName TargetPropertyName);
 	void UpgradeByRow(FName RowName) const;
+	void DowngradeByRow(FName RowName) const;
 
 protected:
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
@@ -31,6 +33,7 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable, WithValidation)
 	void NetMulticast_LoadDataTable();
+
 private:
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
 	UDataTable* UpgradeDataTable = nullptr;
