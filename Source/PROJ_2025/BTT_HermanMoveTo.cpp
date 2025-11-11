@@ -45,6 +45,7 @@ void UBTT_HermanMoveTo::CheckIfSameHeightAsTarget()
 	if (!Mushroom || !TargetActor)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+		return;
 	}
 	if (TargetActor->GetActorLocation().Z <= Mushroom->GetActorLocation().Z + 50.f && TargetActor->GetActorLocation().Z >= Mushroom->GetActorLocation().Z - 100.f)
 	{

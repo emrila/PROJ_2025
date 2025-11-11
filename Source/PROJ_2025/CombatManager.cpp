@@ -14,6 +14,7 @@ void ACombatManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(ACombatManager, RemainingEnemies);
+	DOREPLIFETIME(ACombatManager, WaveIndex);
 }
 
 // Sets default values
@@ -32,7 +33,12 @@ void ACombatManager::Server_StartWave_Implementation(int index)
 
 void ACombatManager::StartWave_Internal(int index)
 {
-	if (!Waves.IsValidIndex(index)) return;
+	if (!Waves.IsValidIndex(index))
+	{
+		SpawnLoot();
+		return;
+	};
+	UE_LOG(LogTemp, Display, TEXT("Wave: %d"), index);
 	RemainingEnemies = Waves[index].Enemies.Num();
 	for (AEnemySpawn* SpawnPoint : Waves[index].Enemies)
 	{
@@ -60,19 +66,20 @@ void ACombatManager::RegisterEnemyDeath()
 	RemainingEnemies--;
 	if (RemainingEnemies == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("wave2"));
-		Server_StartWave(1);
+		WaveIndex++;
+		Server_StartWave(WaveIndex);
 	}
 }
 
-void ACombatManager::BeginPlay()
+void ACombatManager::OnRoomInitialized()
 {
-	Super::BeginPlay();
+	Super::OnRoomInitialized();
 	TArray<AActor*> FoundSpawns;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemySpawn::StaticClass(), FoundSpawns);
 
 	TMap<int32, TArray<AEnemySpawn*>> WaveMap;
-
+	Waves.Empty();
+	WaveIndex = 0;
 	for (AActor* Actor : FoundSpawns)
 	{
 		if (AEnemySpawn* Spawn = Cast<AEnemySpawn>(Actor))
@@ -91,11 +98,19 @@ void ACombatManager::BeginPlay()
 
 		UE_LOG(LogTemp, Display, TEXT("Wave %d has %d spawns"), Pair.Key, Pair.Value.Num());
 	}
+
+	FTimerHandle WaveTimerHandle;
+
+	GetWorld()->GetTimerManager().SetTimer(
+		WaveTimerHandle, 
+		[this]()
+		{
+			Server_StartWave(0);
+		}, 
+		1.5f,    
+		false    
+	);
 }
 
-void ACombatManager::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 
-}
 

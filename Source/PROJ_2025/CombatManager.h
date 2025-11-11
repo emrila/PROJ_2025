@@ -38,17 +38,19 @@ public:
 
 	void RegisterEnemyDeath();
 protected:
-	virtual void BeginPlay() override;
 
+	virtual void OnRoomInitialized() override;
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+
 
 	UPROPERTY()
 	TArray<FCombatWave> Waves;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int RemainingEnemies;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int WaveIndex;
 
 	
 };
