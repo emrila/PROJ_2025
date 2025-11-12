@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UInteractorComponent;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -32,7 +33,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UAttackComponentBase* GetFirstAttackComponent() const;
 
@@ -50,12 +51,7 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 
 	UFUNCTION(BlueprintCallable)
-	virtual float TakeDamage(
-		float DamageAmount,
-		struct FDamageEvent const& DamageEvent,
-		class AController* EventInstigator,
-		AActor* DamageCauser
-		) override;
+	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
 	
 	//Input
 	virtual void Move(const FInputActionValue& Value);
@@ -66,31 +62,39 @@ protected:
 
 	virtual void UseSecondAttackComponent();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	virtual void Interact(const FInputActionValue& Value);
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MouseLookAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* JumpAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Ability")
 	UInputAction* FirstAttackAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Ability")
 	UInputAction* SecondAttackAction;
 
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Misc")
+	UInputAction* InteractAction;
 
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
 	UAttackComponentBase* FirstAttackComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
 	UAttackComponentBase* SecondAttackComponent;
-	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
+	TObjectPtr<UInteractorComponent> InteractorComponent;
 	//Socket Names
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName RightHandSocket = TEXT("HandGrip_R");

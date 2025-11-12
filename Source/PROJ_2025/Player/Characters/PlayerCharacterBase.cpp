@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Interact/Public/InteractorComponent.h"
 #include "Player/Components/AttackComponentBase.h"
 
 
@@ -32,6 +33,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	FollowCamera->bUsePawnControlRotation = true;
 
 	Tags.Add(TEXT("Player"));
+
+	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
 }
 
 void APlayerCharacterBase::BeginPlay()
@@ -99,33 +102,35 @@ void APlayerCharacterBase::UseSecondAttackComponent()
 	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseSecondAttackComponent called"));
 }
 
+void APlayerCharacterBase::Interact(const FInputActionValue& Value)
+{
+	if (InteractorComponent)
+	{
+        InteractorComponent->Execute_OnInteract(InteractorComponent,InteractorComponent->GetTargetInteractable().GetObject());
+	}
+}
+
 void APlayerCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(class UInputComponent* PlayerInputComponent)
+void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent =
-		Cast<UEnhancedInputComponent>(InputComponent))
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		EnhancedInputComponent->BindAction(
-			JumpAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Jump);
-		EnhancedInputComponent->BindAction(
-			JumpAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::StopJumping);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::StopJumping);
 
-		EnhancedInputComponent->BindAction(
-				MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
-		EnhancedInputComponent->BindAction(
-			MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
 
-		EnhancedInputComponent->BindAction(
-			FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
+		EnhancedInputComponent->BindAction(FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
+		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
 
-		EnhancedInputComponent->BindAction(
-			SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
 	}
 }
 
@@ -162,4 +167,3 @@ FVector APlayerCharacterBase::GetLeftHandSocketLocation() const
 	}
 	return FVector::ZeroVector;
 }
-
