@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UWidgetComponent;
 class UInteractorComponent;
 class UInputAction;
 class UInputMappingContext;
@@ -21,10 +22,10 @@ class PROJ_2025_API APlayerCharacterBase : public ACharacter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	USpringArmComponent* CameraBoom;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	UCameraComponent* FollowCamera;
 
 public:
@@ -64,7 +65,6 @@ protected:
 
 	virtual void Interact(const FInputActionValue& Value);
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;
 
@@ -95,6 +95,16 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
+	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
+
+	UPROPERTY(ReplicatedUsing=OnRep_CustomPlayerName, VisibleAnywhere)
+	FString CustomPlayerName = TEXT("Player");
+	
+	UPROPERTY(Replicated, VisibleAnywhere)
+	bool bChangedName = false;
+	
 	//Socket Names
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName RightHandSocket = TEXT("HandGrip_R");
@@ -102,4 +112,25 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName LeftHandSocket = TEXT("HandGrip_L");
 	
+private:
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION()
+	void OnRep_CustomPlayerName();
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SetCustomPlayerName(const FString& InPlayerName);
+
+	UFUNCTION(BlueprintCallable)
+	void SetUpLocalCustomPlayerName();
+	
+#if WITH_EDITORONLY_DATA
+	
+	UPROPERTY(EditAnywhere, Category="Player Name Debug")
+	bool bUsePlayerLoginProfile = false;
+	
+#endif
+protected:
+	virtual void TickNotLocal();
 };

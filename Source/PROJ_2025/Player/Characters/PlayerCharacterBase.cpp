@@ -1,12 +1,18 @@
 ﻿#include "PlayerCharacterBase.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
+#include "Player/UI/PlayerNameTagWidget.h"
 
 
 DEFINE_LOG_CATEGORY(PlayerBaseLog);
@@ -35,11 +41,15 @@ APlayerCharacterBase::APlayerCharacterBase()
 	Tags.Add(TEXT("Player"));
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
+	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
+	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
+	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
 }
 
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	SetUpLocalCustomPlayerName();
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -52,8 +62,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 }
 
-float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
-	class AController* EventInstigator, AActor* DamageCauser)
+float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
 	AWizardGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AWizardGameState>() : nullptr;
 	if (GameState)
@@ -111,6 +120,88 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 	}
 }
 
+void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(APlayerCharacterBase, CustomPlayerName);
+	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
+}
+
+void APlayerCharacterBase::OnRep_CustomPlayerName()
+{
+	if (!PlayerNameTagWidgetComponent)
+	{
+		return;
+	}
+	
+	if (!PlayerNameTagWidgetComponent->GetWidget())
+	{
+		FTimerHandle TimerHandle;
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			OnRep_CustomPlayerName();
+		}, 0.1f, false);
+		return;
+	}
+	
+	if (UPlayerNameTagWidget* PlayerNameTagWidget = Cast<UPlayerNameTagWidget>(PlayerNameTagWidgetComponent->GetWidget()))
+	{
+		PlayerNameTagWidget->SetCustomPlayerName(FText::FromString(CustomPlayerName));
+	}
+}
+
+void APlayerCharacterBase::SetUpLocalCustomPlayerName()
+{
+	if (!bChangedName)
+	{
+#if WITH_EDITORONLY_DATA
+		if (!bUsePlayerLoginProfile)
+		{
+			const int32 RandomNum = FMath::RandRange(10, 99);
+			CustomPlayerName = FString::Printf(TEXT("Player_%d"), RandomNum);
+		}
+		else if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+		{
+			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+		}
+#else
+		if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+		{
+			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+		}
+#endif
+		bChangedName = true;
+}
+		if (IsLocallyControlled())
+		{
+			Server_SetCustomPlayerName(CustomPlayerName);			
+		}
+		OnRep_CustomPlayerName();
+	
+}
+
+void APlayerCharacterBase::TickNotLocal()
+{
+	if (!IsLocallyControlled())
+	{
+		const FVector ComponentLocation = PlayerNameTagWidgetComponent->GetComponentLocation();
+		const FVector CameraLocation = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->K2_GetActorLocation();
+		const FRotator FindLookAtRotation = UKismetMathLibrary::FindLookAtRotation(ComponentLocation,CameraLocation);
+		PlayerNameTagWidgetComponent->SetWorldRotation(FindLookAtRotation);
+	}
+}
+
+void APlayerCharacterBase::Server_SetCustomPlayerName_Implementation(const FString& InPlayerName)
+{
+	CustomPlayerName = InPlayerName;
+	OnRep_CustomPlayerName();
+}
+
+bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& InPlayerName)
+{
+	return true;
+}
+
 void APlayerCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -120,7 +211,6 @@ void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputCompon
 {
 	if (!PlayerInputComponent)
 	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::SetupPlayerInputComponent, PlayerInputComponent is NULL"));
 		return;
 	}
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
