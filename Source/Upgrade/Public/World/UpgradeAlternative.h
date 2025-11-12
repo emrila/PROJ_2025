@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Interact.h"
+#include "Interactable.h"
 #include "../Core/UpgradeDisplayData.h"
 #include "GameFramework/Actor.h"
 #include "UpgradeAlternative.generated.h"
@@ -27,7 +28,7 @@ UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatusChanged, EUpgradeSelectionStatus, NewStatus, int32, Index);
 
 UCLASS()
-class UPGRADE_API AUpgradeAlternative : public AActor, public IInteract
+class UPGRADE_API AUpgradeAlternative : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 
@@ -90,7 +91,7 @@ protected:
 
 public:
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
-	virtual bool CanInteract_Implementation(UObject* Interactor) override;
+	virtual bool CanInteract_Implementation() override;
 
 protected:
 	friend class AUpgradeSpawner;

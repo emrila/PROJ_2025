@@ -35,13 +35,14 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SetNetUpdateFrequency(10.0f);// Update more frequently
 	SetMinNetUpdateFrequency(2.0f);
 
-	UpgradeWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
-	UpgradeTriggerComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
-
 	RootComponent = SceneComponent;
+
+	UpgradeWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
+	UpgradeWidgetComponent->SetupAttachment(RootComponent);
+
+	UpgradeTriggerComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
 	UpgradeTriggerComponent->SetupAttachment(RootComponent);
-	UpgradeWidgetComponent->SetupAttachment(UpgradeTriggerComponent);
 
 	constexpr float SphereRadius = 100.0f;
 	UpgradeTriggerComponent->SetSphereRadius(SphereRadius);
@@ -124,14 +125,14 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
 }
 
-bool AUpgradeAlternative::CanInteract_Implementation(UObject* Interactor)
+bool AUpgradeAlternative::CanInteract_Implementation()
 {
 	return CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered;
 }
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor) && Execute_CanInteract(this, OtherActor))
+	if (IsTargetPlayer(OtherActor) && Execute_CanInteract(this))
 	{		
 		CurrentSelectionStatus = EUpgradeSelectionStatus::Hovered;
 		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);

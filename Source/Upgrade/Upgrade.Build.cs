@@ -9,18 +9,14 @@ public class Upgrade : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core", "Engine",
+                "Core", "Engine", "Interact",
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "CoreUObject",
-                "Engine",
-                "Slate",
-                "SlateCore",
-                "UMG"
+                "CoreUObject", "Engine", "Slate", "SlateCore", "UMG"
             }
         );
     }
