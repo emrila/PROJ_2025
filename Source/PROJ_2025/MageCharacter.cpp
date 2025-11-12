@@ -7,7 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Player/Components/MageFirstAttackComp.h"
+#include "Player/Components/RangeAttackComp.h"
 
 
 AMageCharacter::AMageCharacter()
@@ -54,7 +54,7 @@ void AMageCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AttackComponent = FindComponentByClass<UMageFirstAttackComp>();
+	AttackComponent = FindComponentByClass<URangeAttackComp>();
 
 	if (!AttackComponent)
 	{

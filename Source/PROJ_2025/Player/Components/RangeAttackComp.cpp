@@ -1,15 +1,15 @@
-﻿#include "MageFirstAttackComp.h"
+﻿#include "RangeAttackComp.h"
 #include "MageProjectile.h"
 #include "GameFramework/Character.h"
 #include "Player/Characters/PlayerCharacterMage.h"
 
 
-UMageFirstAttackComp::UMageFirstAttackComp()
+URangeAttackComp::URangeAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UMageFirstAttackComp::StartAttack()
+void URangeAttackComp::StartAttack()
 {
 	if (!bCanAttack)
 	{
@@ -26,12 +26,12 @@ void UMageFirstAttackComp::StartAttack()
 	PerformAttack();
 }
 
-void UMageFirstAttackComp::BeginPlay()
+void URangeAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-void UMageFirstAttackComp::PerformAttack()
+void URangeAttackComp::PerformAttack()
 {
 	//Super::PerformAttack();
 	//const FVector SpawnLocation = GetProjectileSpawnLocation();
@@ -47,7 +47,7 @@ void UMageFirstAttackComp::PerformAttack()
 	Server_SpawnProjectile(SpawnTransform);
 }
 
-void UMageFirstAttackComp::Server_SpawnProjectile_Implementation(const FTransform SpawnTransform)
+void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform SpawnTransform)
 {
 	if (!OwnerCharacter || !ProjectileClass)
 	{
@@ -67,7 +67,7 @@ void UMageFirstAttackComp::Server_SpawnProjectile_Implementation(const FTransfor
 	GetWorld()->SpawnActor<AMageProjectile>(ProjectileClass, SpawnTransform, SpawnParameters);
 }
 
-FTransform UMageFirstAttackComp::GetProjectileTransform()
+FTransform URangeAttackComp::GetProjectileTransform()
 {
 	if (!OwnerCharacter)
 	{
@@ -94,7 +94,7 @@ FTransform UMageFirstAttackComp::GetProjectileTransform()
 	return FTransform(SpawnRotation, SpawnLocation);
 }
 
-FRotator UMageFirstAttackComp::GetProjectileSpawnRotation()
+FRotator URangeAttackComp::GetProjectileSpawnRotation()
 {
 	if (!OwnerCharacter)
 	{
@@ -129,7 +129,7 @@ FRotator UMageFirstAttackComp::GetProjectileSpawnRotation()
 	return FRotator::ZeroRotator;
 }
 
-FVector UMageFirstAttackComp::GetProjectileSpawnLocation()
+FVector URangeAttackComp::GetProjectileSpawnLocation()
 {
 	if (!OwnerCharacter)
 	{
