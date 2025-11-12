@@ -263,3 +263,25 @@ FVector APlayerCharacterBase::GetLeftHandSocketLocation() const
 	}
 	return FVector::ZeroVector;
 }
+
+AActor* APlayerCharacterBase::GetRightHandAttachedActor() const
+{
+	TArray<AActor*> AttachedActors;
+
+	if (GetMesh())
+	{
+		GetMesh()->GetOwner()->GetAttachedActors(AttachedActors);
+		for (AActor* Attached: AttachedActors)
+		{
+			if (Attached)
+			{
+				if (Attached->GetAttachParentSocketName() == RightHandSocket)
+				{
+					return Attached;
+				}
+			}
+		}
+	}
+	UE_LOG(PlayerBaseLog, Warning, TEXT("%s, No actor attached to right hand socket"), *FString(__FUNCTION__));
+	return nullptr;
+}

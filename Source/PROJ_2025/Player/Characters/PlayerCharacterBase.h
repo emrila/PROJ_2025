@@ -43,6 +43,8 @@ public:
 	FVector GetRightHandSocketLocation() const;
 
 	FVector GetLeftHandSocketLocation() const;
+	
+	AActor* GetRightHandAttachedActor() const;
 
 protected:
 	virtual void BeginPlay() override;

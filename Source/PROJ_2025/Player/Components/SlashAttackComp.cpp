@@ -9,8 +9,6 @@ USlashAttackComp::USlashAttackComp()
 {
 
 	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
 }
 
 void USlashAttackComp::StartAttack()
@@ -38,8 +36,6 @@ void USlashAttackComp::StartAttack()
 void USlashAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
 	
 }
 
@@ -80,7 +76,7 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 
 	if (const APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter))
 	{
-		/*const AActor* RightHandActor = PlayerCharacter->GetRightHandAttachedActor();
+		const AActor* RightHandActor = PlayerCharacter->GetRightHandAttachedActor();
 		if (!RightHandActor)
 		{
 			UE_LOG(LogTemp, Error, TEXT("%s, RightHandActor is NULL!"), *FString(__FUNCTION__));
@@ -88,7 +84,7 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 		}
 		const FVector SweepLocation = RightHandActor->GetActorLocation();
 		Sweep(SweepLocation);
-		return;*/
+		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("%s, Unable to cast OwnerCharacter to APlayerCharacterBase"), *FString(__FUNCTION__));
 }
