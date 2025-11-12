@@ -16,6 +16,6 @@ public class PROJ_2025Target : TargetRules
 
 	private void RegisterModulesCreatedByRider()
 	{
-		ExtraModuleNames.AddRange(new string[] { "Upgrade" });
+		ExtraModuleNames.AddRange(new string[] { "Upgrade", "Interact" });
 	}
 }
