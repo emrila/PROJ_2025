@@ -195,7 +195,7 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
 		{
-			if (Hit.GetActor() && Hit.GetActor() != OwnerCharacter)
+			if (Hit.GetActor())  //&& Hit.GetActor() != OwnerCharacter
 			{
 				HitActors.Add(Hit.GetActor());
 			}
