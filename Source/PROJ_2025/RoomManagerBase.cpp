@@ -106,9 +106,7 @@ void ARoomManagerBase::OnRoomInitialized()
 
 void ARoomManagerBase::SpawnLoot()
 {
-	//Kan vi behålla? - Som kommentar
-	//om det här runnar fryser datorn
-	
+	LootSpawnLocation->TriggerSpawn();
 }
 
 
