@@ -8,6 +8,7 @@
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "World/UpgradeSpawner.h"
 
 ARoomManagerBase::ARoomManagerBase()
 {
@@ -96,16 +97,37 @@ void ARoomManagerBase::OnRoomInitialized()
 		UE_LOG(LogTemp, Display, TEXT("Teleported %s to room spawn point."), *PlayerPawn->GetName());
 	}
 
-	AActor* LootSpawnLoc = UGameplayStatics::GetActorOfClass(GetWorld(), ALootSpawnLocation::StaticClass());
+	AActor* LootSpawnLoc = UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass());
 	if (LootSpawnLoc)
 	{
-		LootSpawnLocation = LootSpawnLoc->GetActorLocation();
+		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
 	}
 }
 
 void ARoomManagerBase::SpawnLoot()
 {
-	//hmmm
+	//Kan vi behålla? - Som kommentar
+	//om det här runnar fryser datorn
+	
 }
 
 
+/*
+public class dontRunThis
+	{
+		String name = "Emma";
+		Loot loot = Loot(String TypeOfLoot, float modifierAmount);
+		SpawnLoot(Loot);
+		//hmmmmmm??????????
+		if (LootSpawnLocation == null)
+			do
+			{
+				SpawnLoot();
+			}
+			while (LootSpawnLocation == nullptr);
+		else if (LootSpawnLocation == nullptr && Loot != nullptr)
+		{
+			return;
+		}
+	}
+*/

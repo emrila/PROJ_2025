@@ -99,7 +99,7 @@ bool AUpgradeSpawner::Server_Spawn_Validate()
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	TriggerSpawn();
+	//TriggerSpawn();
 }
 
 void AUpgradeSpawner::OnUpgradeSelected()

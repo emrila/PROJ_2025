@@ -44,6 +44,6 @@ public:
 
 private:
 	UPROPERTY()
-	FVector LootSpawnLocation;
+	class AUpgradeSpawner* LootSpawnLocation;
 	
 };
