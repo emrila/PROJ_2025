@@ -29,12 +29,7 @@ void APlayerControllerBase::BeginPlay()
 	{
 		ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
 	}
-
-	if (HealthBarWidget)
-	{
-		HealthBarWidget->AddToViewport();
-	}
-
+	
 	if (HudWidget)
 	{
 		HudWidget->AddToViewport();

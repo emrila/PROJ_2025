@@ -23,6 +23,12 @@ protected:
 
 	virtual void SetCurrentAnimIndex();
 
+	UFUNCTION(Server, Reliable)
+	virtual void Server_PlayAttackAnim();
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_PlayAttackAnim();
+
 	virtual void PlayAttackAnim();
 
 	virtual float GetCurrentAnimLength();

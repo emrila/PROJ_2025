@@ -1,6 +1,6 @@
 ﻿#include "PlayerCharacterMage.h"
 #include "Player/Components/AttackComponentBase.h"
-#include "Player/Components/MageFirstAttackComp.h"
+#include "Player/Components/RangeAttackComp.h"
 
 DEFINE_LOG_CATEGORY(MageLog);
 
@@ -18,7 +18,7 @@ void APlayerCharacterMage::BeginPlay()
 {
 	Super::BeginPlay();
 
-	FirstAttackComponent = FindComponentByClass<UMageFirstAttackComp>();
+	FirstAttackComponent = FindComponentByClass<URangeAttackComp>();
 	
 }
 

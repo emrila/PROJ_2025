@@ -29,6 +29,16 @@ protected:
 		const FHitResult& SweepResult
 	);
 
+	UFUNCTION(blueprintCallable)
+	void OnProjectileHit(
+		UPrimitiveComponent* HitComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit
+	);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
 
 	float GetDamageAmount() const { return DamageAmount; }

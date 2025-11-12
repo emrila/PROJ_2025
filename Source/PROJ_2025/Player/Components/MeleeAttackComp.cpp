@@ -58,7 +58,7 @@ void UMeleeAttackComp::PerformAttack()
 			return;
 		}
 		
-		PlayAttackAnim();
+		Server_PlayAttackAnim();
 
 		GetWorld()->GetTimerManager().SetTimer(
 			SweepTimerHandle,
@@ -92,6 +92,31 @@ void UMeleeAttackComp::SetCurrentAnimIndex()
 		CurrentAttackAnimIndex = 0;
 	}
 	++CurrentAttackAnimIndex;
+}
+
+void UMeleeAttackComp::Server_PlayAttackAnim_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+
+	Multicast_PlayAttackAnim();
+}
+
+void UMeleeAttackComp::Multicast_PlayAttackAnim_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+
+	if (AttackAnims[CurrentAttackAnimIndex])
+	{
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex]);
+	}
 }
 
 void UMeleeAttackComp::PlayAttackAnim()
