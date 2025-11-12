@@ -89,6 +89,7 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 	if (!FirstAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
+		return;
 	}
 
 	GetFirstAttackComponent()->StartAttack();
@@ -106,6 +107,11 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 
 void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(class UInputComponent* PlayerInputComponent)
 {
+	if (!PlayerInputComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::SetupPlayerInputComponent, PlayerInputComponent is NULL"));
+		return;
+	}
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	if (UEnhancedInputComponent* EnhancedInputComponent =
