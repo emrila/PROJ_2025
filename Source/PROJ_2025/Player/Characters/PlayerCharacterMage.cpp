@@ -26,7 +26,7 @@ void APlayerCharacterMage::UseFirstAttackComponent()
 {
 	Super::UseFirstAttackComponent();
 
-	UE_LOG(MageLog, Warning, TEXT("APlayerCharacterMage::UseFirstAttackComponent called"));
+	/*UE_LOG(MageLog, Warning, TEXT("APlayerCharacterMage::UseFirstAttackComponent called"));
 
 	if (!FirstAttackComponent)
 	{
@@ -34,7 +34,7 @@ void APlayerCharacterMage::UseFirstAttackComponent()
 		return;
 	}
 
-	GetFirstAttackComponent()->StartAttack();
+	GetFirstAttackComponent()->StartAttack();*/
 }
 
 

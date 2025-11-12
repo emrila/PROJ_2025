@@ -3,8 +3,12 @@
 
 #include "RoomManagerBase.h"
 
+#include "LootSpawnLocation.h"
+#include "RoomLoader.h"
+#include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
 #include "Kismet/GameplayStatics.h"
+#include "World/UpgradeSpawner.h"
 
 ARoomManagerBase::ARoomManagerBase()
 {
@@ -12,16 +16,16 @@ ARoomManagerBase::ARoomManagerBase()
 
 }
 
-void ARoomManagerBase::BeginPlay()
+void ARoomManagerBase::OnRoomInitialized()
 {
-	Super::BeginPlay();
-
 	if (!HasAuthority()) return;
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
 
 	TArray<URoomData*> AllRooms = GI->GetAllRoomData();
+
+	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
@@ -36,14 +40,19 @@ void ARoomManagerBase::BeginPlay()
 	}
 	TArray<URoomData*> ChosenRooms;
 
+	if (GI->RoomLoader->CurrentRoom != nullptr)
+	{
+		AllRooms.Remove(GI->RoomLoader->CurrentRoom);
+	}
+	if (AllRooms.Num() <= 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("No rooms found..."));
+		return;
+	}
 	for (int32 i = 0; i < AllRooms.Num(); i++)
 	{
 		URoomData* RandomRoom = AllRooms[i];
 		UE_LOG(LogTemp, Display, TEXT("ROOM: %s"), *RandomRoom->GetName());
-	}
-	if (GI->CurrentRoom != nullptr)
-	{
-		AllRooms.Remove(GI->CurrentRoom);
 	}
 	
 	
@@ -66,7 +75,59 @@ void ARoomManagerBase::BeginPlay()
 			RoomExits[i]->OnRoomLinked();
 		}
 	}
+	AActor* SpawnPoint = UGameplayStatics::GetActorOfClass(GetWorld(), ARoomSpawnPoint::StaticClass());
+
+	if (!SpawnPoint) return;
+
+	const FTransform SpawnTransform = SpawnPoint->GetActorTransform();
+	
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PC = It->Get();
+		if (!PC) continue;
+
+		APawn* PlayerPawn = PC->GetPawn();
+		if (!PlayerPawn) continue;
+		
+		FVector Offset = FVector(0.f, It.GetIndex() * 100.f, 0.f);
+		FTransform AdjustedTransform = SpawnTransform;
+		AdjustedTransform.AddToTranslation(Offset);
+
+		PlayerPawn->SetActorTransform(AdjustedTransform);
+		UE_LOG(LogTemp, Display, TEXT("Teleported %s to room spawn point."), *PlayerPawn->GetName());
+	}
+
+	AActor* LootSpawnLoc = UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass());
+	if (LootSpawnLoc)
+	{
+		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
+	}
+}
+
+void ARoomManagerBase::SpawnLoot()
+{
+	//Kan vi behålla? - Som kommentar
+	//om det här runnar fryser datorn
 	
 }
 
 
+/*
+public class dontRunThis
+	{
+		String name = "Emma";
+		Loot loot = Loot(String TypeOfLoot, float modifierAmount);
+		SpawnLoot(Loot);
+		//hmmmmmm??????????
+		if (LootSpawnLocation == null)
+			do
+			{
+				SpawnLoot();
+			}
+			while (LootSpawnLocation == nullptr);
+		else if (LootSpawnLocation == nullptr && Loot != nullptr)
+		{
+			return;
+		}
+	}
+*/

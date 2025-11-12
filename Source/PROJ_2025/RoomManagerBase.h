@@ -36,12 +36,14 @@ class PROJ_2025_API ARoomManagerBase : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	ARoomManagerBase();
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-	
+	virtual void OnRoomInitialized();
 
+	void SpawnLoot();
+
+private:
+	UPROPERTY()
+	class AUpgradeSpawner* LootSpawnLocation;
+	
 };

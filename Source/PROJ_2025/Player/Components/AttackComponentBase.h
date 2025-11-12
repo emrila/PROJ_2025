@@ -18,6 +18,14 @@ public:
 
 	virtual bool SetCanAttack(const bool bNewCanAttack) { bCanAttack = bNewCanAttack; return bCanAttack; }
 
+	virtual void SetDamageAmount(const float Value) { DamageAmount = Value; }
+
+	virtual float GetDamageAmount() const { return DamageAmount; }
+
+	virtual float GetAttackCoolDown() const { return AttackCoolDown; }
+
+	virtual void SetAttackCoolDown(const float Value) { AttackCoolDown = Value; }
+
 protected:
 	virtual void BeginPlay() override;
 

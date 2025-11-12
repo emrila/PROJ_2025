@@ -4,6 +4,7 @@
 #include "WizardGameInstance.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Kismet/GameplayStatics.h"
 
 TArray<URoomData*> UWizardGameInstance::GetAllRoomData() const
 {

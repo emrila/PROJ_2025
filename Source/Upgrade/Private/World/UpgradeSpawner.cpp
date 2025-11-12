@@ -144,7 +144,7 @@ void AUpgradeSpawner::OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStat
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	TriggerSpawn();
+	//TriggerSpawn();
 }
 
 void AUpgradeSpawner::OnUpgradeSelected()

@@ -1,14 +1,12 @@
 ﻿#include "PlayerCharacterBase.h"
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
-#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Net/UnrealNetwork.h"
+#include "Player/Components/AttackComponentBase.h"
+
 
 DEFINE_LOG_CATEGORY(PlayerBaseLog);
 
@@ -34,17 +32,11 @@ APlayerCharacterBase::APlayerCharacterBase()
 	FollowCamera->bUsePawnControlRotation = true;
 
 	Tags.Add(TEXT("Player"));
-
-	PlayerNameWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameWidgetComponent"));
-	PlayerNameWidgetComponent->SetupAttachment(RootComponent);
-
 }
 
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	SetCustomPlayerNameLocal();
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -94,72 +86,17 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 
 void APlayerCharacterBase::UseFirstAttackComponent()
 {
-	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseFirstAttackComponent called"));
+	if (!FirstAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
+	}
+
+	GetFirstAttackComponent()->StartAttack();
 }
 
 void APlayerCharacterBase::UseSecondAttackComponent()
 {
 	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseSecondAttackComponent called"));
-}
-
-void APlayerCharacterBase::OnRep_CustomPlayerName()
-{
-	if (!PlayerNameWidgetComponent && !PlayerNameWidgetComponent->GetWidget())
-	{
-		return;
-	}
-	if (UPlayerNameWidget* PlayerNameWidget = Cast<UPlayerNameWidget>(PlayerNameWidgetComponent->GetWidget()))
-	{
-		PlayerNameWidget->SetPlayerName(CustomPlayerName);
-	}
-	else
-	{
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-		{
-			OnRep_CustomPlayerName();
-		}, 0.1f, false);
-	}
-}
-
-void APlayerCharacterBase::SetCustomPlayerNameLocal()
-{
-	if (IsLocallyControlled())
-	{
-		return;
-	}
-	if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-	{
-		if (!PlayerLoginSystem->GetProfile().Username.IsEmpty())
-		{
-			CustomPlayerName = FName(*PlayerLoginSystem->GetProfile().Username);
-		}
-	}
-	if (CustomPlayerName == NAME_None)
-	{
-		const int32 RandomInt = FMath::RandRange(10, 99);
-		CustomPlayerName = FName(*FString::FromInt(RandomInt));		
-	}
-	
-	OnRep_CustomPlayerName();
-	Server_SetCustomPlayerName(CustomPlayerName);
-}
-
-void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(APlayerCharacterBase, CustomPlayerName);
-}
-
-void APlayerCharacterBase::Server_SetCustomPlayerName_Implementation(const FName& InPlayerName)
-{
-	CustomPlayerName = InPlayerName;
-	OnRep_CustomPlayerName();//?
-}
-
-bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FName& InPlayerName)
-{
-	return true;
 }
 
 void APlayerCharacterBase::Tick(float DeltaTime)
@@ -200,5 +137,29 @@ UAttackComponentBase* APlayerCharacterBase::GetFirstAttackComponent() const
 UAttackComponentBase* APlayerCharacterBase::GetSecondAttackComponent() const
 {
 	return SecondAttackComponent;
+}
+
+FVector APlayerCharacterBase::GetRightHandSocketLocation() const
+{
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (MeshComp->DoesSocketExist(RightHandSocket))
+		{
+			return MeshComp->GetSocketLocation(RightHandSocket);
+		}
+	}
+	return FVector::ZeroVector;
+}
+
+FVector APlayerCharacterBase::GetLeftHandSocketLocation() const
+{
+	if (USkeletalMeshComponent* MeshComp = GetMesh())
+	{
+		if (MeshComp->DoesSocketExist(LeftHandSocket))
+		{
+			return MeshComp->GetSocketLocation(LeftHandSocket);
+		}
+	}
+	return FVector::ZeroVector;
 }
 
