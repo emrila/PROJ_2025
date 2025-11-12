@@ -9,7 +9,7 @@
 
 namespace InteractUtil
 {
-	bool Trace(AActor* Owner, const float InteractionRadius, const float InteractionDistance, FHitResult& Hit, const EDrawDebugTrace::Type DebugType = EDrawDebugTrace::ForOneFrame)
+	bool Trace(AActor* Owner, const float InteractionRadius, const float InteractionDistance, FHitResult& Hit, const EDrawDebugTrace::Type DebugType = EDrawDebugTrace::None)
 	{
 		FVector Start;
 		FRotator ViewRot;
