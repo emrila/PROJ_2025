@@ -2,17 +2,17 @@
 
 #include "CoreMinimal.h"
 #include "AttackComponentBase.h"
-#include "MageFirstAttackComp.generated.h"
+#include "RangeAttackComp.generated.h"
 
 class AMageProjectile;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PROJ_2025_API UMageFirstAttackComp : public UAttackComponentBase
+class PROJ_2025_API URangeAttackComp : public UAttackComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	UMageFirstAttackComp();
+	URangeAttackComp();
 
 	virtual void StartAttack() override;
 
