@@ -102,12 +102,15 @@ void USlashAttackComp::Sweep(FVector SweepLocation)
 
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
-	const bool bHit = GetWorld()->SweepMultiByChannel(
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	const bool bHit = GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		SweepLocation,
-		SweepLocation,  //+ FVector(0.f, 0.f, 1.f), // Slight offset to avoid zero-length sweep
+		SweepLocation, 
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
 		QueryParams
 		);
@@ -117,7 +120,7 @@ void USlashAttackComp::Sweep(FVector SweepLocation)
 		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
 		{
-			if (Hit.GetActor())  //&& Hit.GetActor() != OwnerCharacter
+			if (Hit.GetActor() && !HitActors.Contains(Hit.GetActor()))
 			{
 				HitActors.Add(Hit.GetActor());
 			}
