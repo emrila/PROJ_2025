@@ -1,4 +1,5 @@
 ﻿#include "PlayerCharacterBase.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "PlayerLoginSystem.h"
@@ -83,9 +84,6 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 	AddMovementInput(Direction, MovementVector.Y);
 	AddMovementInput(RightVector, MovementVector.X);
-
-	//FDamageEvent DamageEvent;
-	//TakeDamage(5.0f, DamageEvent, GetController(), this); // For testing damage
 }
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
@@ -109,7 +107,12 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 
 void APlayerCharacterBase::UseSecondAttackComponent()
 {
-	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseSecondAttackComponent called"));
+	if (!SecondAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
+		return;
+	}
+	GetSecondAttackComponent()->StartAttack();
 }
 
 void APlayerCharacterBase::Interact(const FInputActionValue& Value)
@@ -284,4 +287,9 @@ AActor* APlayerCharacterBase::GetRightHandAttachedActor() const
 	}
 	UE_LOG(PlayerBaseLog, Warning, TEXT("%s, No actor attached to right hand socket"), *FString(__FUNCTION__));
 	return nullptr;
+}
+
+void APlayerCharacterBase::SetUseControllerYawRotation(const bool bUseControllerYaw)
+{
+	bUseControllerRotationYaw = bUseControllerYaw;
 }

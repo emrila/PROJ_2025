@@ -46,6 +46,12 @@ public:
 	
 	AActor* GetRightHandAttachedActor() const;
 
+	virtual void SetUseControllerYawRotation(const bool bUseControllerYaw);
+
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -84,10 +90,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
-
-	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-
-	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
 	UAttackComponentBase* FirstAttackComponent;
