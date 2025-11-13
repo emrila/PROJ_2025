@@ -29,7 +29,7 @@ public class PROJ_2025 : ModuleRules
 			"NavigationSystem"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Upgrade", "Interact" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Upgrade", "Interact", "AdvancedSessions" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"PROJ_2025",

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AdvancedFriendsGameInstance.h"
 #include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
 #include "WizardGameInstance.generated.h"
@@ -12,7 +13,7 @@
  * 
  */
 UCLASS()
-class PROJ_2025_API UWizardGameInstance : public UGameInstance
+class PROJ_2025_API UWizardGameInstance : public UAdvancedFriendsGameInstance
 {
 	GENERATED_BODY()
 public:
