@@ -53,6 +53,11 @@ void AMageProjectile::OnProjectileOverlap(
 	{
 		return;
 	}
+	
+	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
+	{
+		return;
+	}
 
 	if (OtherActor)
 	{
@@ -65,6 +70,11 @@ void AMageProjectile::OnProjectileOverlap(
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
+	{
+		return;
+	}
+	
 	if (OtherComp)
 	{
 		Destroy();
