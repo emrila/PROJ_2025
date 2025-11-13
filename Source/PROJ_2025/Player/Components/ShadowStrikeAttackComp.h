@@ -19,10 +19,10 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void PerformAttack() override;
+	
+	virtual void HandlePlayerCamera();
 
 	virtual void TryLockingTarget();
-
-	virtual void HandlePlayerCameraDuringAttack();
 
 	virtual FTransform GetLocationBehindLockedTarget() const;
 
