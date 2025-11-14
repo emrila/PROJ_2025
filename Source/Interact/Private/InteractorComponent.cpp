@@ -125,3 +125,8 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 	TargetInteractable = InTargetInteractable;
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
 }
+
+void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)
+{
+	ClearInteractable();
+}

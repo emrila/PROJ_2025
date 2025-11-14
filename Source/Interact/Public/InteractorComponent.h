@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Interactable.h"
+#include "Interactor.h"
 #include "Components/ActorComponent.h"
 #include "InteractorComponent.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INTERACT_API UInteractorComponent : public UActorComponent, public IInteractable
+class INTERACT_API UInteractorComponent : public UActorComponent, public IInteractable, public IInteractor
 {
 	GENERATED_BODY()
 
@@ -84,4 +85,6 @@ public:
 	{
 		return InteractionDistance;
 	}
+
+	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable) override;
 };
