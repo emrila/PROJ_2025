@@ -71,11 +71,6 @@ if (!OwnerCharacter)
 		return;
 	}
 	
-	if (!OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-	
 	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(GetOwner());
 	
 	if (!PlayerCharacter)	
