@@ -8,6 +8,12 @@
 #include "Net/UnrealNetwork.h"
 
 
+void AWizardGameState::BeginPlay()
+{
+	Super::BeginPlay();
+	SetHealth(MaxHealth);
+}
+
 void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
