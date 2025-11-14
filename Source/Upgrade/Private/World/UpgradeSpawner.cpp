@@ -3,6 +3,7 @@
 
 #include "World/UpgradeSpawner.h"
 
+#include "Core/UpgradeSubsystem.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
 #include "World/UpgradeAlternative.h"
@@ -30,6 +31,7 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		if (UpgradeAlternativePair.Alternative)
 		{
 			UpgradeAlternativePair.Alternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
+			
 			if (!UpgradeAlternativePair.Alternative->OnUpgrade.IsAlreadyBound( this, &AUpgradeSpawner::OnUpgradeSelected))
 			{
 				UpgradeAlternativePair.Alternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
@@ -99,7 +101,7 @@ bool AUpgradeSpawner::Server_Spawn_Validate()
 
 void AUpgradeSpawner::OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStatus, int32 Index)
 {
-	const auto IsSelectedOrHovered = [](const EUpgradeSelectionStatus Status)
+	/*const auto IsSelectedOrHovered = [](const EUpgradeSelectionStatus Status)
 	{
 		return Status == EUpgradeSelectionStatus::Selected || Status == EUpgradeSelectionStatus::Hovered;
 	};
@@ -137,19 +139,37 @@ void AUpgradeSpawner::OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStat
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Setting caller status to %s."), __FUNCTION__, bStopStatusChange ? TEXT("NotSelected") : TEXT("Hovered"));
 		UpgradeAlternativeCaller->SetCurrentSelectionStatus(bStopStatusChange ? EUpgradeSelectionStatus::NotSelected : EUpgradeSelectionStatus::Hovered);
-	}
+	}*/
 
 }
 
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	//TriggerSpawn();
+	
+	if (bSpawnOnBeginPlay) 
+	{
+		TriggerSpawn();
+	}
 }
 
-void AUpgradeSpawner::OnUpgradeSelected()
+void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
 {
 	UPGRADE_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
+	if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
+	{
+		UpgradeSubsystem->UpgradeByRow(SelectedUpgrade.RowName);			
+	}
+	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+	{
+		if (SelectedUpgrade == UpgradeAlternativePair.UpgradeData)
+		{
+			if (!UpgradeAlternativePair.Alternative)
+			{
+				UpgradeAlternativePair.Alternative->bLocked = true;
+			}
+		}
+	} 
 }
 
 void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -157,6 +177,7 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUpgradeSpawner, PlayerUpgradeDisplayEntry);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeAlternativePairs);
+	DOREPLIFETIME(AUpgradeSpawner, bSpawnOnBeginPlay);
 }
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
@@ -164,3 +185,4 @@ void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
 	UPGRADE_DISPLAY(TEXT("%hs: called."), __FUNCTION__);
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
 }
+

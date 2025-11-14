@@ -48,6 +48,7 @@ public:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_Spawn();
+	
 	UFUNCTION()
 	void OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStatus, int32 Index);
 
@@ -55,7 +56,7 @@ protected:
 	virtual void BeginPlay() override;
 	
 	UFUNCTION()
-	void OnUpgradeSelected();
+	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -73,8 +74,12 @@ private:
 	FPlayerUpgradeDisplayEntry PlayerUpgradeDisplayEntry; //TODO: Sync with UpgradeSubsystem
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
-	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;
-
+	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;	
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
+	
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	bool bSpawnOnBeginPlay = true;
+	
+
 };
