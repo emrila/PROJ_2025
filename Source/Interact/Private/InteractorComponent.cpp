@@ -15,7 +15,7 @@ namespace InteractUtil
 		FRotator ViewRot;
 		Owner->GetActorEyesViewPoint(Start, ViewRot);
 		const FVector End = Start + ViewRot.Vector() * InteractionDistance;
-		const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_Visibility);
+		const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable
 		return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
 	}
 }
@@ -128,5 +128,6 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 
 void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)
 {
+	INTERACT_DISPLAY( TEXT("Finished interaction interactable"));
 	ClearInteractable();
 }
