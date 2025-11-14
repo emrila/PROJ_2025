@@ -21,13 +21,7 @@ UCLASS()
 class PROJ_2025_API APlayerCharacterBase : public ACharacter
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	USpringArmComponent* CameraBoom;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	UCameraComponent* FollowCamera;
-
+	
 public:
 	APlayerCharacterBase();
 
@@ -46,13 +40,21 @@ public:
 	
 	AActor* GetRightHandAttachedActor() const;
 
-	virtual void SetUseControllerYawRotation(const bool bUseControllerYaw);
+	virtual void HandleCameraDetachment();
+	
+	virtual void HandleCameraReattachment();
+	
+	virtual void InterpolateCamera(
+		FTransform& TargetTransform, const float LerpDuration
+	);
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 protected:
+	virtual void TickNotLocal();
+	
 	virtual void BeginPlay() override;
 
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,6 +63,24 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
+	
+	//Components and Camera
+	virtual void InterpolateCameraToLocation(FVector& TargetLocation, const float LerpDuration);
+	
+	virtual void InterpolateCameraToRotation(FRotator& TargetRotation, const float LerpDuration);
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	USpringArmComponent* CameraBoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	UCameraComponent* FollowCamera;
+	
+	UPROPERTY()
+	FVector FollowCameraRelativeLocation = FVector::ZeroVector;
+	
+	UPROPERTY()
+	FRotator FollowCameraRelativeRotation = FRotator::ZeroRotator;
 	
 	//Input
 	virtual void Move(const FInputActionValue& Value);
@@ -72,6 +92,9 @@ protected:
 	virtual void UseSecondAttackComponent();
 
 	virtual void Interact(const FInputActionValue& Value);
+	
+	UPROPERTY()
+	bool bShouldUseLookInput = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;
@@ -135,6 +158,4 @@ private:
 	bool bUsePlayerLoginProfile = false;
 	
 #endif
-protected:
-	virtual void TickNotLocal();
 };

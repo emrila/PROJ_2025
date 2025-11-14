@@ -75,6 +75,14 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
+void APlayerCharacterBase::InterpolateCameraToLocation(FVector& TargetLocation, const float LerpDuration)
+{
+}
+
+void APlayerCharacterBase::InterpolateCameraToRotation(FRotator& TargetRotation, const float LerpDuration)
+{
+}
+
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -88,6 +96,10 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
+	if (!bShouldUseLookInput)
+	{
+		return;
+	}
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	AddControllerYawInput(LookAxisVector.X);
@@ -289,7 +301,82 @@ AActor* APlayerCharacterBase::GetRightHandAttachedActor() const
 	return nullptr;
 }
 
-void APlayerCharacterBase::SetUseControllerYawRotation(const bool bUseControllerYaw)
+void APlayerCharacterBase::HandleCameraDetachment()
 {
-	bUseControllerRotationYaw = bUseControllerYaw;
+	//bUseControllerRotationYaw = bUseControllerYaw;
+	if (!CameraBoom)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, CameraBoom is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	bUseControllerRotationYaw = false;
+	bShouldUseLookInput = false;
+	
+	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	
+	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
+
+void APlayerCharacterBase::HandleCameraReattachment()
+{
+	if (!CameraBoom)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, CameraBoom is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	bUseControllerRotationYaw = true;
+	bShouldUseLookInput = true;
+	
+	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
+}
+
+void APlayerCharacterBase::InterpolateCamera(
+	FTransform& TargetTransform, const float LerpDuration)
+{
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	FVector TargetLocation = TargetTransform.GetLocation();
+	
+	InterpolateCameraToLocation(TargetLocation, LerpDuration / 2.f);
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
