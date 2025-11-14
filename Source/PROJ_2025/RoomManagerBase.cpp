@@ -40,7 +40,7 @@ void ARoomManagerBase::OnRoomInitialized()
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.5f && RoomExits.Num() > 1)
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
