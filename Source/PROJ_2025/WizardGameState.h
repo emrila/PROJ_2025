@@ -17,11 +17,13 @@ class PROJ_2025_API AWizardGameState : public AGameStateBase
 	
 
 public:
+
+	virtual void BeginPlay() override;
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly)
-	float MaxHealth = 100;
+	float MaxHealth;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	float Health = 100;
+	float Health;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
