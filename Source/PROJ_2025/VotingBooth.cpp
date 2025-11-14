@@ -17,7 +17,7 @@ void AVotingBooth::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(AVotingBooth, VotingCount);
+	
 }
 
 // Called when the game starts or when spawned
