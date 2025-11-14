@@ -57,7 +57,7 @@ void AMageProjectile::OnProjectileOverlap(
 		Destroy();
 		return;
 	}
-	if (APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(OtherActor))
+	/*if (APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(OtherActor))
 	{
 		return;
 	}
@@ -65,19 +65,20 @@ void AMageProjectile::OnProjectileOverlap(
 	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
 	{
 		return;
-	}
+	}*/
 }
 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
+	if (OtherComp->IsA(StaticClass()))
 	{
 		return;
 	}
 	
 	if (OtherComp)
 	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,Hit.ImpactPoint);
 		Destroy();
 	}
 }
