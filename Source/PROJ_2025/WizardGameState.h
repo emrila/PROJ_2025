@@ -17,7 +17,7 @@ class PROJ_2025_API AWizardGameState : public AGameStateBase
 	
 
 public:
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly)
 	float MaxHealth = 100;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
