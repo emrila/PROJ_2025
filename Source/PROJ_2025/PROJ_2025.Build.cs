@@ -26,7 +26,8 @@ public class PROJ_2025 : ModuleRules
 			"OnlineSubsystem",
 			"OnlineSubsystemUtils",
 			"UMG",
-			"NavigationSystem"
+			"NavigationSystem",
+			"Niagara"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "Upgrade", "Interact", "AdvancedSessions" });
