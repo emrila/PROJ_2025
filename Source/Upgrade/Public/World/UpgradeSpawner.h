@@ -48,9 +48,6 @@ public:
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_Spawn();
-	
-	UFUNCTION()
-	void OnAlternativeStatusChanged(EUpgradeSelectionStatus NewStatus, int32 Index);
 
 protected:
 	virtual void BeginPlay() override;
@@ -75,11 +72,11 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
 	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;	
+	
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
-	bool bSpawnOnBeginPlay = true;
-	
+	bool bSpawnOnBeginPlay = true;	
 
 };

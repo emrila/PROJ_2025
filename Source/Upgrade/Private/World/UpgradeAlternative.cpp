@@ -61,13 +61,13 @@ void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 	}
 }
 
-void AUpgradeAlternative::NotifyUpgradeSelected()
+void AUpgradeAlternative::SelectUpgrade()
 {
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnUpgradeSelected(bSelected);
 	}
-	if (bSelected)
+	if (bSelected && !bLocked)
 	{
 		OnUpgrade.Broadcast(UpgradeDisplayData);		
 	}
@@ -82,88 +82,63 @@ bool AUpgradeAlternative::IsTargetPlayer(const AActor* OtherActor) const
 	return false;
 }
 
-void AUpgradeAlternative::Server_NotifyUpgradeSelected_Implementation(bool bInUpgradeSelected)
+void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
 {
-	bSelected = bInUpgradeSelected;
-	NotifyUpgradeSelected();
+	bSelected = bIsSelected;
+	SelectUpgrade();
 }
 
-bool AUpgradeAlternative::Server_NotifyUpgradeSelected_Validate(bool bInUpgradeSelected)
+bool AUpgradeAlternative::Server_SelectUpgrade_Validate(bool bIsSelected)
 {
 	return true;
 }
 
-/*void AUpgradeAlternative::SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus)
-{
-	/*CurrentSelectionStatus = NewStatus;
-	const bool bShowAsUpgradeSelected = NewStatus == EUpgradeSelectionStatus::Selected || NewStatus == EUpgradeSelectionStatus::Hovered;
-	Server_NotifyUpgradeSelected_Implementation(bShowAsUpgradeSelected);
-	NotifyUpgradeSelected();#1#
-}*/
-
-void AUpgradeAlternative::OnRep_UpgradeSelected()
+void AUpgradeAlternative::OnRep_Selected()
 {
 	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
-	NotifyUpgradeSelected();
+	SelectUpgrade();
 }
 
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
-{
-	/*Server_NotifyUpgradeSelected(true);
-	NotifyUpgradeSelected();*/
-	//CurrentSelectionStatus = EUpgradeSelectionStatus::Selected;
-	//OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
-	
+{	
 	bSelected = true;
-	NotifyUpgradeSelected();
-	Server_NotifyUpgradeSelected(bSelected);	
+	
+	Server_SelectUpgrade(bSelected);
+	SelectUpgrade();
+	
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
-	{
-		TScriptInterface<IInteractor> InteractorInterface;
-		InteractorInterface.SetObject(Interactor);
-		InteractorInterface.SetInterface(Cast<IInteractor>(Interactor));
-		InteractorInterface->Execute_OnFinishedInteraction(InteractorInterface.GetObject(), this);
-	}	
+	{		
+		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+	}
 	//Destroy(); 
 }
 
 bool AUpgradeAlternative::CanInteract_Implementation()
 {
-	return bFocus && !bSelected && !bLocked; //CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered || CurrentSelectionStatus == EUpgradeSelectionStatus::NotSelected;
+	return bFocus && !bSelected && !bLocked; 
 }
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor) && !bSelected && !bLocked/* && Execute_CanInteract(this)*/)
-	{		
-		/*CurrentSelectionStatus = EUpgradeSelectionStatus::Hovered;
-		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);*/
+	if (IsTargetPlayer(OtherActor) && !bSelected && !bLocked)
+	{				
 		bFocus = true;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 		{
 			UpgradeWidget->OnUpgradeHasFocus(bFocus);
 		}
-		/*bSelected = true;
-		NotifyUpgradeSelected();
-		Server_NotifyUpgradeSelected(bSelected);	*/		
 	}	
 }
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex)
 {
 	if (IsTargetPlayer(OtherActor) && !bSelected && !bLocked)
-	{
-		/*CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;
-		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);*/
-		/*Server_NotifyUpgradeSelected(false);
-		NotifyUpgradeSelected();*/
-		
+	{		
 		bFocus = false;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 		{
 			UpgradeWidget->OnUpgradeHasFocus(bFocus);
-		}
-		//Destroy(); 
+		}		
 	}
 }
 
@@ -184,6 +159,5 @@ void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
 	DOREPLIFETIME(AUpgradeAlternative, bSelected);
-	//DOREPLIFETIME(AUpgradeAlternative, CurrentSelectionStatus);
 	DOREPLIFETIME(AUpgradeAlternative, Index);
 }

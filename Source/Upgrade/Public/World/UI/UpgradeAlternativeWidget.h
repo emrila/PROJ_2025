@@ -22,11 +22,7 @@ public:
 	void OnUpgradeSelected_Implementation(bool bIsSelected){}
 	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnUpgradeHasFocus(bool bIsSelected);
-	void OnUpgradeHasFocus_Implementation(bool bIsSelected){}
-	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnAlternativeStatusChanged(EUpgradeSelectionStatus Status);
-	void OnAlternativeStatusChanged_Implementation(EUpgradeSelectionStatus Status){}
+	void OnUpgradeHasFocus(bool bHasFocus);
+	void OnUpgradeHasFocus_Implementation(bool bHasFocus){}
 
 };

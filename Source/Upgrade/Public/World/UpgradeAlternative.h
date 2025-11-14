@@ -15,18 +15,6 @@ class UWidgetComponent;
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUpgrade, FUpgradeDisplayData, SelectedUpgrade);
 
-UENUM(BlueprintType)
-enum class EUpgradeSelectionStatus: uint8
-{
-	NotSelected		UMETA(DisplayName = "Not Selected"),
-	Locked			UMETA(DisplayName = "Locked"),
-	Hovered			UMETA(DisplayName = "Hovered"),
-	Selected		UMETA(DisplayName = "Selected")
-};
-
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatusChanged, EUpgradeSelectionStatus, NewStatus, int32, Index);
-
 UCLASS()
 class UPGRADE_API AUpgradeAlternative : public AActor, public IInteractable
 {
@@ -38,7 +26,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetUpgradeDisplayData(const FUpgradeDisplayData& Data);
 
-	void NotifyUpgradeSelected();
+	void SelectUpgrade();
 
 protected:
 	UFUNCTION()
@@ -69,27 +57,23 @@ protected:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	FUpgradeDisplayData UpgradeDisplayData;
 
-	//void SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus);
-	/*UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	EUpgradeSelectionStatus CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;*/
-
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	int32 Index = -1;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	bool bFocus = false;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_UpgradeSelected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bSelected = false;	
-	
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	bool bLocked = false;
 	
+	UPROPERTY(ReplicatedUsing=OnRep_Selected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	bool bSelected = false;	
+	
 	UFUNCTION()
-	void OnRep_UpgradeSelected();
+	void OnRep_Selected();
 	
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_NotifyUpgradeSelected(bool bInUpgradeSelected);	
+	void Server_SelectUpgrade(bool bIsSelected);	
 	
 public:
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
@@ -100,8 +84,5 @@ protected:
 	
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnUpgrade OnUpgrade;
-	
-	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnStatusChanged OnStatusChanged;
+	FOnUpgrade OnUpgrade;	
 };
