@@ -2,6 +2,7 @@
 
 #include "MageProjectile.h"
 
+#include "EnemyBase.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -49,6 +50,13 @@ void AMageProjectile::OnProjectileOverlap(
 	const FHitResult& SweepResult
 )
 {
+	if (OtherActor->IsA(AEnemyBase::StaticClass()))
+	{
+		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,SweepResult.ImpactPoint);
+		Destroy();
+		return;
+	}
 	if (APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(OtherActor))
 	{
 		return;
@@ -56,14 +64,6 @@ void AMageProjectile::OnProjectileOverlap(
 	
 	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
 	{
-		return;
-	}
-
-	if (OtherActor)
-	{
-		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,SweepResult.ImpactPoint);
-		Destroy();
 		return;
 	}
 }
