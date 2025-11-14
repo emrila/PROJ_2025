@@ -101,6 +101,8 @@ protected:
 	
 	UPROPERTY()
 	bool bShouldUseLookInput = true;
+	
+	bool bShouldUseMovementInput = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;

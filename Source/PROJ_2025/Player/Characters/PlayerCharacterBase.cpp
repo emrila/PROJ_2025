@@ -85,6 +85,10 @@ void APlayerCharacterBase::InterpolateCameraToRotation(FRotator& TargetRotation,
 
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
+	if (!bShouldUseMovementInput)
+	{
+		return;
+	}
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 
 	const FVector Direction = GetActorForwardVector();
@@ -326,6 +330,7 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	
 	bUseControllerRotationYaw = false;
 	bShouldUseLookInput = false;
+	bShouldUseMovementInput = false;
 	
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
@@ -349,6 +354,7 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	
 	bUseControllerRotationYaw = true;
 	bShouldUseLookInput = true;
+	bShouldUseMovementInput = true;
 	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
