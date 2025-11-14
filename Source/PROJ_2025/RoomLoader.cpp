@@ -48,7 +48,10 @@ void ARoomLoader::BeginPlay()
 void ARoomLoader::OnNextLevelLoaded()
 {
 	AActor* RoomManagerActor = UGameplayStatics::GetActorOfClass(GetWorld(), ARoomManagerBase::StaticClass());
-	Cast<ARoomManagerBase>(RoomManagerActor)->OnRoomInitialized();
+	if (ARoomManagerBase* RoomManager = Cast<ARoomManagerBase>(RoomManagerActor))
+	{
+		RoomManager->OnRoomInitialized();
+	}
 }
 
 
