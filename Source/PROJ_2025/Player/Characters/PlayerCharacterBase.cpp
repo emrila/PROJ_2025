@@ -1,4 +1,5 @@
 ﻿#include "PlayerCharacterBase.h"
+
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "PlayerLoginSystem.h"
@@ -74,6 +75,14 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
+void APlayerCharacterBase::InterpolateCameraToLocation(FVector& TargetLocation, const float LerpDuration)
+{
+}
+
+void APlayerCharacterBase::InterpolateCameraToRotation(FRotator& TargetRotation, const float LerpDuration)
+{
+}
+
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
@@ -83,13 +92,14 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 	AddMovementInput(Direction, MovementVector.Y);
 	AddMovementInput(RightVector, MovementVector.X);
-
-	//FDamageEvent DamageEvent;
-	//TakeDamage(5.0f, DamageEvent, GetController(), this); // For testing damage
 }
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
+	if (!bShouldUseLookInput)
+	{
+		return;
+	}
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
 	AddControllerYawInput(LookAxisVector.X);
@@ -109,7 +119,12 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 
 void APlayerCharacterBase::UseSecondAttackComponent()
 {
-	UE_LOG(PlayerBaseLog, Warning, TEXT("APlayerCharacterBase::UseSecondAttackComponent called"));
+	if (!SecondAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
+		return;
+	}
+	GetSecondAttackComponent()->StartAttack();
 }
 
 void APlayerCharacterBase::Interact(const FInputActionValue& Value)
@@ -285,3 +300,83 @@ AActor* APlayerCharacterBase::GetRightHandAttachedActor() const
 	UE_LOG(PlayerBaseLog, Warning, TEXT("%s, No actor attached to right hand socket"), *FString(__FUNCTION__));
 	return nullptr;
 }
+
+void APlayerCharacterBase::HandleCameraDetachment()
+{
+	//bUseControllerRotationYaw = bUseControllerYaw;
+	if (!CameraBoom)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, CameraBoom is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	bUseControllerRotationYaw = false;
+	bShouldUseLookInput = false;
+	
+	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	
+	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+}
+
+void APlayerCharacterBase::HandleCameraReattachment()
+{
+	if (!CameraBoom)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, CameraBoom is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	bUseControllerRotationYaw = true;
+	bShouldUseLookInput = true;
+	
+	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
+}
+
+void APlayerCharacterBase::InterpolateCamera(
+	FTransform& TargetTransform, const float LerpDuration)
+{
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	FVector TargetLocation = TargetTransform.GetLocation();
+	
+	InterpolateCameraToLocation(TargetLocation, LerpDuration / 2.f);
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
