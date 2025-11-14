@@ -199,8 +199,8 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 			{
 				HitActors.Add(Hit.GetActor());
 			}
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
 		}
-
 		for (AActor* Actor : HitActors)
 		{
 			if (Actor->IsA(APlayerCharacterBase::StaticClass()))

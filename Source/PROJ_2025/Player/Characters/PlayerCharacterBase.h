@@ -1,9 +1,12 @@
 ﻿
 #pragma once
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
+
 
 class UWidgetComponent;
 class UInteractorComponent;
@@ -51,6 +54,9 @@ public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Particles")
+	UNiagaraSystem* ImpactParticles;
 
 protected:
 	virtual void TickNotLocal();
@@ -138,6 +144,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName LeftHandSocket = TEXT("HandGrip_L");
+
+	
 	
 private:
 	
@@ -151,6 +159,12 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
+
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnHitParticles();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SpawnHitParticles();
 	
 #if WITH_EDITORONLY_DATA
 	

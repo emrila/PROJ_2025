@@ -195,6 +195,14 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	
 }
 
+void APlayerCharacterBase::Multicast_SpawnHitParticles_Implementation()
+{
+}
+
+void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
+{
+}
+
 void APlayerCharacterBase::TickNotLocal()
 {
 	if (!IsLocallyControlled())

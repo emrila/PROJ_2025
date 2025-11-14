@@ -63,8 +63,10 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
-	
-	GetWorld()->SpawnActor<AMageProjectile>(ProjectileClass, SpawnTransform, SpawnParameters);
+
+	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
+		ProjectileClass, SpawnTransform, SpawnParameters);
+	Projectile->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 
 FTransform URangeAttackComp::GetProjectileTransform()
