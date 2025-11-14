@@ -62,6 +62,7 @@ void AMageProjectile::OnProjectileOverlap(
 	if (OtherActor)
 	{
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,SweepResult.ImpactPoint);
 		Destroy();
 		return;
 	}
@@ -79,6 +80,11 @@ void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	{
 		Destroy();
 	}
+}
+
+void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)
+{
+	ImpactParticles = Particles;
 }
 
 

@@ -124,6 +124,7 @@ void USlashAttackComp::Sweep(FVector SweepLocation)
 			{
 				HitActors.Add(Hit.GetActor());
 			}
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
 		}
 
 		for (AActor* Actor : HitActors)

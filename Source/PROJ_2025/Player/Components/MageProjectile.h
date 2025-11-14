@@ -2,6 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraSystem.h"
 #include "GameFramework/Actor.h"
 #include "MageProjectile.generated.h"
 
@@ -15,6 +16,9 @@ class PROJ_2025_API AMageProjectile : public AActor
 
 public:
 	AMageProjectile();
+
+	UFUNCTION(BlueprintCallable)
+	void SetImpactParticle(UNiagaraSystem* Particles);
 
 protected:
 	virtual void BeginPlay() override;
@@ -61,5 +65,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LifeTime = 5.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UNiagaraSystem* ImpactParticles;
+
+	
 	
 };
