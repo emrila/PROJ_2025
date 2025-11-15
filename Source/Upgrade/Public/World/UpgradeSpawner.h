@@ -41,7 +41,7 @@ public:
 	void ShowAllUpgradeAlternatives(TArray<FUpgradeAlternativePair> InAssignableUpgrades);
 
 	UFUNCTION(BlueprintCallable, Category="Upgrade Spawner")
-	void SetNumberOfSpawnAlternatives(int32 InNumberOfSpawnAlternatives)
+	void SetNumberOfSpawnAlternatives(const int32 InNumberOfSpawnAlternatives)
 	{
 		NumberOfSpawnAlternatives = InNumberOfSpawnAlternatives;
 	}
@@ -51,11 +51,13 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	UFUNCTION()
 	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
+	UFUNCTION()
+	void LockUpgradeAlternatives();
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
@@ -71,8 +73,7 @@ private:
 	FPlayerUpgradeDisplayEntry PlayerUpgradeDisplayEntry; //TODO: Sync with UpgradeSubsystem
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
-	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;	
-	
+	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
 	
