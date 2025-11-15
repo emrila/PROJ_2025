@@ -16,6 +16,7 @@ namespace InteractUtil
 		Owner->GetActorEyesViewPoint(Start, ViewRot);
 		const FVector End = Start + ViewRot.Vector() * InteractionDistance;
 		const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable
+
 		return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
 	}
 }
@@ -30,14 +31,18 @@ UInteractorComponent::UInteractorComponent()
 	bInteracting = false;
 }
 
-
 void UInteractorComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	SetInteracting(false);
-	SetTargetInteractable(nullptr);
-}
 
+	Server_SetInteracting(false);
+	SetTargetInteractable(nullptr);
+	if (const AController* InstController = GetOwner()->GetInstigatorController())	{
+		const TObjectPtr<APawn> Pawn = InstController->GetPawn();
+		SetComponentTickEnabled(Pawn->IsLocallyControlled());
+		INTERACT_DISPLAY( TEXT("InteractorComponent tick enabled: %s"), Pawn->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
+	}
+}
 
 void UInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
@@ -85,7 +90,7 @@ void UInteractorComponent::TraceForInteractable()
 void UInteractorComponent::ClearInteractable()
 {
 	INTERACT_DISPLAY(TEXT("Clearing interactable"));
-	SetInteracting(false);
+	Server_SetInteracting(false);
 	SetTargetInteractable(nullptr);
 }
 
@@ -97,7 +102,7 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 
-	SetInteracting(true);
+	Server_SetInteracting(true);
 
 	if (!TargetInteractable.GetObject())
 	{
@@ -106,7 +111,11 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 
-	Execute_OnInteract(TargetInteractable.GetObject(), this);
+	Server_InteractWith(TargetInteractable.GetObject());//Execute_OnInteract(TargetInteractable.GetObject(), this);
+	if (Interactor && Interactor->Implements<UInteractable>())
+	{
+		Execute_OnPreInteract(Interactor);
+	}
 }
 
 bool UInteractorComponent::CanInteract_Implementation()
@@ -114,10 +123,23 @@ bool UInteractorComponent::CanInteract_Implementation()
 	return !bInteracting && TargetInteractable.GetObject();
 }
 
+void UInteractorComponent::Server_InteractWith_Implementation(UObject* Interactable)
+{
+	if (Interactable && Interactable->Implements<UInteractable>())
+	{
+		Execute_OnInteract(Interactable, this);
+	}
+}
+
 void UInteractorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UInteractorComponent, bInteracting);
+}
+
+void UInteractorComponent::Server_SetInteracting_Implementation(const bool bInInteracting)
+{
+	bInteracting = bInInteracting;
 }
 
 void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInteractable> InTargetInteractable)
