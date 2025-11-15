@@ -50,6 +50,24 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	TickNotLocal();
+	
+	if (bIsInterpolatingCamera && FollowCamera)
+	{
+		CameraInterpElapsed += DeltaTime;
+		const float Alpha = FMath::Clamp(CameraInterpElapsed / FMath::Max(0.01f, CameraInterpDuration), 0.f, 1.f);
+
+		const FVector NewLoc = FMath::Lerp(CameraInterpStartLocation, CameraInterpolateTargetLocation, Alpha);
+		const FQuat StartQ = CameraInterpStartRotation.Quaternion();
+		const FQuat EndQ = CameraInterpolateTargetRotation.Quaternion();
+		const FQuat NewQ = FQuat::Slerp(StartQ, EndQ, Alpha);
+
+		FollowCamera->SetWorldLocationAndRotation(NewLoc, NewQ.Rotator());
+
+		if (Alpha >= 1.f)
+		{
+			bIsInterpolatingCamera = false;
+		}
+	}
 }
 
 void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
@@ -177,8 +195,8 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
-void APlayerCharacterBase::InterpolateCamera(
-	FTransform& TargetTransform, const float LerpDuration)
+void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation,
+	const FRotator& TargetRotation, const float LerpDuration)
 {
 	if (!FollowCamera)
 	{
@@ -186,10 +204,10 @@ void APlayerCharacterBase::InterpolateCamera(
 		return;
 	}
 	
-	FVector TargetLocation = TargetTransform.GetLocation();
-	
-	InterpolateCameraToLocation(TargetLocation, LerpDuration / 2.f);
-	
+	FTransform TargetTransform;
+	TargetTransform.SetLocation(TargetLocation);
+	TargetTransform.SetRotation(TargetRotation.Quaternion());
+	InterpolateCamera(TargetTransform, LerpDuration);
 }
 
 void APlayerCharacterBase::BeginPlay()
@@ -246,12 +264,23 @@ void APlayerCharacterBase::TickNotLocal()
 	}
 }
 
-void APlayerCharacterBase::InterpolateCameraToLocation(FVector& TargetLocation, const float LerpDuration)
+void APlayerCharacterBase::InterpolateCamera(FTransform& TargetTransform, const float LerpDuration)
 {
-}
-
-void APlayerCharacterBase::InterpolateCameraToRotation(FRotator& TargetRotation, const float LerpDuration)
-{
+	if (!FollowCamera)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	CameraInterpStartLocation = FollowCamera->GetComponentLocation();
+	CameraInterpStartRotation = FollowCamera->GetComponentRotation();
+	
+	CameraInterpolateTargetLocation = TargetTransform.GetLocation();
+	CameraInterpolateTargetRotation = TargetTransform.Rotator();
+	
+	CameraInterpDuration = FMath::Max(0.01f, LerpDuration);
+	CameraInterpElapsed = 0.f;
+	bIsInterpolatingCamera = true;
 }
 
 void APlayerCharacterBase::Move(const FInputActionValue& Value)

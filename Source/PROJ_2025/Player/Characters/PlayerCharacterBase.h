@@ -47,9 +47,9 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
-	virtual void InterpolateCamera(
-		FTransform& TargetTransform, const float LerpDuration
-	);
+	UFUNCTION(Client, Reliable)
+	virtual void Client_StartCameraInterpolation(
+		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
@@ -76,21 +76,39 @@ protected:
 	virtual void TickNotLocal();
 	
 	//Handle camera
-	virtual void InterpolateCameraToLocation(FVector& TargetLocation, const float LerpDuration);
-	
-	virtual void InterpolateCameraToRotation(FRotator& TargetRotation, const float LerpDuration);
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	USpringArmComponent* CameraBoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	UCameraComponent* FollowCamera;
 	
-	UPROPERTY()
+	//Stored when detaching camera
 	FVector FollowCameraRelativeLocation = FVector::ZeroVector;
-	
-	UPROPERTY()
 	FRotator FollowCameraRelativeRotation = FRotator::ZeroRotator;
+	
+	//Handle camera interpolation
+	virtual void InterpolateCamera(FTransform& TargetTransform, const float LerpDuration);
+	
+	UPROPERTY(Transient)
+	bool bIsInterpolatingCamera = false;
+	
+	UPROPERTY(Transient)
+	float CameraInterpElapsed = 0.f;
+
+	UPROPERTY(Transient)
+	float CameraInterpDuration = 0.f;
+	
+	UPROPERTY(Transient)
+	FVector CameraInterpStartLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FRotator CameraInterpStartRotation = FRotator::ZeroRotator;
+
+	UPROPERTY(Transient)
+	FVector CameraInterpolateTargetLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient)
+	FRotator CameraInterpolateTargetRotation = FRotator::ZeroRotator;
 	
 	//Handle input
 	virtual void Move(const FInputActionValue& Value);
