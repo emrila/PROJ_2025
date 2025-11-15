@@ -11,13 +11,27 @@ namespace InteractUtil
 {
 	bool Trace(AActor* Owner, const float InteractionRadius, const float InteractionDistance, FHitResult& Hit, const EDrawDebugTrace::Type DebugType = EDrawDebugTrace::None)
 	{
-		FVector Start;
-		FRotator ViewRot;
-		Owner->GetActorEyesViewPoint(Start, ViewRot);
-		const FVector End = Start + ViewRot.Vector() * InteractionDistance;
-		const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable
-
-		return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
+		auto Sphere = [&]()
+		{
+			FVector Start;
+			FRotator ViewRot;
+			Owner->GetActorEyesViewPoint(Start, ViewRot);
+			const FVector End = Start + ViewRot.Vector() * InteractionDistance;
+			const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable		
+			return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
+		};
+		auto Capsule = [&]()
+		{
+			FVector Start;
+			FRotator ViewRot;
+			Owner->GetActorEyesViewPoint(Start, ViewRot);
+			const FVector End = Start + ViewRot.Vector() * InteractionDistance;
+			const auto HalfHeight = Owner->GetActorScale3D().Z/2.f;
+			const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable
+			return UKismetSystemLibrary::CapsuleTraceSingle(Owner, Start, End, HalfHeight, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
+		};
+		
+		return Sphere();
 	}
 }
 
@@ -69,12 +83,15 @@ void UInteractorComponent::TraceForInteractable()
 		return;
 	}
 	FHitResult Hit;
-	if (!InteractUtil::Trace(Owner,InteractionRadius, InteractionDistance, Hit))
+
+	if (!InteractUtil::Trace(Owner, InteractionRadius, InteractionDistance, Hit
+	#if WITH_EDITORONLY_DATA
+		, DebugType
+	#endif
+	))
 	{
-		//INTERACT_DISPLAY( TEXT("Nothing found in trace"));
 		return;
 	}
-
 	if (IsInteractable(Hit.GetActor()))
 	{
 		SetTargetInteractable(Hit.GetActor());

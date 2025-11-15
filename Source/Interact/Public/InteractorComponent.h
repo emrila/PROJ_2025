@@ -6,6 +6,7 @@
 #include "Interactable.h"
 #include "Interactor.h"
 #include "Components/ActorComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "InteractorComponent.generated.h"
 
 
@@ -85,5 +86,9 @@ public:
 	{
 		return InteractionDistance;
 	}
-
+	
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interact|Trace")
+	TEnumAsByte<EDrawDebugTrace::Type> DebugType = EDrawDebugTrace::None;
+#endif
 };
