@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interact.h"
 #include "Interactable.h"
 #include "../Core/UpgradeDisplayData.h"
 #include "GameFramework/Actor.h"
@@ -13,19 +12,10 @@ class USphereComponent;
 class UWidgetComponent;
 
 UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnUpgrade);
-
-UENUM(BlueprintType)
-enum class EUpgradeSelectionStatus: uint8
-{
-	NotSelected		UMETA(DisplayName = "Not Selected"),
-	Locked			UMETA(DisplayName = "Locked"),
-	Hovered			UMETA(DisplayName = "Hovered"),
-	Selected		UMETA(DisplayName = "Selected")
-};
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPreUpgrade);
 
 UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStatusChanged, EUpgradeSelectionStatus, NewStatus, int32, Index);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUpgrade, FUpgradeDisplayData, SelectedUpgrade);
 
 UCLASS()
 class UPGRADE_API AUpgradeAlternative : public AActor, public IInteractable
@@ -38,67 +28,68 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetUpgradeDisplayData(const FUpgradeDisplayData& Data);
 
-	UFUNCTION(BlueprintCallable)
-	void ShowUpgradeDisplayData() const;
-
-	void NotifyUpgradeSelected() const;
-
 protected:
+	void SelectUpgrade();
+
 	UFUNCTION()
 	void OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
 	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-	virtual void Tick(float DeltaTime) override;	
+	virtual void Tick(float DeltaTime) override;
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:	
-	bool IsTargetPlayer(const AActor* OtherActor) const;
+	bool IsTargetLocalPlayer(const AActor* OtherActor) const;
 
-protected:	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	TObjectPtr<UWidgetComponent> UpgradeWidgetComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative", meta=(AllowPrivateAccess=true))
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USceneComponent> SceneComponent;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	TObjectPtr<USphereComponent> UpgradeTriggerComponent;	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UWidgetComponent> WidgetComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<USphereComponent> SphereComponent;	
 	
-	UPROPERTY(EditAnywhere, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	UPROPERTY(EditAnywhere, Category = "Upgrade Alternative|Movement", meta=(AllowPrivateAccess=true))
 	float InterpSpeed;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	FUpgradeDisplayData UpgradeDisplayData;
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_NotifyUpgradeSelected(bool bInUpgradeSelected);
-
-	UPROPERTY(ReplicatedUsing=OnRep_UpgradeSelected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bUpgradeSelected;
-
-	void SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus);
-
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	EUpgradeSelectionStatus CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;
-
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	int32 Index = -1;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	bool bFocus = false;
+	
+	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	bool bLocked = false;
 
+	UPROPERTY(ReplicatedUsing=OnRep_Selected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	bool bSelected = false;	
+	
 	UFUNCTION()
-	void OnRep_UpgradeSelected();
-
+	void OnRep_Selected();
+	
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SelectUpgrade(bool bIsSelected);	
+	
 public:
+	virtual void OnPreInteract_Implementation() override;
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
 
 protected:
 	friend class AUpgradeSpawner;
+	
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnUpgrade OnUpgrade;
-	
+	FOnPreUpgrade OnPreUpgrade;
+
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnStatusChanged OnStatusChanged;
+	FOnUpgrade OnUpgrade;	
 };

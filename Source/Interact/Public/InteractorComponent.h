@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Interactable.h"
+#include "Interactor.h"
 #include "Components/ActorComponent.h"
 #include "InteractorComponent.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class INTERACT_API UInteractorComponent : public UActorComponent, public IInteractable
+class INTERACT_API UInteractorComponent : public UActorComponent, public IInteractable, public IInteractor
 {
 	GENERATED_BODY()
 
@@ -18,10 +19,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+public:
 	UFUNCTION(BlueprintCallable, Category="Interaction|Interactor")
 	void TraceForInteractable();
 
@@ -30,8 +31,11 @@ public:
 
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
+	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable) override;
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	UFUNCTION(Server, Reliable)
+	void Server_InteractWith(UObject* Interactable);
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Getter, Setter, Category="Interact|Trace")
 	float InteractionRadius;
@@ -46,11 +50,8 @@ protected:
 	TScriptInterface<IInteractable> TargetInteractable;
 
 public:
-	UFUNCTION(BlueprintCallable, Category="Interact|Interactor")
-	void SetInteracting(const bool bInInteracting)
-	{
-		bInteracting = bInInteracting;
-	}
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category="Interact|Interactor")
+	void Server_SetInteracting(const bool bInInteracting);
 
 	UFUNCTION(BlueprintCallable, Category="Interact|Interactor")
 	void SetTargetInteractable(const TScriptInterface<IInteractable> InTargetInteractable);
@@ -84,4 +85,5 @@ public:
 	{
 		return InteractionDistance;
 	}
+
 };
