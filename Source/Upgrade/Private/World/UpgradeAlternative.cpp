@@ -6,10 +6,9 @@
 #include "Interactor.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
-#include "World/UI/UpgradeAlternativeWidget.h"
 #include "Dev/UpgradeLog.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "World/UI/UpgradeAlternativeWidget.h"
 
 namespace UpgradeWidget
 {
@@ -73,11 +72,11 @@ void AUpgradeAlternative::SelectUpgrade()
 	}
 }
 
-bool AUpgradeAlternative::IsTargetPlayer(const AActor* OtherActor) const
+bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 {
 	if (const APawn* Pawn = Cast<APawn>(OtherActor))
 	{
-		return Pawn->IsPlayerControlled();
+		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
 	}
 	return false;
 }
@@ -85,6 +84,7 @@ bool AUpgradeAlternative::IsTargetPlayer(const AActor* OtherActor) const
 void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
 {
 	bSelected = bIsSelected;
+	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
 	SelectUpgrade();
 }
 
@@ -101,14 +101,23 @@ void AUpgradeAlternative::OnRep_Selected()
 
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 {	
-	bSelected = true;
-	
-	Server_SelectUpgrade(bSelected);
+	if (!HasAuthority())
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
+		return;
+	}
+
+	bSelected = true;//Server_SelectUpgrade(true);
 	SelectUpgrade();
 	
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
-	{		
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
 		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+	}
+	else
+	{
+		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 	}
 	//Destroy(); 
 }
@@ -118,9 +127,17 @@ bool AUpgradeAlternative::CanInteract_Implementation()
 	return bFocus && !bSelected && !bLocked; 
 }
 
+void AUpgradeAlternative::OnPreInteract_Implementation()
+{
+	if (OnPreUpgrade.IsBound())
+	{
+		OnPreUpgrade.Broadcast();
+	}
+}
+
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor) && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
 	{				
 		bFocus = true;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
@@ -132,7 +149,7 @@ void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveCom
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex)
 {
-	if (IsTargetPlayer(OtherActor) && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
 	{		
 		bFocus = false;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
@@ -145,10 +162,9 @@ void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveCompo
 void AUpgradeAlternative::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	if (const APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0)) 
+	if (const ULocalPlayer* PlayerController = GetWorld()->GetFirstLocalPlayerFromController())
 	{
-		const FVector CameraLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
+		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
 		SetActorRotation(FMath::RInterpTo(GetActorRotation(), LookAtRotation, DeltaTime, InterpSpeed));
 	}
