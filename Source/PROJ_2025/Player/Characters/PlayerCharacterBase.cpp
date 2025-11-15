@@ -9,7 +9,6 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -193,7 +192,8 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 }
 		if (IsLocallyControlled())
 		{
-			Server_SetCustomPlayerName(CustomPlayerName);			
+			Server_SetCustomPlayerName(CustomPlayerName);
+
 		}
 		OnRep_CustomPlayerName();
 	
@@ -205,17 +205,6 @@ void APlayerCharacterBase::Multicast_SpawnHitParticles_Implementation()
 
 void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
 {
-}
-
-void APlayerCharacterBase::TickNotLocal()
-{
-	if (!IsLocallyControlled())
-	{
-		const FVector ComponentLocation = PlayerNameTagWidgetComponent->GetComponentLocation();
-		const FVector CameraLocation = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0)->K2_GetActorLocation();
-		const FRotator FindLookAtRotation = UKismetMathLibrary::FindLookAtRotation(ComponentLocation,CameraLocation);
-		PlayerNameTagWidgetComponent->SetWorldRotation(FindLookAtRotation);
-	}
 }
 
 void APlayerCharacterBase::Server_SetCustomPlayerName_Implementation(const FString& InPlayerName)
@@ -232,6 +221,27 @@ bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& In
 void APlayerCharacterBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	TickNotLocal();
+}
+
+void APlayerCharacterBase::TickNotLocal()
+{
+	if (IsLocallyControlled())
+	{
+		return;
+	}
+	const FVector ComponentLocation = PlayerNameTagWidgetComponent->GetComponentLocation();
+	if (!GEngine)
+	{
+		return;
+	}
+	APlayerController* LocalPlayerController = GEngine->GetFirstLocalPlayerController(GetWorld());
+	if (LocalPlayerController && LocalPlayerController->PlayerCameraManager)
+	{
+		const FVector CameraLocation = LocalPlayerController->PlayerCameraManager->GetCameraLocation();
+		const FRotator FindLookAtRotation = UKismetMathLibrary::FindLookAtRotation(ComponentLocation, CameraLocation);
+		PlayerNameTagWidgetComponent->SetWorldRotation(FindLookAtRotation);
+	}
 }
 
 void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
@@ -374,23 +384,3 @@ void APlayerCharacterBase::InterpolateCamera(
 	InterpolateCameraToLocation(TargetLocation, LerpDuration / 2.f);
 	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

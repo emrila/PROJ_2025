@@ -146,7 +146,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName LeftHandSocket = TEXT("HandGrip_L");
-
 	
 	
 private:
