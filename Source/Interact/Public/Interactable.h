@@ -16,7 +16,12 @@ class UInteractable : public UInterface
 class INTERACT_API IInteractable
 {
 	GENERATED_BODY()
+
 public:
+	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
+	void OnPreInteract();
+	virtual void OnPreInteract_Implementation();
+
 	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
 	void OnInteract(UObject* Interactor = nullptr);
 	virtual void OnInteract_Implementation(UObject* Interactor = nullptr);
