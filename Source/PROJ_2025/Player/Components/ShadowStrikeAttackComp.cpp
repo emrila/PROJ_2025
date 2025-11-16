@@ -1,6 +1,7 @@
 ﻿#include "ShadowStrikeAttackComp.h"
 
 #include "GameFramework/Character.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -24,8 +25,6 @@ void UShadowStrikeAttackComp::StartAttack()
 	{
 		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s Trying to lock target."), *FString(__FUNCTION__));
 
 	TryLockingTarget();
 
@@ -58,21 +57,50 @@ void UShadowStrikeAttackComp::PerformAttack()
 		return;
 	}
 	
-	HandlePlayerCamera();
-
-	LockedTarget = nullptr;
-}
-
-void UShadowStrikeAttackComp::HandlePlayerCamera()
-{
-if (!OwnerCharacter)
+	HandlePreAttackState();
+	
+	Server_TeleportPlayer();
+	
+	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(GetOwner());
+	
+	if (!PlayerCharacter)	
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
 	
-	if (!OwnerCharacter->HasAuthority())
+	FTimerHandle AttackTimer;
+	GetWorld()->GetTimerManager().SetTimer(AttackTimer, [PlayerCharacter]()
 	{
+		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
+		PlayerCharacter->GetFirstAttackComponent()->StartAttack();
+	}, AttackDelay, false);
+	
+	FTimerHandle CameraReattachmentTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		CameraReattachmentTimer,
+		this,
+		&UShadowStrikeAttackComp::HandlePostAttackState,
+		StrikeDuration,
+		false
+	);
+}
+
+void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Target)
+{
+	if (!Target)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Target is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	LockedTarget = Target;
+}
+
+void UShadowStrikeAttackComp::HandlePreAttackState()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
 	
@@ -85,40 +113,88 @@ if (!OwnerCharacter)
 	}
 	
 	PlayerCharacter->HandleCameraDetachment();
+}
 
-	FTransform BehindTransform = GetLocationBehindLockedTarget();
-	PlayerCharacter->SetActorLocationAndRotation(BehindTransform.GetLocation(), BehindTransform.GetRotation());
-
-	if (!PlayerCharacter->GetSecondAttackComponent())
+void UShadowStrikeAttackComp::HandlePostAttackState()
+{
+	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s SecondAttackComponent is Null."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);// Ensure first attack can be used
 	
-	// Delay slightly to allow for position update before starting attack
-	FTimerHandle AttackTimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(AttackTimerHandle, [PlayerCharacter]()
+	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(GetOwner());
+	
+	if (!PlayerCharacter)	
 	{
-		if (PlayerCharacter->GetFirstAttackComponent())
-		{
-			PlayerCharacter->GetFirstAttackComponent()->StartAttack();
-		}
-	}, 0.5f, false);
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	
-	
-	// Handle reattaching player camera after attack duration
-	FTimerHandle CameraReattachmentTimer;
-	GetWorld()->GetTimerManager().SetTimer(CameraReattachmentTimer, [PlayerCharacter]()
+	LockedTarget = nullptr;
+	PlayerCharacter->HandleCameraReattachment();
+}
+
+void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
+{
+	if (!OwnerCharacter)
 	{
-		if (PlayerCharacter)
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	if (!LockedTarget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s LockedTarget is Null."), *FString(__FUNCTION__));
+		return;
+	}
+
+	const FVector TeleportLocation = LockedTarget->GetActorLocation();
+	const FRotator TeleportRotation = LockedTarget->GetActorRotation();
+	const FVector TargetForward = TeleportRotation.Vector();
+	const FVector LocationBehind = TeleportLocation - (TargetForward * OffsetDistanceBehindTarget);
+	
+	Multicast_TeleportPlayer(LocationBehind, TeleportRotation);
+
+	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter);
+	
+	if (!PlayerCharacter)	
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	const FVector CameraTargetLocation = 
+		LocationBehind - (TargetForward * CameraInterpDistanceBehind) + FVector(0.f, 0.f, CameraInterpHeight
+			);
+	
+	const FRotator CameraTargetRotation = 
+		UKismetMathLibrary::FindLookAtRotation(CameraTargetLocation, LocationBehind);
+	
+	PlayerCharacter->Client_StartCameraInterpolation(CameraTargetLocation, CameraTargetRotation, CameraInterpDuration);
+}
+
+void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
+	const FVector& TeleportLocation, const FRotator& TeleportRotation)
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	OwnerCharacter->SetActorLocationAndRotation(
+		TeleportLocation, TeleportRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	if (AController* C = OwnerCharacter->GetController())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(C))
 		{
-			PlayerCharacter->HandleCameraReattachment();
+			if (PC->IsLocalController())
+			{
+				PC->SetControlRotation(TeleportRotation);
+			}
 		}
-	}, 
-	AttackDuration,
-	false
-	);
+	}
 }
 
 void UShadowStrikeAttackComp::TryLockingTarget()
@@ -183,32 +259,23 @@ void UShadowStrikeAttackComp::TryLockingTarget()
 	{
 		if (AActor* HitActor = HitResult.GetActor(); !HitActor->IsA(APlayerCharacterBase::StaticClass()))
 		{
-			LockedTarget = HitActor;
-			bIsLockingTarget = true;
+			if (OwnerCharacter->HasAuthority())
+			{
+				LockedTarget = HitActor;
+				bIsLockingTarget = true;
+			}
+			else
+			{
+				Server_SetLockedTarget(HitActor);
+				LockedTarget = HitActor;
+				bIsLockingTarget = true;
+			}
 			return;
 		}
 	}
 
 	LockedTarget = nullptr;
 	bIsLockingTarget = false;
-	
-}
-
-FTransform UShadowStrikeAttackComp::GetLocationBehindLockedTarget() const
-{
-	if (!LockedTarget)
-	{
-		return FTransform();
-	}
-
-	const FVector TargetLocation = LockedTarget->GetActorLocation();
-	const FRotator TargetRotation = LockedTarget->GetActorRotation();
-
-	const FVector TargetForward = TargetRotation.Vector();
-	const FVector LocationBehind = TargetLocation - (TargetForward * OffsetDistanceBehindTarget);
-	
-
-	return FTransform(TargetRotation, LocationBehind);
 }
 
 void UShadowStrikeAttackComp::ResetAttackCooldown()

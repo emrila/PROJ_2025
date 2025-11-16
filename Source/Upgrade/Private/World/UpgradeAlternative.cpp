@@ -3,13 +3,12 @@
 
 #include "World/UpgradeAlternative.h"
 
+#include "Interactor.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Core/UpgradeSubsystem.h"
-#include "World/UI/UpgradeAlternativeWidget.h"
 #include "Dev/UpgradeLog.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "World/UI/UpgradeAlternativeWidget.h"
 
 namespace UpgradeWidget
 {
@@ -38,130 +37,134 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
-	UpgradeWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
-	UpgradeWidgetComponent->SetupAttachment(RootComponent);
+	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
+	WidgetComponent->SetupAttachment(RootComponent);
 
-	UpgradeTriggerComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
-	UpgradeTriggerComponent->SetupAttachment(RootComponent);
+	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
+	SphereComponent->SetupAttachment(RootComponent);
 
-	constexpr float SphereRadius = 100.0f;
-	UpgradeTriggerComponent->SetSphereRadius(SphereRadius);
-	UpgradeTriggerComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius/2.f));
+	constexpr float SphereRadius = 50.f;//100.0f;
+	SphereComponent->SetSphereRadius(SphereRadius);
+	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius/2.f));
 	
-	UpgradeTriggerComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	UpgradeTriggerComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 {
 	UpgradeDisplayData = Data;
-	ShowUpgradeDisplayData();
-}
-
-void AUpgradeAlternative::ShowUpgradeDisplayData() const
-{
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(UpgradeWidgetComponent))
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 	}
 }
 
-void AUpgradeAlternative::NotifyUpgradeSelected() const
+void AUpgradeAlternative::SelectUpgrade()
 {
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(UpgradeWidgetComponent))
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
-		UpgradeWidget->OnUpgradeSelected(bUpgradeSelected);
+		UpgradeWidget->OnUpgradeSelected(bSelected);
 	}
-	if (bUpgradeSelected)
+	if (bSelected && !bLocked)
 	{
-		if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
-		{
-			UpgradeSubsystem->UpgradeByRow(UpgradeDisplayData.RowName);			
-		}
-		
-		OnUpgrade.Broadcast();
+		OnUpgrade.Broadcast(UpgradeDisplayData);		
 	}
 }
 
-bool AUpgradeAlternative::IsTargetPlayer(const AActor* OtherActor) const
+bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 {
 	if (const APawn* Pawn = Cast<APawn>(OtherActor))
 	{
-		return Pawn->IsPlayerControlled();
+		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
 	}
 	return false;
 }
 
-void AUpgradeAlternative::Server_NotifyUpgradeSelected_Implementation(bool bInUpgradeSelected)
+void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
 {
-	bUpgradeSelected = bInUpgradeSelected;
-	NotifyUpgradeSelected();
+	bSelected = bIsSelected;
+	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
+	SelectUpgrade();
 }
 
-bool AUpgradeAlternative::Server_NotifyUpgradeSelected_Validate(bool bInUpgradeSelected)
+bool AUpgradeAlternative::Server_SelectUpgrade_Validate(bool bIsSelected)
 {
 	return true;
 }
 
-void AUpgradeAlternative::SetCurrentSelectionStatus(const EUpgradeSelectionStatus NewStatus)
+void AUpgradeAlternative::OnRep_Selected()
 {
-	CurrentSelectionStatus = NewStatus;
-	const bool bShowAsUpgradeSelected = NewStatus == EUpgradeSelectionStatus::Selected || NewStatus == EUpgradeSelectionStatus::Hovered;
-	Server_NotifyUpgradeSelected_Implementation(bShowAsUpgradeSelected);
-	NotifyUpgradeSelected();
-}
-
-void AUpgradeAlternative::OnRep_UpgradeSelected()
-{
-	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bUpgradeSelected ? TEXT("true") : TEXT("false"));
-	NotifyUpgradeSelected();
+	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
+	SelectUpgrade();
 }
 
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
-{
-	Server_NotifyUpgradeSelected(true);
-	NotifyUpgradeSelected();
-	CurrentSelectionStatus = EUpgradeSelectionStatus::Selected;
-	OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
+{	
+	if (!HasAuthority())
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
+		return;
+	}
+
+	bSelected = true;//Server_SelectUpgrade(true);
+	SelectUpgrade();
+	
+	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
+		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+	}
+	else
+	{
+		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
+	}
+	//Destroy(); 
 }
 
 bool AUpgradeAlternative::CanInteract_Implementation()
 {
-	return CurrentSelectionStatus == EUpgradeSelectionStatus::Hovered;
+	return bFocus && !bSelected && !bLocked; 
+}
+
+void AUpgradeAlternative::OnPreInteract_Implementation()
+{
+	if (OnPreUpgrade.IsBound())
+	{
+		OnPreUpgrade.Broadcast();
+	}
 }
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetPlayer(OtherActor) && Execute_CanInteract(this))
-	{		
-		CurrentSelectionStatus = EUpgradeSelectionStatus::Hovered;
-		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
-
-		/*
-		Server_NotifyUpgradeSelected(true);
-		*/
-		//NotifyUpgradeSelected();
+	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
+	{				
+		bFocus = true;
+		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+		{
+			UpgradeWidget->OnUpgradeHasFocus(bFocus);
+		}
 	}	
 }
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex)
 {
-	if (IsTargetPlayer(OtherActor))
-	{
-		CurrentSelectionStatus = EUpgradeSelectionStatus::NotSelected;
-		OnStatusChanged.Broadcast(CurrentSelectionStatus, Index);
-		/*Server_NotifyUpgradeSelected(false);
-		NotifyUpgradeSelected();*/
+	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
+	{		
+		bFocus = false;
+		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+		{
+			UpgradeWidget->OnUpgradeHasFocus(bFocus);
+		}		
 	}
 }
 
 void AUpgradeAlternative::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	
-	if (const APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0)) //TODO: multiplayer
+	if (const ULocalPlayer* PlayerController = GetWorld()->GetFirstLocalPlayerFromController())
 	{
-		const FVector CameraLocation = PlayerController->PlayerCameraManager->GetCameraLocation();
+		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
 		SetActorRotation(FMath::RInterpTo(GetActorRotation(), LookAtRotation, DeltaTime, InterpSpeed));
 	}
@@ -171,7 +174,6 @@ void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
-	DOREPLIFETIME(AUpgradeAlternative, bUpgradeSelected);
-	DOREPLIFETIME(AUpgradeAlternative, CurrentSelectionStatus);
+	DOREPLIFETIME(AUpgradeAlternative, bSelected);
 	DOREPLIFETIME(AUpgradeAlternative, Index);
 }

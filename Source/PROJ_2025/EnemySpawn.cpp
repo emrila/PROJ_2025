@@ -28,7 +28,3 @@ AEnemySpawn::AEnemySpawn()
 #endif
 }
 
-void AEnemySpawn::OnConstruction(const FTransform& Transform)
-{
-	Super::OnConstruction(Transform);
-}

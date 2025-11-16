@@ -20,6 +20,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(Client, Reliable)
+	void Client_SetSpawnRotation(const FRotator& NewRot);
+
 protected:
 	virtual void BeginPlay() override;
 

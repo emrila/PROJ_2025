@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/Widget.h"
 #include "GameFramework/GameState.h"
 #include "WizardGameState.generated.h"
 
@@ -17,11 +18,13 @@ class PROJ_2025_API AWizardGameState : public AGameStateBase
 	
 
 public:
-	UPROPERTY(Replicated, BlueprintReadOnly)
-	float MaxHealth = 100;
+
+	virtual void BeginPlay() override;
+	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly)
+	float MaxHealth;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	float Health = 100;
+	float Health;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
@@ -40,6 +43,16 @@ public:
 	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void SetHealth(float HealthAmount);
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool MageSelected = false;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool TankSelected = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool RogueSelected = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	TArray<UWidget*> SelectionWidgets;
 	
 };

@@ -4,6 +4,7 @@
 #include "RoomLoader.h"
 
 #include "WizardGameInstance.h"
+#include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -13,14 +14,44 @@ void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 
 	DOREPLIFETIME(ARoomLoader, CurrentRoom);
 	DOREPLIFETIME(ARoomLoader, PendingNextRoomData);
+	DOREPLIFETIME(ARoomLoader, PastSevenRooms);
 }
+void ARoomLoader::Multicast_AddProgressWidget_Implementation()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC || !PC->IsLocalController()) return;
+
+	if (ProgressWidgetClass)
+	{
+		UUserWidget* Widget = CreateWidget(PC, ProgressWidgetClass);
+		if (Widget)
+		{
+			Widget->AddToViewport();
+		}
+	}
+}
+
+void ARoomLoader::RegisterNextRoom(URoomData* RoomData)
+{
+	if (PastSevenRooms.Num() > 6)
+	{
+		PastSevenRooms.Empty();
+	}
+	PastSevenRooms.Add(RoomData);
+	Multicast_AddProgressWidget();
+}
+
+TArray<URoomData*> ARoomLoader::GetPreviousRooms()
+{
+	return PastSevenRooms;
+}
+
 
 void ARoomLoader::LoadNextRoom_Implementation(URoomData* NextRoomData)
 {
 	PendingNextRoomData = NextRoomData;
 	UWorld* World = GetWorld();
 	if (!World || !PendingNextRoomData) return;
-
 	if (!CurrentLoadedLevelName.IsNone())
 	{
 		FLatentActionInfo UnloadInfo;
@@ -32,7 +63,6 @@ void ARoomLoader::LoadNextRoom_Implementation(URoomData* NextRoomData)
 		UGameplayStatics::UnloadStreamLevel(this, CurrentLoadedLevelName, UnloadInfo, true);
 		return;
 	}
-
 	OnPreviousLevelUnloaded();
 }
 
@@ -48,7 +78,10 @@ void ARoomLoader::BeginPlay()
 void ARoomLoader::OnNextLevelLoaded()
 {
 	AActor* RoomManagerActor = UGameplayStatics::GetActorOfClass(GetWorld(), ARoomManagerBase::StaticClass());
-	Cast<ARoomManagerBase>(RoomManagerActor)->OnRoomInitialized();
+	if (ARoomManagerBase* RoomManager = Cast<ARoomManagerBase>(RoomManagerActor))
+	{
+		RoomManager->OnRoomInitialized();
+	}
 }
 
 

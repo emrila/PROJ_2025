@@ -34,8 +34,5 @@ protected:
 	UBoxComponent* SpawnBox;
 #endif
 
-public:
-#if WITH_EDITOR
-	virtual void OnConstruction(const FTransform& Transform) override;
-#endif
+
 };

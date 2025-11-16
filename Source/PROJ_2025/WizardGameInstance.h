@@ -9,6 +9,7 @@
 #include "WizardGameInstance.generated.h"
 
 
+class UWidget;
 /**
  * 
  */
@@ -20,8 +21,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	TArray<URoomData*> GetAllRoomData() const;
+	URoomData* GetCampRoomData() const;
+
+	bool RollForCampRoom();
 
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
+	
+	
+
+	
+private:
+	float ChanceForCamp = 0.f;
+
 
 };

@@ -66,6 +66,22 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 
 	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
 		ProjectileClass, SpawnTransform, SpawnParameters);
+	
+	if (!Projectile)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, Projectile is NULL!"));
+		return;
+	}
+	
+	Projectile->SetOwner(OwnerCharacter);
+	Projectile->Server_SetDamageAmount(DamageAmount);
+	
+	APlayerCharacterBase* PlayerCharacter= Cast<APlayerCharacterBase>(OwnerCharacter);
+	if (!PlayerCharacter || !PlayerCharacter->ImpactParticles)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s , PlayerCharacter or ImpactParticles is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
 	Projectile->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 

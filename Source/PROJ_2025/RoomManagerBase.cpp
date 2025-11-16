@@ -7,7 +7,10 @@
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
+#include "Chaos/ChaosPerfTest.h"
+#include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
 
 ARoomManagerBase::ARoomManagerBase()
@@ -27,6 +30,8 @@ void ARoomManagerBase::OnRoomInitialized()
 
 	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
 
+	bool CampExit = GI->RollForCampRoom();
+
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
@@ -38,7 +43,25 @@ void ARoomManagerBase::OnRoomInitialized()
 			RoomExits.Add(Exit);
 		}
 	}
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1)
+	{
+		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
+		RoomExits[IndexToDelete]->Destroy();
+		RoomExits.RemoveAt(IndexToDelete);
+	}
+	if (!CampExit && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	{
+		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
+		RoomExits[IndexToDelete]->Destroy();
+		RoomExits.RemoveAt(IndexToDelete);
+	}
+	
 	TArray<URoomData*> ChosenRooms;
+
+	if (CampExit)
+	{
+		ChosenRooms.Add(GI->GetCampRoomData());
+	}
 
 	if (GI->RoomLoader->CurrentRoom != nullptr)
 	{
@@ -55,12 +78,22 @@ void ARoomManagerBase::OnRoomInitialized()
 		UE_LOG(LogTemp, Display, TEXT("ROOM: %s"), *RandomRoom->GetName());
 	}
 	
-	
-	for (int32 i = 0; i < RoomExits.Num(); i++)
+	UE_LOG(LogTemp, Display, TEXT("Rooms exits %d"), RoomExits.Num());
+	while (ChosenRooms.Num() < RoomExits.Num())
 	{
-		URoomData* RandomRoom = AllRooms[FMath::RandRange(0, AllRooms.Num() - 1)];
-		AllRooms.Remove(RandomRoom);
+		UE_LOG(LogTemp, Display, TEXT("Currently chosen: %d"), ChosenRooms.Num());
+		if (AllRooms.Num() == 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Ran out of rooms before filling exits!"));
+			break; 
+		}
+		int32 RandIndex = FMath::RandRange(0, AllRooms.Num() - 1);
+
+		URoomData* RandomRoom = AllRooms[RandIndex];
+		
 		ChosenRooms.Add(RandomRoom);
+		
+		AllRooms.RemoveAt(RandIndex);
 	}
 
 	for (int32 i = 0; i < RoomExits.Num(); ++i)
@@ -79,7 +112,11 @@ void ARoomManagerBase::OnRoomInitialized()
 
 	if (!SpawnPoint) return;
 
-	const FTransform SpawnTransform = SpawnPoint->GetActorTransform();
+	ARoomSpawnPoint* Spawn = Cast<ARoomSpawnPoint>(SpawnPoint);
+	if (!Spawn) return;
+	
+	const FTransform SpawnTransform = Spawn->ArrowComponent->GetComponentTransform();
+	FRotator SpawnRot = Spawn->ArrowComponent->GetComponentRotation();
 	
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -92,8 +129,9 @@ void ARoomManagerBase::OnRoomInitialized()
 		FVector Offset = FVector(0.f, It.GetIndex() * 100.f, 0.f);
 		FTransform AdjustedTransform = SpawnTransform;
 		AdjustedTransform.AddToTranslation(Offset);
-
+		
 		PlayerPawn->SetActorTransform(AdjustedTransform);
+		Cast<APlayerControllerBase>(PC)->Client_SetSpawnRotation(SpawnRot);
 		UE_LOG(LogTemp, Display, TEXT("Teleported %s to room spawn point."), *PlayerPawn->GetName());
 	}
 
@@ -106,7 +144,10 @@ void ARoomManagerBase::OnRoomInitialized()
 
 void ARoomManagerBase::SpawnLoot()
 {
-	LootSpawnLocation->TriggerSpawn();
+	if (LootSpawnLocation)
+	{
+		LootSpawnLocation->TriggerSpawn();
+	}
 }
 
 

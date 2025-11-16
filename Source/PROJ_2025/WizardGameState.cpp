@@ -8,6 +8,12 @@
 #include "Net/UnrealNetwork.h"
 
 
+void AWizardGameState::BeginPlay()
+{
+	Super::BeginPlay();
+	SetHealth(MaxHealth);
+}
+
 void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -15,6 +21,10 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, Health);
 	DOREPLIFETIME(AWizardGameState, MaxHealth);
 	DOREPLIFETIME(AWizardGameState, HealthPercent);
+	DOREPLIFETIME(AWizardGameState, MageSelected);
+	DOREPLIFETIME(AWizardGameState, TankSelected);
+	DOREPLIFETIME(AWizardGameState, RogueSelected);
+	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
 }
 
 bool AWizardGameState::SetHealth_Validate(float HealthAmount)
