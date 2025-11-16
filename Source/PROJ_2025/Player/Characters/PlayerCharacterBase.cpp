@@ -383,31 +383,37 @@ bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& In
 
 void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 {
-	if (!bChangedName)
+	if (IsLocallyControlled())
 	{
-#if WITH_EDITORONLY_DATA
-		if (!bUsePlayerLoginProfile)
-		{
-			const int32 RandomNum = FMath::RandRange(10, 99);
-			CustomPlayerName = FString::Printf(TEXT("Player_%d"), RandomNum);
-		}
-		else if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
-		}
-#else
-		if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
-		}
-#endif
-		bChangedName = true;
-}
-		if (IsLocallyControlled())
-		{
-			Server_SetCustomPlayerName(CustomPlayerName);
+		const int32 RandomNum = FMath::RandRange(10, 99);
+		FString NewName = FString::Printf(TEXT("Player_%d"), RandomNum);
 
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Setting up local player name: %s"),__FUNCTION__, *GetClass()->GetDisplayNameText().ToString());
+
+		if (!bChangedName)
+		{
+#if WITH_EDITORONLY_DATA
+			if (bUsePlayerLoginProfile)
+			{
+				if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+				{
+					NewName = PlayerLoginSystem->GetProfile().Username;
+				}
+			}
+#else
+			if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+			{
+				NewName = PlayerLoginSystem->GetProfile().Username;
+			}
+#endif
+			bChangedName = true;
 		}
+		else
+		{
+			UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"),__FUNCTION__, *CustomPlayerName);
+		}
+		Server_SetCustomPlayerName(NewName);
 		OnRep_CustomPlayerName();
-	
+	}
+	//OnRep_CustomPlayerName();
 }
