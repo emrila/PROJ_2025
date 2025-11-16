@@ -66,7 +66,7 @@ void UMeleeAttackComp::PerformAttack()
 			{
 				CheckForCollisionWithEnemy();
 			},
-			(Delay - 0.3f),
+			(Delay/2 - 0.3f),
 			false
 			);		
 	}
@@ -115,7 +115,7 @@ void UMeleeAttackComp::Multicast_PlayAttackAnim_Implementation()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex]);
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2);
 	}
 }
 
@@ -129,7 +129,7 @@ void UMeleeAttackComp::PlayAttackAnim()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex]);
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2);
 	}
 }
 
@@ -180,12 +180,15 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
-	const bool bHit = GetWorld()->SweepMultiByChannel(
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+
+	const bool bHit = GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		SweepLocation,
-		SweepLocation,
+		SweepLocation, 
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
 		QueryParams
 		);
@@ -195,11 +198,15 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
 		{
-			if (Hit.GetActor())  //&& Hit.GetActor() != OwnerCharacter
+			if (Hit.GetActor() && !HitActors.Contains(Hit.GetActor()))  //&& Hit.GetActor() != OwnerCharacter
 			{
 				HitActors.Add(Hit.GetActor());
+				if (!Hit.GetActor()->IsA(APlayerCharacterBase::StaticClass()))
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
+				}
 			}
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
+			
 		}
 		for (AActor* Actor : HitActors)
 		{
