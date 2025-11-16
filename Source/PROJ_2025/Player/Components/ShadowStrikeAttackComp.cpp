@@ -1,7 +1,7 @@
 ﻿#include "ShadowStrikeAttackComp.h"
 
 #include "GameFramework/Character.h"
-#include "Net/UnrealNetwork.h"
+#include "Kismet/KismetMathLibrary.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -74,14 +74,14 @@ void UShadowStrikeAttackComp::PerformAttack()
 	{
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
 		PlayerCharacter->GetFirstAttackComponent()->StartAttack();
-	}, 0.5f, false);
+	}, AttackDelay, false);
 	
 	FTimerHandle CameraReattachmentTimer;
 	GetWorld()->GetTimerManager().SetTimer(
 		CameraReattachmentTimer,
 		this,
 		&UShadowStrikeAttackComp::HandlePostAttackState,
-		AttackDuration,
+		StrikeDuration,
 		false
 	);
 }
@@ -142,13 +142,39 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
+	if (!LockedTarget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s LockedTarget is Null."), *FString(__FUNCTION__));
+		return;
+	}
 
-	const FTransform BehindTransform = GetTransformBehindLockedTarget();
+	const FVector TeleportLocation = LockedTarget->GetActorLocation();
+	const FRotator TeleportRotation = LockedTarget->GetActorRotation();
+	const FVector TargetForward = TeleportRotation.Vector();
+	const FVector LocationBehind = TeleportLocation - (TargetForward * OffsetDistanceBehindTarget);
 	
-	Multicast_TeleportPlayer(BehindTransform);
+	Multicast_TeleportPlayer(LocationBehind, TeleportRotation);
+
+	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter);
+	
+	if (!PlayerCharacter)	
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	const FVector CameraTargetLocation = 
+		LocationBehind - (TargetForward * CameraInterpDistanceBehind) + FVector(0.f, 0.f, CameraInterpHeight
+			);
+	
+	const FRotator CameraTargetRotation = 
+		UKismetMathLibrary::FindLookAtRotation(CameraTargetLocation, LocationBehind);
+	
+	PlayerCharacter->Client_StartCameraInterpolation(CameraTargetLocation, CameraTargetRotation, CameraInterpDuration);
 }
 
-void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(const FTransform BehindTransform)
+void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
+	const FVector& TeleportLocation, const FRotator& TeleportRotation)
 {
 	if (!OwnerCharacter)
 	{
@@ -156,7 +182,19 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(const FTra
 		return;
 	}
 	
-	OwnerCharacter->SetActorLocationAndRotation(BehindTransform.GetLocation(), BehindTransform.GetRotation());
+	OwnerCharacter->SetActorLocationAndRotation(
+		TeleportLocation, TeleportRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	
+	if (AController* C = OwnerCharacter->GetController())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(C))
+		{
+			if (PC->IsLocalController())
+			{
+				PC->SetControlRotation(TeleportRotation);
+			}
+		}
+	}
 }
 
 void UShadowStrikeAttackComp::TryLockingTarget()
@@ -182,8 +220,6 @@ void UShadowStrikeAttackComp::TryLockingTarget()
 		UE_LOG(LogTemp, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s Trying to lock target."), *FString(__FUNCTION__));
 
 	FVector CameraLocation = CameraManager->GetCameraLocation();
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
@@ -240,25 +276,6 @@ void UShadowStrikeAttackComp::TryLockingTarget()
 
 	LockedTarget = nullptr;
 	bIsLockingTarget = false;
-	
-}
-
-FTransform UShadowStrikeAttackComp::GetTransformBehindLockedTarget() const
-{
-	if (!LockedTarget)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s LockedTarget is Null."), *FString(__FUNCTION__));
-		return OwnerCharacter->GetActorTransform();
-	}
-
-	const FVector TargetLocation = LockedTarget->GetActorLocation();
-	const FRotator TargetRotation = LockedTarget->GetActorRotation();
-
-	const FVector TargetForward = TargetRotation.Vector();
-	const FVector LocationBehind = TargetLocation - (TargetForward * OffsetDistanceBehindTarget);
-	
-
-	return FTransform(TargetRotation, LocationBehind);
 }
 
 void UShadowStrikeAttackComp::ResetAttackCooldown()

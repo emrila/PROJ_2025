@@ -53,6 +53,9 @@ void AMageProjectile::OnProjectileOverlap(
 	if (OtherActor->IsA(AEnemyBase::StaticClass()))
 	{
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
+		
+		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
+		
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,SweepResult.ImpactPoint);
 		Destroy();
 		return;
@@ -86,6 +89,21 @@ void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)
 {
 	ImpactParticles = Particles;
+}
+
+void AMageProjectile::Server_SetDamageAmount_Implementation(const float NewDamageAmount)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	
+	if (NewDamageAmount <= 0)
+	{
+		return;
+	}
+	
+	this->DamageAmount = NewDamageAmount;
 }
 
 

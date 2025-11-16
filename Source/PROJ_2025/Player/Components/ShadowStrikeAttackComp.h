@@ -20,6 +20,8 @@ protected:
 
 	virtual void PerformAttack() override;
 	
+	virtual void TryLockingTarget();
+	
 	UFUNCTION(Server, Reliable)
 	void Server_SetLockedTarget(AActor* Target);
 	
@@ -31,14 +33,12 @@ protected:
 	virtual void Server_TeleportPlayer();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_TeleportPlayer(const FTransform BehindTransform);
-	
-	virtual void TryLockingTarget();
-
-	virtual FTransform GetTransformBehindLockedTarget() const;
+	virtual void Multicast_TeleportPlayer(
+		const FVector& TeleportLocation, const FRotator& TeleportRotation);
 
 	virtual void ResetAttackCooldown() override;
 
+	//Handle target
 	bool bIsLockingTarget = false;
 
 	UPROPERTY()
@@ -47,9 +47,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LockOnRange = 2000.f;
 
+	//Handle attack properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float OffsetDistanceBehindTarget = 50.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackDuration = 3.f;
+	float StrikeDuration = 3.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AttackDelay = 1.f;
+	
+	//Handle camera interpolation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
+	float CameraInterpDistanceBehind = 500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
+	float CameraInterpHeight = 120.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
+	float CameraInterpDuration = 0.35f;
 };

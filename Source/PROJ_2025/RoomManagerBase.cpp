@@ -7,7 +7,10 @@
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
+#include "Chaos/ChaosPerfTest.h"
+#include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
 
 ARoomManagerBase::ARoomManagerBase()
@@ -109,7 +112,11 @@ void ARoomManagerBase::OnRoomInitialized()
 
 	if (!SpawnPoint) return;
 
-	const FTransform SpawnTransform = SpawnPoint->GetActorTransform();
+	ARoomSpawnPoint* Spawn = Cast<ARoomSpawnPoint>(SpawnPoint);
+	if (!Spawn) return;
+	
+	const FTransform SpawnTransform = Spawn->ArrowComponent->GetComponentTransform();
+	FRotator SpawnRot = Spawn->ArrowComponent->GetComponentRotation();
 	
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
@@ -122,8 +129,9 @@ void ARoomManagerBase::OnRoomInitialized()
 		FVector Offset = FVector(0.f, It.GetIndex() * 100.f, 0.f);
 		FTransform AdjustedTransform = SpawnTransform;
 		AdjustedTransform.AddToTranslation(Offset);
-
+		
 		PlayerPawn->SetActorTransform(AdjustedTransform);
+		Cast<APlayerControllerBase>(PC)->Client_SetSpawnRotation(SpawnRot);
 		UE_LOG(LogTemp, Display, TEXT("Teleported %s to room spawn point."), *PlayerPawn->GetName());
 	}
 

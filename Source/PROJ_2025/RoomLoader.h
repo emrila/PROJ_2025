@@ -27,9 +27,28 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Rooms")
 	void LoadNextRoom(URoomData* NextRoomData);
 
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_AddProgressWidget();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UUserWidget> ProgressWidgetClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	int ClearedRooms = 0;
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	void RegisterNextRoom(URoomData* RoomData);
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	TArray<URoomData*> GetPreviousRooms();
+
+
 protected:
 	virtual void BeginPlay() override;
 private:
+	UPROPERTY(Replicated)
+	TArray<URoomData*> PastSevenRooms;
+	
 	UPROPERTY(Replicated)
 	URoomData* PendingNextRoomData = nullptr;
 

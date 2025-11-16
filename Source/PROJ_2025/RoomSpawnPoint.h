@@ -10,6 +10,10 @@ UCLASS()
 class PROJ_2025_API ARoomSpawnPoint : public AActor
 {
 	GENERATED_BODY()
-	
+public:
+	ARoomSpawnPoint();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	class UArrowComponent* ArrowComponent;
 
 };

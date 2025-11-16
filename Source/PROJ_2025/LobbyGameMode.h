@@ -48,9 +48,13 @@ public:
 	UFUNCTION()
 	void ShowLobbyWidget();
 
+	
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> LobbyWidgetClass;
+
+	
 private:
 	
 	UPROPERTY()

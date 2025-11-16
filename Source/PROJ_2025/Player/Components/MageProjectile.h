@@ -19,6 +19,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetImpactParticle(UNiagaraSystem* Particles);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetDamageAmount(const float NewDamageAmount);
 
 protected:
 	virtual void BeginPlay() override;

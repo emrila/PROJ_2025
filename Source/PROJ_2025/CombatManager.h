@@ -51,6 +51,7 @@ public:
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int WaveIndex;
+	
 
 	
 };
