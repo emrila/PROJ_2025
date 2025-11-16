@@ -117,7 +117,7 @@ void UMeleeAttackComp::Multicast_PlayAttackAnim_Implementation()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex]);
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2.0f);
 	}
 }
 
