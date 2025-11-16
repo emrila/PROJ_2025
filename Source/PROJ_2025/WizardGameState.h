@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/Widget.h"
 #include "GameFramework/GameState.h"
 #include "WizardGameState.generated.h"
 
@@ -42,6 +43,16 @@ public:
 	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
 	void SetHealth(float HealthAmount);
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool MageSelected = false;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool TankSelected = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool RogueSelected = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	TArray<UWidget*> SelectionWidgets;
 	
 };
