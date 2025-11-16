@@ -9,6 +9,7 @@
 #include "WizardGameInstance.generated.h"
 
 
+class UWidget;
 /**
  * 
  */
@@ -26,8 +27,12 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
+	
+	
 
+	
 private:
 	float ChanceForCamp = 0.f;
+
 
 };

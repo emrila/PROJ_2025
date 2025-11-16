@@ -45,5 +45,7 @@ public:
 private:
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
+
+	
 	
 };

@@ -21,6 +21,11 @@ void APlayerControllerBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
+void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotator& NewRot)
+{
+	SetControlRotation(NewRot);
+}
+
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();

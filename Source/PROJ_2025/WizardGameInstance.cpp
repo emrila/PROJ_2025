@@ -3,6 +3,8 @@
 
 #include "WizardGameInstance.h"
 
+#include "LobbyGameMode.h"
+#include "RoomLoader.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -93,3 +95,6 @@ bool UWizardGameInstance::RollForCampRoom()
 	return false;
 	
 }
+
+
+
