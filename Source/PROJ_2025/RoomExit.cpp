@@ -18,6 +18,7 @@ void ARoomExit::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ARoomExit, LinkedRoomData);
+	DOREPLIFETIME(ARoomExit, CanExit);
 }
 
 // Called when the game starts or when spawned

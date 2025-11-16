@@ -23,6 +23,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LinkedRoomData)
 	URoomData* LinkedRoomData;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void EnableExit();
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool CanExit = false;
+	
 	UFUNCTION()
 	void OnRep_LinkedRoomData() { OnRoomLinked(); }
 
