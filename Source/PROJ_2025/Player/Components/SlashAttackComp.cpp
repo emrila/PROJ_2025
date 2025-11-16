@@ -60,7 +60,7 @@ void USlashAttackComp::PerformAttack()
 			SweepTimerHandle,
 			this,
 			&USlashAttackComp::CheckForCollisionWithEnemies,
-			AttackAnimLength * 0.5f,
+			AttackAnimLength/3.5,
 			false
 			);
 	}
@@ -123,8 +123,11 @@ void USlashAttackComp::Sweep(FVector SweepLocation)
 			if (Hit.GetActor() && !HitActors.Contains(Hit.GetActor()))
 			{
 				HitActors.Add(Hit.GetActor());
+				if (!Hit.GetActor()->IsA(APlayerCharacterBase::StaticClass()))
+				{
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
+				}
 			}
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
 		}
 
 		for (AActor* Actor : HitActors)
@@ -173,7 +176,7 @@ void USlashAttackComp::Multicast_PlayAttackAnim_Implementation()
 
 	if (AttackMontage)
 	{
-		OwnerCharacter->PlayAnimMontage(AttackMontage);
+		OwnerCharacter->PlayAnimMontage(AttackMontage, 2);
 	}
 }
 
