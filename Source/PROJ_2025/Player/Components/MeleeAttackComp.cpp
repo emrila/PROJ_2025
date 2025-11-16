@@ -67,7 +67,7 @@ void UMeleeAttackComp::PerformAttack()
 			{
 				CheckForCollisionWithEnemy();
 			},
-			(Delay - 0.3f),
+			(Delay/2.f - 0.3f),
 			false
 			);		
 	}
@@ -131,7 +131,7 @@ void UMeleeAttackComp::PlayAttackAnim()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex]);
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2.0f);
 	}
 }
 
@@ -154,7 +154,7 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 	}
 
 	FVector SweepLocation1 = OwnerCharacter->GetActorLocation();
-	FVector SweepLocation2 = FVector::ZeroVector;
+	//FVector SweepLocation2 = FVector::ZeroVector;
 
 	if (const APlayerCharacterBase* PlayerCharacterBase = Cast<APlayerCharacterBase>(OwnerCharacter))
 	{
@@ -162,11 +162,11 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 		{
 			SweepLocation1 = PlayerCharacterBase->GetRightHandSocketLocation();
 		}
-		SweepLocation2 = PlayerCharacterBase->GetLeftHandSocketLocation();
+		//SweepLocation2 = PlayerCharacterBase->GetLeftHandSocketLocation();
 	}
 
 	Sweep(SweepLocation1);
-	Sweep(SweepLocation2);
+	//TODO : Determine which sweep locations to use based on the attack animation (one-handed, two-handed, etc.)
 }
 
 void UMeleeAttackComp::Sweep(FVector SweepLocation)
@@ -192,30 +192,22 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 		QueryParams
 		);
 	
+	TSet<AActor*> UniqueHitActors;
 	if (bHit)
 	{
-		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
 		{
-			if (Hit.GetActor())  //&& Hit.GetActor() != OwnerCharacter
+			if (Hit.GetActor() && Hit.GetActor()->IsA(AEnemyBase::StaticClass()))
 			{
-				if (Hit.GetActor()->IsA(AEnemyBase::StaticClass()))
+				UniqueHitActors.Add(Hit.GetActor());
+				if (const APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)
 				{
-					HitActors.Add(Hit.GetActor());
-					if (const APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Hit.GetActor()); PlayerCharacter->ImpactParticles)
-					{
-						UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
-					}
+					UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PlayerCharacter->ImpactParticles, Hit.ImpactPoint);
 				}
-				
 			}
 		}
-		for (AActor* Actor : HitActors)
+		for (AActor* Actor : UniqueHitActors)
 		{
-			if (Actor->IsA(APlayerCharacterBase::StaticClass()))
-			{
-				continue;
-			}
 			UGameplayStatics::ApplyDamage(
 				Actor,
 				DamageAmount,
@@ -223,14 +215,15 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
+			UE_LOG(LogTemp, Log, TEXT("%s hit for %f damage"), *Actor->GetName(), DamageAmount);
 			DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
 		}
 	}
-	else
+	
+	if (UniqueHitActors.Num() == 0)
 	{
 		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 	}
-	
 }
 
 
