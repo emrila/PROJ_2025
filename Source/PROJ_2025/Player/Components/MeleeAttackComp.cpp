@@ -1,5 +1,6 @@
 ﻿#include "MeleeAttackComp.h"
 
+#include "EnemyBase.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -29,7 +30,7 @@ void UMeleeAttackComp::StartAttack()
 
 	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
 	{
-		SetAttackCoolDown(Delay + 1.f);
+		SetAttackCoolDown(Delay);
 	}
 	
 	Super::StartAttack();
@@ -81,7 +82,7 @@ void UMeleeAttackComp::SetCurrentAnimIndex()
 		return;	
 	}
 
-	if (!bIsFirstAttackAnimSet)
+	if (!bIsFirstAttackAnimSet || AttackAnims.Num() == 1)
 	{
 		bIsFirstAttackAnimSet = true;
 		return;
@@ -90,6 +91,7 @@ void UMeleeAttackComp::SetCurrentAnimIndex()
 	if (AttackAnims.Num() == (CurrentAttackAnimIndex + 1))
 	{
 		CurrentAttackAnimIndex = 0;
+		return;
 	}
 	++CurrentAttackAnimIndex;
 }
@@ -197,9 +199,17 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 		{
 			if (Hit.GetActor())  //&& Hit.GetActor() != OwnerCharacter
 			{
-				HitActors.Add(Hit.GetActor());
+				if (Hit.GetActor()->IsA(AEnemyBase::StaticClass()))
+				{
+					HitActors.Add(Hit.GetActor());
+					if (const APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Hit.GetActor());
+						PlayerCharacter->ImpactParticles)
+					{
+						UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
+					}
+				}
+				
 			}
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
 		}
 		for (AActor* Actor : HitActors)
 		{
@@ -214,7 +224,6 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
-
 			DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
 		}
 	}
