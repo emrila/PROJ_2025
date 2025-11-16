@@ -18,6 +18,8 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME(AMushroomCharacter, AttackIsOnCooldown);
 	DOREPLIFETIME(AMushroomCharacter, bIsAttacking);
 	DOREPLIFETIME(AMushroomCharacter, bIsRunning);
+	DOREPLIFETIME(AMushroomCharacter, Bounce);
+	DOREPLIFETIME(AMushroomCharacter, SlowRunning);
 }
 
 void AMushroomCharacter::HandleHit()

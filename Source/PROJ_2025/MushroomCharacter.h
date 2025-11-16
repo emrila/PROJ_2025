@@ -26,7 +26,13 @@ public:
 	bool bIsAttacking;
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool Bounce;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool bIsRunning = false;
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool SlowRunning = false;
 
 	virtual void HandleHit() override;
 
