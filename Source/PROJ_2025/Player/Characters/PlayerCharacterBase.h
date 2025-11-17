@@ -162,6 +162,9 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
+	bool IFrame = false;
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
@@ -186,6 +189,9 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
+
+	void ResetIframe();
+	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

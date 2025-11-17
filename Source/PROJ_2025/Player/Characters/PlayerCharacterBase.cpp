@@ -235,9 +235,16 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
+	if (IFrame)
+	{
+		return 0;
+	}
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 	{
 		GameState->DamageHealth(DamageAmount);
+		IFrame = true;
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
 		return DamageAmount;
 	}
 	
@@ -416,4 +423,10 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		OnRep_CustomPlayerName();
 	}
 	//OnRep_CustomPlayerName();
+	
+}
+
+void APlayerCharacterBase::ResetIframe()
+{
+	IFrame = false;
 }

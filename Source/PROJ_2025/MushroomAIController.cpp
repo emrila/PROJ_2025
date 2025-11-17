@@ -21,7 +21,7 @@ void AMushroomAIController::StartAttackCooldown()
 		AttackCooldownHandle,
 		this,
 		&AMushroomAIController::ResetAttackCooldown,
-		2.0f,
+		2.5f,
 		false
 	);
 }
