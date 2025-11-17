@@ -1,4 +1,6 @@
 ﻿#include "AttackComponentBase.h"
+
+#include "MeleeAttackComp.h"
 #include "GameFramework/Character.h"
 
 
@@ -44,3 +46,8 @@ void UAttackComponentBase::ResetAttackCooldown()
 	bCanAttack = true;
 }
 
+void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)
+{
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PlayerCharacter->ImpactParticles, Hit.ImpactPoint);
+	
+}

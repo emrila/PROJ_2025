@@ -19,7 +19,7 @@ void USlashAttackComp::StartAttack()
 	}
 	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
-		SetAttackCoolDown(AttackAnimLength);
+		SetAttackCoolDown(GetAttackCoolDown());
 	}
 	
 	Super::StartAttack();
@@ -89,7 +89,7 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 	UE_LOG(LogTemp, Warning, TEXT("%s, Unable to cast OwnerCharacter to APlayerCharacterBase"), *FString(__FUNCTION__));
 }
 
-void USlashAttackComp::Sweep(FVector SweepLocation)
+void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 {
 	if (!OwnerCharacter || SweepLocation == FVector::ZeroVector)
 	{
@@ -125,7 +125,7 @@ void USlashAttackComp::Sweep(FVector SweepLocation)
 				HitActors.Add(Hit.GetActor());
 				if (!Hit.GetActor()->IsA(APlayerCharacterBase::StaticClass()))
 				{
-					UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Cast<APlayerCharacterBase>(OwnerCharacter)->ImpactParticles, Hit.ImpactPoint);
+					SpawnParticles(Cast<APlayerCharacterBase>(GetOwner()), Hit);
 				}
 			}
 		}

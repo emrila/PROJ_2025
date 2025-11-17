@@ -28,6 +28,7 @@ protected:
 
 	virtual void CheckForCollisionWithEnemies();
 
+	UFUNCTION(Server, Reliable)
 	virtual void Sweep(FVector SweepLocation);
 
 	FTimerHandle SweepTimerHandle;

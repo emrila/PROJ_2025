@@ -45,4 +45,7 @@ protected:
 	float AttackCoolDown = 1.f;
 
 	FTimerHandle AttackCoolDownTimerHandle;
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 };
