@@ -148,6 +148,17 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		LootSpawnLocation->TriggerSpawn();
 	}
+	TArray<AActor*> FoundExits;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
+	
+	for (AActor* Actor : FoundExits)
+	{
+		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
+		{
+			Exit->CanExit = true;
+			Exit->EnableExit();
+		}
+	}
 }
 
 
