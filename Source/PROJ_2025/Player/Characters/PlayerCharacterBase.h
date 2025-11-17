@@ -48,8 +48,7 @@ public:
 	virtual void HandleCameraReattachment();
 	
 	UFUNCTION(Client, Reliable)
-	virtual void Client_StartCameraInterpolation(
-		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);
+	virtual void Client_StartCameraInterpolation(const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
@@ -58,6 +57,7 @@ public:
 	//TODO: This may be moved to the belonging attack component
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Particles")
 	UNiagaraSystem* ImpactParticles;
+
 
 protected:
 	//Handle override parent functions
@@ -186,6 +186,15 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetValue(UObject* Object, FName PropertyName, float NewValue);
+
+	UPROPERTY(ReplicatedUsing=OnRep_MaxWalkSpeed, meta=(AllowPrivateAccess=true))
+	float ReplicatedMaxWalkSpeed = 600.f;
+
+	UFUNCTION()
+	void OnRep_MaxWalkSpeed();
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

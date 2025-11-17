@@ -33,9 +33,10 @@ public:
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
 	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable) override;
+	virtual APlayerController* GetLocalPlayerController_Implementation() const override;
 
 	UFUNCTION(Server, Reliable)
-	void Server_InteractWith(UObject* Interactable);
+	void Server_InteractWith(UObject* Interactable, APlayerController* PlayerController);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Getter, Setter, Category="Interact|Trace")
@@ -86,7 +87,8 @@ public:
 	{
 		return InteractionDistance;
 	}
-	
+
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interact|Trace")
 	TEnumAsByte<EDrawDebugTrace::Type> DebugType = EDrawDebugTrace::None;

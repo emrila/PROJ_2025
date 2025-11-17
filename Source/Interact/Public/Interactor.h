@@ -29,4 +29,8 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	bool IsInteracting() const;
 	virtual bool IsInteracting_Implementation() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	APlayerController* GetLocalPlayerController() const;
+	virtual APlayerController* GetLocalPlayerController_Implementation() const;
 };

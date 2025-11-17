@@ -28,11 +28,9 @@ namespace UpgradeCheck
 		);
 	}
 
-
-
 	FString GetClassNameKey(const UObject* Object)
 	{
-		return FString::Printf(TEXT("%s_%s"), *Object->GetClass()->GetName(), *Object->GetName());
+		return FString::Printf(TEXT("%s_%s"), *Object->GetName(), *Object->GetName());
 	}
 
 	static TUniquePtr<FAttributeBase> CreateAttribute(UObject* InOwner, FProperty* InProperty, const FName InRowName)
@@ -64,10 +62,16 @@ UUpgradeSubsystem* UUpgradeSubsystem::Get(const UWorld* World)
 		return nullptr;
 	}
 
-	if (const UGameInstance* GameInstance = World->GetGameInstance())
+	/*const UGameInstance* GameInstance = World->GetGameInstance();
+	if (GameInstance)
 	{
 		return GameInstance->GetSubsystem<UUpgradeSubsystem>();
+	}*/
+	if (const ULocalPlayer* LocalPlayer = World->GetFirstLocalPlayerFromController())
+	{
+		return LocalPlayer->GetSubsystem<UUpgradeSubsystem>();
 	}
+
 	return nullptr;
 }
 
@@ -85,8 +89,7 @@ void UUpgradeSubsystem::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 
 void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, const FName RowName, const FName Category)
 {
-	UPGRADE_HI_FROM(__FUNCTION__);
-
+	//UPGRADE_HI_FROM(__FUNCTION__);
 	if (!Owner)
 	{
 		UPGRADE_ERROR(TEXT("%hs: Owner is null!"), __FUNCTION__);
@@ -100,11 +103,15 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 	}
 	/*if (const FAttributeData* ExistingAttribute = GetByCategory(Category, RowName))
 	{
-		BindDependentAttribute(Owner, PropertyName, false, ExistingAttribute->Owner.Get(),ExistingAttribute->Property->GetFName());
+		BindDependentAttribute(Owner, PropertyName, false, ExistingAttribute->Owner.Get(), ExistingAttribute->Property->GetFName());
 		return;
 	}*/
 
 	const uint64 Key = GetKey(Owner, Prop);
+	if (AttributesByKey.Contains(Key))
+	{
+		UPGRADE_WARNING(TEXT("%hs: Attribute for property %s on owner %s is already bound!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeCheck::GetClassNameKey(Owner));
+	}
 	const FAttributeUpgradeData* UpgradeData = UpgradeDataTable->FindRow<FAttributeUpgradeData>(RowName, __FUNCTION__);
 	if (!UpgradeData)
 	{
@@ -112,7 +119,7 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		return;
 	}
 
-	TUniquePtr<FAttributeData> NewAttribute = UpgradeCheck::CreateAttribute(Owner, Prop, RowName);//MakeUnique<FAttributeData>(Owner, Prop, RowName, InitialValue);
+	TUniquePtr<FAttributeData> NewAttribute = UpgradeCheck::CreateAttribute(Owner, Prop, RowName);
 	if (!NewAttribute)
 	{
 		UPGRADE_ERROR(TEXT("%hs: Failed to create attribute for property %s on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeCheck::GetClassNameKey(Owner));
@@ -128,12 +135,11 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 			UPGRADE_ERROR(TEXT("%hs: Owner is no longer valid!"), __FUNCTION__);
 			return;
 		}
-		if (!UpgradeData->CanUpgrade(NewAttributeRaw->CurrentUpgradeLevel)/*UpgradeData->MaxNumberOfUpgrades <= NewAttributeRaw->CurrentUpgradeLevel && UpgradeData->MaxNumberOfUpgrades != -1*/)
+		if (!UpgradeData->CanUpgrade(NewAttributeRaw->CurrentUpgradeLevel))
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeCheck::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
-		//NewAttributeRaw->CurrentUpgradeLevel++;
 		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier});
 	});
 	NewAttributeRaw->OnRemoveModifier.AddLambda([NewAttributeRaw, UpgradeData]
@@ -149,17 +155,44 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 			return;
 		}
 		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier, true});
-		//NewAttributeRaw->CurrentUpgradeLevel--;
 	});
 
-	// Lägg till i alla listor/loop-ups
 	AttributesByRow.FindOrAdd(RowName).Add(NewAttributeRaw);
 	AttributesByKey.Add(Key, NewAttributeRaw);
 	AttributesByCategory.FindOrAdd(Category).Add(NewAttributeRaw);
 	RegisteredAttributes.Add(MoveTemp(NewAttribute));
 
-	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s."), __FUNCTION__,*UpgradeCheck::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString());
+	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s. Key %d"), __FUNCTION__,*UpgradeCheck::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString(), Key);
 
+}
+
+void UUpgradeSubsystem::Server_Bind_Implementation(UObject* Owner, FName PropertyName, FName RowName, FName Category)
+{
+	BindAttribute(Owner, PropertyName, RowName, Category);
+}
+
+void UUpgradeSubsystem::LocalDowngradeByRow(const FName RowName) const
+{
+	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
+	{
+		TargetAttribute->OnRemoveModifier.Broadcast();
+		if (TargetAttribute->OnAttributeModified.IsBound())
+		{
+			TargetAttribute->OnAttributeModified.Broadcast();
+		}
+	}
+}
+
+void UUpgradeSubsystem::LocalUpgradeByRow(const FName RowName) const
+{
+	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
+	{
+		TargetAttribute->OnAddModifier.Broadcast();
+		if (TargetAttribute->OnAttributeModified.IsBound())
+		{
+			TargetAttribute->OnAttributeModified.Broadcast();
+		}
+	}
 }
 
 /*
@@ -226,7 +259,15 @@ void UUpgradeSubsystem::BindDependentAttribute(UObject* Owner, const FName Prope
 }
 */
 
-void UUpgradeSubsystem::UpgradeByRow(FName RowName) const
+void UUpgradeSubsystem::Server_DowngradeByRow_Implementation(const FName RowName) const
+{
+	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
+	{
+		TargetAttribute->OnRemoveModifier.Broadcast();
+	}
+}
+
+void UUpgradeSubsystem::Server_UpgradeByRow_Implementation(const FName RowName) const
 {
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
@@ -234,12 +275,14 @@ void UUpgradeSubsystem::UpgradeByRow(FName RowName) const
 	}
 }
 
-void UUpgradeSubsystem::DowngradeByRow(FName RowName) const
+FAttributeData* UUpgradeSubsystem::GetAttributeData(UObject* Owner, FName PropertyName) const
 {
-	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
+	FProperty* Prop = UpgradeCheck::GetProperty(Owner, PropertyName);
+	if (!Prop)
 	{
-		TargetAttribute->OnRemoveModifier.Broadcast();
+		return nullptr;
 	}
+	return GetByKey(Owner, Prop);
 }
 
 FAttributeData* UUpgradeSubsystem::GetByKey(UObject* Owner, FProperty* Property) const
@@ -285,7 +328,7 @@ void UUpgradeSubsystem::NetMulticast_LoadDataTable_Implementation()
 {
 	if (UpgradeDataTable)
 	{
-		UPGRADE_DISPLAY(TEXT("%hs: UpgradeDataTable already loaded."), __FUNCTION__);
+		UPGRADE_WARNING(TEXT("%hs: UpgradeDataTable already loaded."), __FUNCTION__);
 		return;
 	}
 	UpgradeDataTable = LoadObject<UDataTable>(nullptr, TABLE_PATH);

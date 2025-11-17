@@ -6,6 +6,7 @@
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Core/UpgradeSubsystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
@@ -214,6 +215,35 @@ void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	SetUpLocalCustomPlayerName();
+
+	if (IsLocallyControlled())
+	{
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Locally controlled, setting up upgrade binding"),__FUNCTION__);
+		if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
+		{
+			const FName InMaxWalkSpeed = GET_MEMBER_NAME_CHECKED(UCharacterMovementComponent, MaxWalkSpeed);
+			const FName InReplicatedMaxWalkSpeed = GET_MEMBER_NAME_CHECKED(APlayerCharacterBase, ReplicatedMaxWalkSpeed);
+
+			UpgradeSubsystem->BindAttribute(GetCharacterMovement(), InMaxWalkSpeed, InMaxWalkSpeed, InMaxWalkSpeed);
+			UpgradeSubsystem->BindAttribute(this, InReplicatedMaxWalkSpeed, InMaxWalkSpeed, InMaxWalkSpeed);
+
+			if (auto* AttributeData = UpgradeSubsystem->GetAttributeData(this, InReplicatedMaxWalkSpeed))
+			{
+				UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Binding OnAttributeModified for MaxWalkSpeed"), __FUNCTION__);
+				AttributeData->OnAttributeModified.AddWeakLambda(this, [this, InReplicatedMaxWalkSpeed, InMaxWalkSpeed]()
+				{
+						Server_SetValue_Implementation(this, InReplicatedMaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeed);
+						Server_SetValue_Implementation(GetCharacterMovement(), InMaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeed);
+
+						UE_LOG(PlayerBaseLog, Log, TEXT("%hs, MaxWalkSpeed modified to: %f"), __FUNCTION__, GetCharacterMovement()->MaxWalkSpeed);
+				});
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Not locally controlled, skipping upgrade binding"), __FUNCTION__);
+	}
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -231,6 +261,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(APlayerCharacterBase, CustomPlayerName);
 	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
+	DOREPLIFETIME(APlayerCharacterBase, ReplicatedMaxWalkSpeed);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -416,4 +447,27 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		OnRep_CustomPlayerName();
 	}
 	//OnRep_CustomPlayerName();
+}
+
+
+void APlayerCharacterBase::OnRep_MaxWalkSpeed()
+{
+	GetCharacterMovement()->MaxWalkSpeed = ReplicatedMaxWalkSpeed;
+}
+
+void APlayerCharacterBase::Server_SetValue_Implementation(UObject* Object, FName PropertyName, const float NewValue)
+{
+	FProperty* Property =  Object ? Object->GetClass()->FindPropertyByName(PropertyName) : nullptr;
+	if (!Object || !Property)
+	{
+		return;
+	}
+	if (FFloatProperty* FloatProperty = CastField<FFloatProperty>(Property))
+	{
+		FloatProperty->SetPropertyValue_InContainer(Object, NewValue);
+	}
+	else if (FIntProperty* IntProperty = CastField<FIntProperty>(Property))
+	{
+		IntProperty->SetPropertyValue_InContainer(Object, static_cast<int32>(NewValue));
+	}
 }

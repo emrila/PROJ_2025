@@ -19,7 +19,7 @@ void AUpgradeSpawner::TriggerSpawn()
 	if (HasAuthority())
 	{
 		Server_Spawn();
-		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
 	}
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
 
@@ -31,7 +31,7 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 	{
 		if (!UpgradeAlternativePair.Alternative)
 		{
-			UPGRADE_WARNING(TEXT("%hs: UpgradeAlternativePair.Alternative is null!"), __FUNCTION__);
+			UPGRADE_SPAWN_WARNING(TEXT("%hs: UpgradeAlternativePair.Alternative is null!"), __FUNCTION__);
 			continue;
 		}
 		UpgradeAlternativePair.Alternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
@@ -40,8 +40,8 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 			continue;
 		}
 		UpgradeAlternativePair.Alternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-		UpgradeAlternativePair.Alternative->OnPreUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
-		UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
+		UpgradeAlternativePair.Alternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
 	}
 }
 
@@ -82,13 +82,13 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArray.Num() - 1);
 		if (!UpgradeDataArray.IsValidIndex(RandomIndex))  //Shouldn't be needed... But just in case
 		{
-			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArray.Num());
+			UPGRADE_SPAWN_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArray.Num());
 			break;
 		}
 		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, UpgradeDataArray[RandomIndex]); //Waiting to trigger OnRep on clients after all alternatives are spawned
 		SpawnedAlternative->Index = LocalUpgradeAlternativePairs.Num() - 1;
 		UpgradeDataArray.RemoveAt(RandomIndex); // To avoid duplicates
-		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, RandomIndex);
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, RandomIndex);
 	}
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
@@ -108,17 +108,25 @@ void AUpgradeSpawner::BeginPlay()
 	}
 }
 
-void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
+void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade, APlayerController* InteractingPlayer)
 {
-	UPGRADE_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
-	if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
+
+	if (!InteractingPlayer)
 	{
-		UpgradeSubsystem->UpgradeByRow(SelectedUpgrade.RowName);			
+		UPGRADE_SPAWN_WARNING(TEXT("%hs: Could not find interacting player controller!"), __FUNCTION__);
+		return;
+	}
+	if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(InteractingPlayer->GetWorld()))
+	{
+		UpgradeSubsystem->LocalUpgradeByRow(SelectedUpgrade.RowName);
 	}
 }
 
-void AUpgradeSpawner::LockUpgradeAlternatives()
+void AUpgradeSpawner::LockUpgradeAlternatives(FUpgradeDisplayData SelectedUpgrade, APlayerController* InteractingPlayer)
 {
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
+
 	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
 	{
 		if (UpgradeAlternativePair.Alternative)
@@ -138,6 +146,6 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
 {
-	UPGRADE_DISPLAY(TEXT("%hs: called."), __FUNCTION__);
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: called."), __FUNCTION__);
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
 }

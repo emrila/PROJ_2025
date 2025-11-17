@@ -17,7 +17,7 @@ struct FUpgradeAlternativePair
 	GENERATED_BODY()
 
 	FUpgradeAlternativePair() = default;
-	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData) : Alternative(InAlternative), UpgradeData(InUpgradeData)	{}
+	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData) : Alternative(InAlternative), UpgradeData(InUpgradeData) {}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AUpgradeAlternative* Alternative = nullptr;
@@ -54,10 +54,10 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION()
-	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
-	UFUNCTION()
-	void LockUpgradeAlternatives();
+	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade, APlayerController* InteractingPlayer);
 
+	UFUNCTION()
+	void LockUpgradeAlternatives(FUpgradeDisplayData SelectedUpgrade, APlayerController* InteractingPlayer);
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
@@ -74,6 +74,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
 	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;
+
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
 	

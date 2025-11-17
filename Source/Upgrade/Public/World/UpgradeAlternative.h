@@ -15,7 +15,7 @@ UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPreUpgrade);
 
 UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnUpgrade, FUpgradeDisplayData, SelectedUpgrade);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUpgrade, FUpgradeDisplayData, SelectedUpgrade, APlayerController*, InteractingPlayer);
 
 UCLASS()
 class UPGRADE_API AUpgradeAlternative : public AActor, public IInteractable
@@ -76,20 +76,27 @@ protected:
 	void OnRep_Selected();
 	
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SelectUpgrade(bool bIsSelected);	
-	
+	void Server_SelectUpgrade(bool bIsSelected);
+
 public:
-	virtual void OnPreInteract_Implementation() override;
+	virtual void OnPreInteract_Implementation(UObject* Interactor) override;
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
+	virtual void OnPostInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
+	virtual void SetLocalPlayerController_Implementation(APlayerController* PlayerController = nullptr) override;
 
 protected:
 	friend class AUpgradeSpawner;
 	
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnPreUpgrade OnPreUpgrade;
+	FOnUpgrade OnPostUpgrade;
 
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnUpgrade OnUpgrade;	
+	FOnUpgrade OnUpgrade;
+
+private:
+	UPROPERTY(Replicated)
+	APlayerController* InteractingPlayer;
+
 };

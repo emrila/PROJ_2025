@@ -8,24 +8,41 @@
 #include "UpgradeSubsystem.generated.h"
 
 using FAttributeData = FAttributeBase;
+
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnModified, FAttributeData);
+
+
 UCLASS()
-class UPGRADE_API UUpgradeSubsystem : public UGameInstanceSubsystem
+class UPGRADE_API UUpgradeSubsystem : public ULocalPlayerSubsystem
 {
 	GENERATED_BODY()
-public:
 
+public:
 	static UUpgradeSubsystem* Get(const UWorld* WorldContextObject);
 
 	UUpgradeSubsystem(){};
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
-	//void BindDependentAttribute(UObject* Owner, FName PropertyName, bool OverrideOnModified, UObject* TargetOwner, FName TargetPropertyName);
-	void UpgradeByRow(FName RowName) const;
-	void DowngradeByRow(FName RowName) const;
 
-protected:
+	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
+
+	UFUNCTION(Server, Reliable)
+	void Server_Bind(UObject* Owner, FName PropertyName, FName RowName, FName Category);
+
+	//void BindDependentAttribute(UObject* Owner, FName PropertyName, bool OverrideOnModified, UObject* TargetOwner, FName TargetPropertyName);
+
+	void LocalUpgradeByRow(FName RowName) const;
+	void LocalDowngradeByRow(FName RowName) const;
+
+	UFUNCTION(Server, Reliable)
+	void Server_DowngradeByRow(FName RowName) const;
+
+	UFUNCTION(Server, Reliable)
+	void Server_UpgradeByRow(FName RowName) const;
+
+	FAttributeData* GetAttributeData(UObject* Owner, FName PropertyName) const;
+//protected:
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;

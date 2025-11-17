@@ -62,12 +62,11 @@ void UInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	TraceForInteractable();
-
 }
 
 void UInteractorComponent::TraceForInteractable()
 {
-	auto IsInteractable = [this] (UObject* Object) -> bool{
+	auto IsInteractable = [this] (UObject* Object) -> bool {
 		return Object && Object->Implements<UInteractable>() && Execute_CanInteract(Object);
 	};
 
@@ -127,11 +126,22 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 		ClearInteractable();
 		return;
 	}
-
-	Server_InteractWith(TargetInteractable.GetObject());//Execute_OnInteract(TargetInteractable.GetObject(), this);
+	APlayerController* PlayerController = Execute_GetLocalPlayerController(this);
 	if (Interactor && Interactor->Implements<UInteractable>())
 	{
-		Execute_OnPreInteract(Interactor);
+		Execute_OnPreInteract(Interactor, this);
+
+		if (PlayerController)
+		{
+			Execute_SetLocalPlayerController(Interactor, PlayerController);
+		}
+	}
+
+	Server_InteractWith(TargetInteractable.GetObject(), PlayerController);
+
+	if (Interactor && Interactor->Implements<UInteractable>())
+	{
+		Execute_OnPostInteract(Interactor, this);
 	}
 }
 
@@ -140,12 +150,22 @@ bool UInteractorComponent::CanInteract_Implementation()
 	return !bInteracting && TargetInteractable.GetObject();
 }
 
-void UInteractorComponent::Server_InteractWith_Implementation(UObject* Interactable)
+void UInteractorComponent::Server_InteractWith_Implementation(UObject* Interactable, APlayerController* PlayerController)
 {
-	if (Interactable && Interactable->Implements<UInteractable>())
+	if (!Interactable || !Interactable->Implements<UInteractable>())
 	{
-		Execute_OnInteract(Interactable, this);
+		INTERACT_WARNING(TEXT("Server_InteractWith: Interactable is invalid or does not implement IInteractable"));
+		return;
 	}
+
+	if (!PlayerController)
+	{
+		INTERACT_WARNING(TEXT("Server_InteractWith: PlayerController is null"));
+		return;
+	}
+
+	Execute_SetLocalPlayerController(Interactable, PlayerController);
+	Execute_OnInteract(Interactable, this);
 }
 
 void UInteractorComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -163,6 +183,12 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 {
 	TargetInteractable = InTargetInteractable;
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
+}
+
+APlayerController* UInteractorComponent::GetLocalPlayerController_Implementation() const
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	return Pawn ? Cast<APlayerController>(Pawn->GetController()) : nullptr;
 }
 
 void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)

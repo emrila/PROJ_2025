@@ -25,7 +25,6 @@ struct FModiferData
 		}
 		return BaseValue + BaseValue * Multiplier;
 	}
-
 };
 
 USTRUCT()
@@ -56,6 +55,9 @@ struct FAttributeBase
 
 	template <typename T, class PropType>
 	T GetValueFromContainer() const;
+
+	template <typename T, class F>
+	void GetPropertyValue(T&, F);
 
 	template <typename T, class PropType>
 	void SetValueInContainer(const T& InValue);
@@ -103,6 +105,8 @@ bool FAttributeBase::ModifyContainer(const FModiferData ModifierData)
 	return true;
 }
 
+
+
 USTRUCT(BlueprintType)
 struct FAttributeFloat : public FAttributeBase
 {
@@ -112,10 +116,13 @@ struct FAttributeFloat : public FAttributeBase
 	FAttributeFloat(UObject* InOwner, FProperty* InProperty, const FName InRowName) : FAttributeBase(InOwner, InProperty, InRowName)
 	{
 		InitialValue = GetValueFromContainer<float, FFloatProperty>();
+		LastValue = InitialValue;
 	}
 
 	virtual void Modify(FModiferData ModifierData) override;
+
 	float InitialValue = 0.f;
+	float LastValue = 0.f;
 };
 
 USTRUCT(BlueprintType)
@@ -127,10 +134,13 @@ struct FAttributeInt32 : public FAttributeBase
 	FAttributeInt32(UObject* InOwner, FProperty* InProperty, const FName InRowName) : FAttributeBase(InOwner, InProperty, InRowName)
 	{
 		InitialValue = GetValueFromContainer<int32, FIntProperty>();
+		LastValue = InitialValue;
 	}
 
 	virtual void Modify(FModiferData ModifierData) override;
 	int32 InitialValue = 0.f;
+	int32 LastValue = 0.f;
+
 };
 
 USTRUCT(BlueprintType)
@@ -139,12 +149,22 @@ struct FDependentAttribute
 	GENERATED_BODY()
 
 	FDependentAttribute() = default;
-	FDependentAttribute(UObject* InOwner, FProperty* InProperty, const bool InOverrideOnModified)
-		: Owner(InOwner), Property(InProperty), bOverrideOnModified(InOverrideOnModified)
-	{
-	}
+	FDependentAttribute(UObject* InOwner, FProperty* InProperty, const bool InOverrideOnModified): Owner(InOwner), Property(InProperty), bOverrideOnModified(InOverrideOnModified){}
 
 	TWeakObjectPtr<UObject> Owner;
 	FProperty* Property = nullptr;
 	bool bOverrideOnModified = false; // Ifall nuvarande värde ska spegla det modifierade värdet. Om inte så kommer den ändras procentuellt.
 };
+
+// Template specializations for GetPropertyValue
+template <>
+inline void FAttributeBase::GetPropertyValue(float& OutValue, FAttributeFloat Attribute)
+{
+	OutValue = Attribute.LastValue;
+}
+
+template <>
+inline void FAttributeBase::GetPropertyValue(int32& OutValue, FAttributeInt32 Attribute)
+{
+	OutValue = Attribute.LastValue ;
+}

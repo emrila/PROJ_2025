@@ -16,7 +16,7 @@ namespace UpgradeWidget
 	{
 		if (!WidgetComponent || !WidgetComponent->GetWidget())
 		{
-			UPGRADE_DISPLAY(TEXT("%hs: WidgetComponent or its widget is NULL!"), __FUNCTION__);
+			UPGRADE_SPAWN_DISPLAY(TEXT("%hs: WidgetComponent or its widget is NULL!"), __FUNCTION__);
 			return nullptr;
 		}
 		return Cast<UUpgradeAlternativeWidget>(WidgetComponent->GetWidget());
@@ -68,7 +68,7 @@ void AUpgradeAlternative::SelectUpgrade()
 	}
 	if (bSelected && !bLocked)
 	{
-		OnUpgrade.Broadcast(UpgradeDisplayData);		
+		OnUpgrade.Broadcast(UpgradeDisplayData, InteractingPlayer);
 	}
 }
 
@@ -84,7 +84,7 @@ bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
 {
 	bSelected = bIsSelected;
-	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
 	SelectUpgrade();
 }
 
@@ -95,7 +95,7 @@ bool AUpgradeAlternative::Server_SelectUpgrade_Validate(bool bIsSelected)
 
 void AUpgradeAlternative::OnRep_Selected()
 {
-	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
 	SelectUpgrade();
 }
 
@@ -103,23 +103,31 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 {	
 	if (!HasAuthority())
 	{
-		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
 		return;
 	}
 
-	bSelected = true;//Server_SelectUpgrade(true);
+	bSelected = true;
 	SelectUpgrade();
 	
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
 	{
-		UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
 		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
 	}
 	else
 	{
-		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
+		UPGRADE_SPAWN_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 	}
-	//Destroy(); 
+}
+
+void AUpgradeAlternative::OnPostInteract_Implementation(UObject* Interactor)
+{
+	if (OnPostUpgrade.IsBound())
+	{
+		OnPostUpgrade.Broadcast(UpgradeDisplayData, InteractingPlayer);
+	}
+
 }
 
 bool AUpgradeAlternative::CanInteract_Implementation()
@@ -127,18 +135,26 @@ bool AUpgradeAlternative::CanInteract_Implementation()
 	return bFocus && !bSelected && !bLocked; 
 }
 
-void AUpgradeAlternative::OnPreInteract_Implementation()
+void AUpgradeAlternative::SetLocalPlayerController_Implementation(APlayerController* PlayerController)
 {
-	if (OnPreUpgrade.IsBound())
+	InteractingPlayer = PlayerController;
+	UPGRADE_SPAWN_DISPLAY(TEXT("%hs: InteractingPlayer set on server."), __FUNCTION__);
+}
+
+void AUpgradeAlternative::OnPreInteract_Implementation(UObject* Interactor)
+{
+	/*if (Interactor && Interactor->Implements<IInteractor::UClassType>())
 	{
-		OnPreUpgrade.Broadcast();
-	}
+		UPGRADE_SPAWN_DISPLAY(TEXT("%hs: Storing interacting player controller."), __FUNCTION__);
+		APlayerController* PlayerController = IInteractor::Execute_GetLocalPlayerController(Interactor);
+		Server_SetPlayerController(PlayerController);
+	}*/
 }
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
 	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
-	{				
+	{
 		bFocus = true;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 		{
@@ -176,4 +192,5 @@ void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
 	DOREPLIFETIME(AUpgradeAlternative, bSelected);
 	DOREPLIFETIME(AUpgradeAlternative, Index);
+	DOREPLIFETIME(AUpgradeAlternative, InteractingPlayer);
 }

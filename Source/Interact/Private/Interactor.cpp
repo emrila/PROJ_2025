@@ -14,3 +14,8 @@ bool IInteractor::IsInteracting_Implementation() const
 {
 	return false;
 }
+
+APlayerController* IInteractor::GetLocalPlayerController_Implementation() const
+{
+	return nullptr;
+}
