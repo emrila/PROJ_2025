@@ -23,11 +23,16 @@ public:
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly)
 	float MaxHealth;
 	
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadOnly, ReplicatedUsing = OnRep_Health)
 	float Health;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnRep_Health();
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
+
+
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	

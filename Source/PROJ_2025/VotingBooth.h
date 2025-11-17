@@ -8,9 +8,15 @@
 
 
 
+USTRUCT(Blueprintable)
 struct FCandidate
 {
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite)
 	int NumberOfVotes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UObject* Object;
 };
 
@@ -39,6 +45,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable)
 	void StartVote(int NumberOfChoices);
+
+	UPROPERTY(Replicated)
+	FCandidate Candidate;
 
 	
 
