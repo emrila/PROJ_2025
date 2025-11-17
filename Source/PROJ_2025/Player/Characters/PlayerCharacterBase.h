@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UUpgradeComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UWidgetComponent;
@@ -153,6 +154,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
+	TObjectPtr<UUpgradeComponent> UpgradeComponent;
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;

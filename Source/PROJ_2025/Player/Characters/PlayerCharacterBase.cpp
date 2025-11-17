@@ -6,6 +6,7 @@
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Core/UpgradeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
@@ -41,6 +42,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	Tags.Add(TEXT("Player"));
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
+	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
 	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
@@ -214,6 +217,10 @@ void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	SetUpLocalCustomPlayerName();
+	if (UpgradeComponent)
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"));
+	}
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
