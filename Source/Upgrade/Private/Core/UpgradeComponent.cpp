@@ -1,14 +1,16 @@
 ﻿// Furkan approves of this
 
 
-#include "Core/UpgradeSubsystem.h"
+#include "Core/UpgradeComponent.h"
 
 #include "Core/UpgradeDisplayData.h"
 #include "Dev/UpgradeLog.h"
-
 #include "Net/UnrealNetwork.h"
 
-namespace UpgradeUtil
+
+struct FAttributeUpgradeData;
+
+namespace UpgradeUtils
 {
 	FProperty* GetProperty(const UObject* Owner, const FName PropertyName)
 	{
@@ -27,8 +29,6 @@ namespace UpgradeUtil
 			Property->IsA<FIntProperty>()
 		);
 	}
-
-
 
 	FString GetClassNameKey(const UObject* Object)
 	{
@@ -57,33 +57,24 @@ namespace UpgradeUtil
 
 #define TABLE_PATH TEXT("/Game/Developer/Emma/DT_UpgradeData.DT_UpgradeData")
 
-UUpgradeSubsystem* UUpgradeSubsystem::Get(const UWorld* World)
+UUpgradeComponent::UUpgradeComponent()
 {
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	if (const UGameInstance* GameInstance = World->GetGameInstance())
-	{
-		return GameInstance->GetSubsystem<UUpgradeSubsystem>();
-	}
-	return nullptr;
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
-void UUpgradeSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+void UUpgradeComponent::BeginPlay()
 {
-	Super::Initialize(Collection);
-	NetMulticast_LoadDataTable();
+	Super::BeginPlay();
+	NetMulticast_LoadDataTable();	
 }
 
-void UUpgradeSubsystem::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+void UUpgradeComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UUpgradeSubsystem, UpgradeDataTable);
+	DOREPLIFETIME(UUpgradeComponent, UpgradeDataTable);
 }
 
-void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, const FName RowName, const FName Category)
+void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName PropertyName, FName RowName, FName Category)
 {
 	UPGRADE_HI_FROM(__FUNCTION__);
 
@@ -92,10 +83,10 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		UPGRADE_ERROR(TEXT("%hs: Owner is null!"), __FUNCTION__);
 		return;
 	}
-	FProperty* Prop = UpgradeUtil::GetProperty(Owner, PropertyName);
+	FProperty* Prop = UpgradeUtils::GetProperty(Owner, PropertyName);
 	if (!FAttributeData::IsValidProperty(Prop))
 	{
-		UPGRADE_ERROR(TEXT("%hs: Property %s is invalid on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtil::GetClassNameKey(Owner));		
+		UPGRADE_ERROR(TEXT("%hs: Property %s is invalid on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtils::GetClassNameKey(Owner));		
 		return;
 	}
 	/*if (const FAttributeData* ExistingAttribute = GetByCategory(Category, RowName))
@@ -112,10 +103,10 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		return;
 	}
 
-	TUniquePtr<FAttributeData> NewAttribute = UpgradeUtil::CreateAttribute(Owner, Prop, RowName);//MakeUnique<FAttributeData>(Owner, Prop, RowName, InitialValue);
+	TUniquePtr<FAttributeData> NewAttribute = UpgradeUtils::CreateAttribute(Owner, Prop, RowName);//MakeUnique<FAttributeData>(Owner, Prop, RowName, InitialValue);
 	if (!NewAttribute)
 	{
-		UPGRADE_ERROR(TEXT("%hs: Failed to create attribute for property %s on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtil::GetClassNameKey(Owner));
+		UPGRADE_ERROR(TEXT("%hs: Failed to create attribute for property %s on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtils::GetClassNameKey(Owner));
 		return;
 	}
 
@@ -130,11 +121,12 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		}
 		if (!UpgradeData->CanUpgrade(NewAttributeRaw->CurrentUpgradeLevel)/*UpgradeData->MaxNumberOfUpgrades <= NewAttributeRaw->CurrentUpgradeLevel && UpgradeData->MaxNumberOfUpgrades != -1*/)
 		{
-			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtil::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
+			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
-		//NewAttributeRaw->CurrentUpgradeLevel++;
+	
 		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier});
+		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s to level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 	});
 	NewAttributeRaw->OnRemoveModifier.AddLambda([NewAttributeRaw, UpgradeData]
 	{
@@ -145,11 +137,11 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 		}
 		if (!UpgradeData->CanDowngrade(NewAttributeRaw->CurrentUpgradeLevel))
 		{
-			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached min downgrade level %d."), __FUNCTION__, *UpgradeUtil::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
+			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached min downgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
 		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier, true});
-		//NewAttributeRaw->CurrentUpgradeLevel--;
+	
 	});
 
 	// Lägg till i alla listor/loop-ups
@@ -158,83 +150,19 @@ void UUpgradeSubsystem::BindAttribute(UObject* Owner, const FName PropertyName, 
 	AttributesByCategory.FindOrAdd(Category).Add(NewAttributeRaw);
 	RegisteredAttributes.Add(MoveTemp(NewAttribute));
 
-	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s."), __FUNCTION__,*UpgradeUtil::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString());
-
+	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString());
 }
 
-/*
-void UUpgradeSubsystem::BindDependentAttribute(UObject* Owner, const FName PropertyName, bool OverrideOnModified, UObject* TargetOwner,	const FName TargetPropertyName)
-{
-	if (!Owner)
-	{
-		return;
-	}
-	FProperty* Prop = UpgradeCheck::GetProperty(Owner, PropertyName);
-	if (!UpgradeCheck::IsValidProperty(Prop))
-	{
-		return;
-	}
-
-	FAttributeData* TargetAttribute = GetByKey(TargetOwner, UpgradeCheck::GetProperty(TargetOwner, TargetPropertyName));
-	if (!TargetAttribute)
-	{
-		return;
-	}
-	const FAttributeUpgradeData* UpgradeData = UpgradeDataTable->FindRow<FAttributeUpgradeData>(TargetAttribute->RowName, __FUNCTION__);
-	if (!UpgradeData)
-	{
-		return;
-	}
-	TUniquePtr<FDependentAttribute> NewDependentAttribute = MakeUnique<FDependentAttribute>(Owner, Prop, OverrideOnModified);
-	FDependentAttribute* DependentAttributeRaw = NewDependentAttribute.Get();
-	TargetAttribute->OnAttributeModified.AddLambda([TargetAttribute, UpgradeData, DependentAttributeRaw]
-	{
-		if (!DependentAttributeRaw->Owner.IsValid() || !TargetAttribute->Owner.IsValid())
-		{
-			return;
-		}
-
-		UObject* DepOwner = DependentAttributeRaw->Owner.Get();
-		const UObject* TaOwner = TargetAttribute->Owner.Get();
-
-		if (!IsValid(DepOwner) || !IsValid(TaOwner))
-		{
-			return;
-		}
-
-		// ---------FLOAT SPECIFIC
-		float Current = 0.f;
-		UpgradeCheck::GetFloatValue(Current, DependentAttributeRaw->Property, DepOwner);
-		if (DependentAttributeRaw->bOverrideOnModified)
-		{
-			// ---------FLOAT SPECIFIC
-			float TargetsCurrent =	0.f;
-			UpgradeCheck::GetFloatValue(TargetsCurrent, TargetAttribute->Property, TaOwner);
-			Current = TargetsCurrent;
-		}
-		else
-		{
-			// ---------FLOAT SPECIFIC
-			Current += TargetAttribute->InitialValue * UpgradeData->Multiplier;
-		}
-		// ---------FLOAT SPECIFIC
-		UpgradeCheck::SetFloatValue(Current, DependentAttributeRaw->Property, DepOwner);
-		//----------------------------------
-	});
-
-	RegisteredDependentAttributes.Add(MoveTemp(NewDependentAttribute));
-}
-*/
-
-void UUpgradeSubsystem::UpgradeByRow(FName RowName) const
+void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName) const
 {
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
 		TargetAttribute->OnAddModifier.Broadcast();
+		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s with row %s."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(TargetAttribute->Owner.Get()), *RowName.ToString());
 	}
 }
 
-void UUpgradeSubsystem::DowngradeByRow(FName RowName) const
+void UUpgradeComponent::DowngradeByRow(FName RowName) const
 {
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
@@ -242,12 +170,13 @@ void UUpgradeSubsystem::DowngradeByRow(FName RowName) const
 	}
 }
 
-FAttributeData* UUpgradeSubsystem::GetByKey(UObject* Owner, FProperty* Property) const
+FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property) const
 {
 	return AttributesByKey.FindRef(GetKey(Owner, Property));
+
 }
 
-const FAttributeData* UUpgradeSubsystem::GetByCategory(FName Category, FName RowName) const
+const FAttributeData* UUpgradeComponent::GetByCategory(FName Category, FName RowName) const
 {
 	const TArray<FAttributeData*>* Attributes = AttributesByCategory.Find(Category);
 	if (!Attributes)
@@ -263,7 +192,7 @@ const FAttributeData* UUpgradeSubsystem::GetByCategory(FName Category, FName Row
 	return TargetAttribute ? *TargetAttribute : nullptr;
 }
 
-TArray<const FAttributeData*> UUpgradeSubsystem::GetByRow(FName RowName) const
+TArray<const FAttributeData*> UUpgradeComponent::GetByRow(FName RowName) const
 {
 	TArray<const FAttributeData*> Out;
 	if (const TArray<FAttributeData*>* Arr = AttributesByRow.Find(RowName))
@@ -276,12 +205,12 @@ TArray<const FAttributeData*> UUpgradeSubsystem::GetByRow(FName RowName) const
 	return Out;
 }
 
-uint64 UUpgradeSubsystem::GetKey(UObject* Owner, FProperty* Property)
+uint64 UUpgradeComponent::GetKey(UObject* Owner, FProperty* Property)
 {
 	return reinterpret_cast<uint64>(Owner) << 32 ^ reinterpret_cast<uint64>(Property);
 }
 
-void UUpgradeSubsystem::NetMulticast_LoadDataTable_Implementation()
+void UUpgradeComponent::NetMulticast_LoadDataTable_Implementation()
 {
 	if (UpgradeDataTable)
 	{
@@ -299,12 +228,12 @@ void UUpgradeSubsystem::NetMulticast_LoadDataTable_Implementation()
 	}
 }
 
-bool UUpgradeSubsystem::NetMulticast_LoadDataTable_Validate()
+bool UUpgradeComponent::NetMulticast_LoadDataTable_Validate()
 {
 	return true;
 }
 
-void UUpgradeSubsystem::ClearAttributes([[maybe_unused]] const FString& String)
+void UUpgradeComponent::ClearAttributes(const FString& String)
 {
 	UPGRADE_HI_FROM(__FUNCTION__);
 	RegisteredAttributes.Empty();
@@ -313,3 +242,4 @@ void UUpgradeSubsystem::ClearAttributes([[maybe_unused]] const FString& String)
 	AttributesByCategory.Empty();
 	RegisteredDependentAttributes.Empty();
 }
+

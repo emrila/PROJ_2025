@@ -3,6 +3,7 @@
 
 #include "World/UpgradeSpawner.h"
 
+#include "Core/UpgradeComponent.h"
 #include "Core/UpgradeSubsystem.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
@@ -111,10 +112,33 @@ void AUpgradeSpawner::BeginPlay()
 void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
 {
 	UPGRADE_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
-	if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
+	APlayerController* FirstLocalPlayerFromController = GetWorld()->GetFirstPlayerController();
+	if (!FirstLocalPlayerFromController)
+	{
+		return;
+	}
+	APawn* PawnOrSpectator = FirstLocalPlayerFromController->GetPawnOrSpectator();
+	if (!PawnOrSpectator)
+	{
+		return;
+	}
+	UActorComponent* ComponentByClass = PawnOrSpectator->GetComponentByClass(UUpgradeComponent::StaticClass());
+	if (!ComponentByClass)
+	{
+		return;
+	}
+	UUpgradeComponent* UpgradeComponent = Cast<UUpgradeComponent>(ComponentByClass);
+	if (!UpgradeComponent)
+	{
+		return;
+	}
+	
+	UpgradeComponent->UpgradeByRow(SelectedUpgrade.RowName);
+	
+	/*if (UUpgradeSubsystem* UpgradeSubsystem = UUpgradeSubsystem::Get(GetWorld()))
 	{
 		UpgradeSubsystem->UpgradeByRow(SelectedUpgrade.RowName);			
-	}
+	}*/
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
