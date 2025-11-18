@@ -217,7 +217,7 @@ void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
 			UPGRADE_ERROR(TEXT("%hs: Target UpgradeComponent is null!"), __FUNCTION__);
 			continue;
 		}
-		Target->UpgradeByRow(SelectedUpgrade.RowName);
+	//	Target->UpgradeByRow(SelectedUpgrade.RowName);
 	}
 }
 

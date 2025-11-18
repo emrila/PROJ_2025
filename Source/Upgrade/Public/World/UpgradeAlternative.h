@@ -75,8 +75,8 @@ protected:
 	UFUNCTION()
 	void OnRep_Selected();
 	
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SelectUpgrade(bool bIsSelected);	
+	/*UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SelectUpgrade(bool bIsSelected);	*/
 	
 public:
 	virtual void OnInteract_Implementation(UObject* Interactor) override;

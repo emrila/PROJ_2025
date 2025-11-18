@@ -25,7 +25,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
 	UFUNCTION(Server, Reliable)
-	void UpgradeByRow(FName RowName) const;	
+	void UpgradeByRow(FName RowName);	
 	void DowngradeByRow(FName RowName) const;
 
 	UFUNCTION()
@@ -43,6 +43,9 @@ private:
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
 	UDataTable* UpgradeDataTable = nullptr;
 
+	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
+	bool bHasAppliedUpgrade = false;
+	
 	TArray<TUniquePtr<FAttributeData>> RegisteredAttributes;
 
 	TArray<TUniquePtr<FDependentAttribute>> RegisteredDependentAttributes;

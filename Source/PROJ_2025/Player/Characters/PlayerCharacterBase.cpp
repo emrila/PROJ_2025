@@ -218,8 +218,9 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
 	SetUpLocalCustomPlayerName();
-	if (UpgradeComponent)
+	if (UpgradeComponent && IsLocallyControlled())
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"));
 	}
@@ -448,8 +449,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	}
 	else
 	{
-		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__,
-		       *CustomPlayerName);
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
 	}
 	Server_SetCustomPlayerName(NewName);
 	OnRep_CustomPlayerName();

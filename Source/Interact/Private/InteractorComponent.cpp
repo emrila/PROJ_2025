@@ -170,6 +170,7 @@ int32 UInteractorComponent::GetOwnerID_Implementation() const
 
 void UInteractorComponent::OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData)
 {
+	INTERACT_DISPLAY(TEXT("😭😭😭😭😭😭😭😭😭😭😭😭OnSuperFinishedInteraction"));
 	OnFinishedInteraction.Broadcast( InteractionData);
 }
 

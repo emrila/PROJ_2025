@@ -81,18 +81,17 @@ bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 	return false;
 }
 
-void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
+/*void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
 {
 	bSelected = bIsSelected;
-	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__,
-	                bSelected ? TEXT("true") : TEXT("false"));
+	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__,  bSelected ? TEXT("true") : TEXT("false"));
 	SelectUpgrade();
 }
 
 bool AUpgradeAlternative::Server_SelectUpgrade_Validate(bool bIsSelected)
 {
 	return true;
-}
+}*/
 
 void AUpgradeAlternative::OnRep_Selected()
 {

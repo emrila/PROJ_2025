@@ -65,13 +65,16 @@ UUpgradeComponent::UUpgradeComponent()
 void UUpgradeComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	NetMulticast_LoadDataTable();	
+	NetMulticast_LoadDataTable();
+
+	bHasAppliedUpgrade = false;
 }
 
 void UUpgradeComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUpgradeComponent, UpgradeDataTable);
+	DOREPLIFETIME(UUpgradeComponent, bHasAppliedUpgrade);
 }
 
 void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName PropertyName, FName RowName, FName Category)
@@ -153,13 +156,19 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString());
 }
 
-void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName) const
+void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
 {
+	if (bHasAppliedUpgrade)
+	{
+		return;
+	}
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
 		TargetAttribute->OnAddModifier.Broadcast();
 		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s with row %s."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(TargetAttribute->Owner.Get()), *RowName.ToString());
 	}
+	
+	bHasAppliedUpgrade = true;
 }
 
 void UUpgradeComponent::DowngradeByRow(FName RowName) const
@@ -172,7 +181,10 @@ void UUpgradeComponent::DowngradeByRow(FName RowName) const
 
 void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 {
-	
+	if (!GetOwner()->HasAuthority())
+	{
+		return;
+	}
 	const FString StructCPPName = InstancedStruct.GetScriptStruct()->GetStructCPPName();
 	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
 	FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
