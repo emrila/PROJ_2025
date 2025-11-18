@@ -25,6 +25,7 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, TankSelected);
 	DOREPLIFETIME(AWizardGameState, RogueSelected);
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
+	
 }
 
 bool AWizardGameState::SetHealth_Validate(float HealthAmount)
@@ -71,7 +72,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	
 	HealthPercent = Health/MaxHealth;
 
-	
+	OnRep_Health();
 	
 }
 
@@ -80,6 +81,8 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(HealthAmount,static_cast<float>(0),MaxHealth);
 
 	HealthPercent = Health/MaxHealth;
+
+	OnRep_Health();
 }
 
 void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
@@ -89,6 +92,8 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 
 	HealthPercent = Health/MaxHealth;
+
+	OnRep_Health();
 }
 
 void AWizardGameState::SetMaxHealth_Implementation(float HealthAmount)
@@ -97,4 +102,6 @@ void AWizardGameState::SetMaxHealth_Implementation(float HealthAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 
 	HealthPercent = Health/MaxHealth;
+
+	OnRep_Health();
 }

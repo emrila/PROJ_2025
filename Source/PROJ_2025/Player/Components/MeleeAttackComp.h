@@ -3,6 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "AttackComponentBase.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 #include "MeleeAttackComp.generated.h"
 
 
@@ -18,7 +19,8 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
+	
+	
 	virtual void PerformAttack() override;
 
 	virtual void SetCurrentAnimIndex();
@@ -35,6 +37,7 @@ protected:
 	
 	virtual void CheckForCollisionWithEnemy();
 
+	UFUNCTION(Server, Reliable)
 	virtual void Sweep(FVector SweepLocation);
 
 	bool bIsFirstAttackAnimSet = false;

@@ -30,7 +30,7 @@ void UMeleeAttackComp::StartAttack()
 
 	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
 	{
-		SetAttackCoolDown(Delay);
+		SetAttackCoolDown(GetAttackCoolDown());
 	}
 	
 	Super::StartAttack();
@@ -169,7 +169,7 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 	//TODO : Determine which sweep locations to use based on the attack animation (one-handed, two-handed, etc.)
 }
 
-void UMeleeAttackComp::Sweep(FVector SweepLocation)
+void UMeleeAttackComp::Sweep_Implementation(FVector SweepLocation)
 {
 	if (!OwnerCharacter || SweepLocation == FVector::ZeroVector)
 	{
@@ -200,9 +200,9 @@ void UMeleeAttackComp::Sweep(FVector SweepLocation)
 			if (Hit.GetActor() && Hit.GetActor()->IsA(AEnemyBase::StaticClass()))
 			{
 				UniqueHitActors.Add(Hit.GetActor());
-				if (const APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)
+				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)
 				{
-					UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PlayerCharacter->ImpactParticles, Hit.ImpactPoint);
+					SpawnParticles(PlayerCharacter, Hit);
 				}
 			}
 		}
