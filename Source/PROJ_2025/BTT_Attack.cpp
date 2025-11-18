@@ -53,7 +53,7 @@ EBTNodeResult::Type UBTT_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, 
 	if (Character && Character->GetCharacterMovement())
 	{
 		
-		FVector LaunchVelocity = JumpDir * MushroomAICon->MoveSpeed*1.8 + FVector(0, 0, MushroomAICon->JumpHeight*1.2);
+		FVector LaunchVelocity = JumpDir * MushroomAICon->MoveSpeed*1.8*AttackStrength + FVector(0, 0, MushroomAICon->JumpHeight*1.2*AttackStrength);
 
 		Character->LaunchCharacter(LaunchVelocity, true, true);
 	}

@@ -16,6 +16,9 @@ class PROJ_2025_API UBTT_Attack : public UBTTask_BlackboardBase
 public:
 	UBTT_Attack();
 
+	UPROPERTY(EditAnywhere, Category = "OverallAttackStrength")
+	float AttackStrength = 1.f;
+	
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 

@@ -20,7 +20,7 @@ protected:
 	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	UPROPERTY(EditAnywhere, Category = "AttackRange")
-	float AttackRange = 500.f; 
+	float InterruptRange = 1000.f; 
 };
 	
 
