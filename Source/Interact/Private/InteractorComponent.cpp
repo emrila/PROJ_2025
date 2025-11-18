@@ -127,9 +127,9 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 		ClearInteractable();
 		return;
 	}
-	TargetInteractable->Execute_OnPreInteract(TargetInteractable.GetObject());
+	Execute_OnPreInteract(TargetInteractable.GetObject(), this);
 	Server_InteractWith(TargetInteractable.GetObject());
-	TargetInteractable->Execute_OnPostInteract(TargetInteractable.GetObject());
+	Execute_OnPostInteract(TargetInteractable.GetObject());
 
 }
 
@@ -163,8 +163,19 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
 }
 
+int32 UInteractorComponent::GetOwnerID_Implementation() const
+{	
+	return OwnerID;
+}
+
 void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)
 {
 	INTERACT_DISPLAY( TEXT("Finished interaction interactable"));
 	ClearInteractable();
+}
+
+void UInteractorComponent::Server_SetOwnerID_Implementation(const int32 InOwnerID)
+{
+	OwnerID = InOwnerID;
+	INTERACT_DISPLAY( TEXT("Setting owner id to %d"), OwnerID);
 }

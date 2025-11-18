@@ -14,3 +14,8 @@ bool IInteractor::IsInteracting_Implementation() const
 {
 	return false;
 }
+
+int32 IInteractor::GetOwnerID_Implementation() const
+{
+	return -1;
+}

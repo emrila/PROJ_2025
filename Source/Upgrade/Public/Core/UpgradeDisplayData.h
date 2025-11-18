@@ -21,11 +21,14 @@ struct FUpgradeDisplayData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<int32> TargetPlayers = {};
+	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
-	};
-	
+	};	
 	bool operator!=(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return !(*this == UpgradeData);
@@ -39,7 +42,7 @@ struct FPlayerUpgradeDisplayEntry
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName PlayerType = NAME_None;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
 };

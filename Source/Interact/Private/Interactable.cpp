@@ -6,7 +6,7 @@
 #include "Dev/InteractLog.h"
 
 
-void IInteractable::OnPreInteract_Implementation()
+void IInteractable::OnPreInteract_Implementation(UObject* Interactor)
 {
 	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
 }

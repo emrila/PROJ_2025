@@ -36,7 +36,10 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_InteractWith(UObject* Interactable);
-
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetOwnerID(const int32 InOwnerID);
+	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Getter, Setter, Category="Interact|Trace")
 	float InteractionRadius;
@@ -46,6 +49,9 @@ protected:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category="Interact|Interactor")
 	bool bInteracting;
+	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Interact|Interactor")
+	int32 OwnerID = -1; // -1 == Not set
 
 	UPROPERTY(BlueprintReadOnly, Category="Interact|Interactor")
 	TScriptInterface<IInteractable> TargetInteractable;
@@ -86,7 +92,9 @@ public:
 	{
 		return InteractionDistance;
 	}
-	
+
+	virtual int32 GetOwnerID_Implementation() const override;
+
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interact|Trace")
 	TEnumAsByte<EDrawDebugTrace::Type> DebugType = EDrawDebugTrace::None;

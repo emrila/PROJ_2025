@@ -19,8 +19,8 @@ class INTERACT_API IInteractable
 
 public:
 	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
-	void OnPreInteract();
-	virtual void OnPreInteract_Implementation();
+	void OnPreInteract(UObject* Interactor);
+	virtual void OnPreInteract_Implementation(UObject* Interactor);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
 	void OnInteract(UObject* Interactor = nullptr);

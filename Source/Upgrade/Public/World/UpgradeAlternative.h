@@ -79,9 +79,10 @@ protected:
 	void Server_SelectUpgrade(bool bIsSelected);	
 	
 public:
-	virtual void OnPreInteract_Implementation() override;
+	virtual void OnPreInteract_Implementation(UObject* Interactor) override;
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
+	virtual void OnPostInteract_Implementation() override;
 
 protected:
 	friend class AUpgradeSpawner;

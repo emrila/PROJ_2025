@@ -8,8 +8,10 @@
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -231,6 +233,7 @@ void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, PossessedBy called"), __FUNCTION__);
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -397,40 +400,56 @@ bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& In
 
 void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 {
-	if (IsLocallyControlled())
+	if (!IsLocallyControlled())
 	{
-		const int32 RandomNum = FMath::RandRange(10, 99);
-		FString NewName = FString::Printf(TEXT("Player_%d"), RandomNum);
+		return;
+	}
+	
+	if (!GetPlayerState())
+	{
+		constexpr float InRate = 0.2f;
+		UE_LOG(PlayerBaseLog, Warning, TEXT("%hs, PlayerState is Null, retrying in %f"), __FUNCTION__, InRate);
+		FTimerHandle TimerHandle;
 
-		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Setting up local player name: %s"),__FUNCTION__, *GetClass()->GetDisplayNameText().ToString());
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		                                {
+			                                SetUpLocalCustomPlayerName();
+		                                },
+		                                InRate, false);
 
-		if (!bChangedName)
-		{
+		return;
+	}
+
+	const int32 PlayerId = GetPlayerState()->GetPlayerId(); //FMath::RandRange(10, 99);		
+	InteractorComponent->Server_SetOwnerID(PlayerId);
+	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Local player id: %d"), __FUNCTION__, PlayerId);
+
+	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
+	if (!bChangedName)
+	{
 #if WITH_EDITORONLY_DATA
-			if (bUsePlayerLoginProfile)
-			{
-				if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-				{
-					NewName = PlayerLoginSystem->GetProfile().Username;
-				}
-			}
-#else
-			if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+		if (bUsePlayerLoginProfile)
+		{
+			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
 			{
 				NewName = PlayerLoginSystem->GetProfile().Username;
 			}
-#endif
-			bChangedName = true;
 		}
-		else
+#else
+		if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
 		{
-			UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"),__FUNCTION__, *CustomPlayerName);
+			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
-		Server_SetCustomPlayerName(NewName);
-		OnRep_CustomPlayerName();
+#endif
+		bChangedName = true;
 	}
-	//OnRep_CustomPlayerName();
-	
+	else
+	{
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__,
+		       *CustomPlayerName);
+	}
+	Server_SetCustomPlayerName(NewName);
+	OnRep_CustomPlayerName();
 }
 
 void APlayerCharacterBase::ResetIframe()

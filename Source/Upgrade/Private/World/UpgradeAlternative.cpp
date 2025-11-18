@@ -99,6 +99,15 @@ void AUpgradeAlternative::OnRep_Selected()
 	SelectUpgrade();
 }
 
+void AUpgradeAlternative::OnPreInteract_Implementation(UObject* Interactor)
+{
+	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
+	{
+		const int32 OwnerID = IInteractor::Execute_GetOwnerID(Interactor);
+		UPGRADE_DISPLAY(TEXT("%hs: Interactor OwnerID: %d"), __FUNCTION__, OwnerID);
+	}
+}
+
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 {	
 	if (!HasAuthority())
@@ -107,12 +116,13 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 
-	bSelected = true;//Server_SelectUpgrade(true);
+	bSelected = true;
 	SelectUpgrade();
 	
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
+		
 		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
 	}
 	else
@@ -127,7 +137,7 @@ bool AUpgradeAlternative::CanInteract_Implementation()
 	return bFocus && !bSelected && !bLocked; 
 }
 
-void AUpgradeAlternative::OnPreInteract_Implementation()
+void AUpgradeAlternative::OnPostInteract_Implementation()
 {
 	if (OnPreUpgrade.IsBound())
 	{
