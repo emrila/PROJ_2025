@@ -41,6 +41,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool WarmingUp;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool Projectile = false;
+
 	virtual void HandleHit() override;
 
 };
