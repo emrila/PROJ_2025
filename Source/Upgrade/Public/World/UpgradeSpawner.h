@@ -55,11 +55,15 @@ protected:
 
 	UFUNCTION()
 	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
+
 	UFUNCTION()
 	void LockUpgradeAlternatives();
 
 
 private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	TObjectPtr<USceneComponent> SceneComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
@@ -74,6 +78,7 @@ private:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
 	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;
+
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
 	

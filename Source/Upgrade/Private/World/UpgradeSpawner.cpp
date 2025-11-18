@@ -11,7 +11,10 @@
 
 AUpgradeSpawner::AUpgradeSpawner()
 {
+	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+	RootComponent = SceneComponent;
 	SpawnSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SpawnSplineComponent"));
+	SpawnSplineComponent->SetupAttachment(RootComponent);
 	bReplicates = true;
 }
 
