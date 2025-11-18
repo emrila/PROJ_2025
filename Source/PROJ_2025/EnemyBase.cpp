@@ -45,9 +45,9 @@ void AEnemyBase::HandleDeath()
 	Destroy();
 }
 
-void AEnemyBase::HandleHit()
+void AEnemyBase::HandleHit_Implementation()
 {
-	//idk
+	HitFeedback();
 }
 
 

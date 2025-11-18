@@ -9,7 +9,14 @@
 
 class AEnemySpawn;
 
-
+UENUM(BlueprintType)
+enum class EEnemyType : uint8
+{
+	Mushroom	UMETA(DisplayName = "Mushroom"),
+	Bomber		UMETA(DisplayName = "Bomber"),
+	Cactus		UMETA(DisplayName = "Cactus"),
+	Golem		UMETA(DisplayName = "Golem")
+};
 
 USTRUCT(BlueprintType)
 struct FCombatWave
@@ -17,7 +24,16 @@ struct FCombatWave
 	GENERATED_BODY()
 
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Wave")
-	TArray<AEnemySpawn*> Enemies;
+	TMap<EEnemyType, int> EnemyCounts;
+};
+
+USTRUCT(BlueprintType)
+struct FEnemySpawnLocs
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<AEnemySpawn*> EnemySpawns;
 };
 UCLASS()
 class PROJ_2025_API ACombatManager : public ARoomManagerBase
@@ -41,9 +57,8 @@ protected:
 
 	virtual void OnRoomInitialized() override;
 public:	
-
-
-	UPROPERTY()
+	
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Wave")
 	TArray<FCombatWave> Waves;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
@@ -52,6 +67,7 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int WaveIndex;
 	
-
+private:
+	TMap<EEnemyType, TArray<AEnemySpawn*>> EnemyLocations;
 	
 };
