@@ -16,7 +16,7 @@ class PROJ_2025_API AGolem : public AEnemyBase
 public:
 	AGolem();
 
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadWrite)
 	float RageBuildup = 0;
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
