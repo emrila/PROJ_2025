@@ -24,6 +24,9 @@ public:
 	UPROPERTY()
 	ACombatManager* CombatManager;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void HitFeedback();
+
 protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Stats")
@@ -31,6 +34,7 @@ protected:
 
 	virtual void HandleDeath();
 
+	UFUNCTION(NetMulticast, Reliable)
 	virtual void HandleHit();
 	
 
