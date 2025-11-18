@@ -22,9 +22,13 @@ public:
 	void OnPreInteract();
 	virtual void OnPreInteract_Implementation();
 
-	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
 	void OnInteract(UObject* Interactor = nullptr);
 	virtual void OnInteract_Implementation(UObject* Interactor = nullptr);
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
+	void OnPostInteract();
+	virtual void OnPostInteract_Implementation();
 
 	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
 	bool CanInteract();

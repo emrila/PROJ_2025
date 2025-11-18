@@ -127,12 +127,10 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 		ClearInteractable();
 		return;
 	}
+	TargetInteractable->Execute_OnPreInteract(TargetInteractable.GetObject());
+	Server_InteractWith(TargetInteractable.GetObject());
+	TargetInteractable->Execute_OnPostInteract(TargetInteractable.GetObject());
 
-	Server_InteractWith(TargetInteractable.GetObject());//Execute_OnInteract(TargetInteractable.GetObject(), this);
-	if (Interactor && Interactor->Implements<UInteractable>())
-	{
-		Execute_OnPreInteract(Interactor);
-	}
 }
 
 bool UInteractorComponent::CanInteract_Implementation()
