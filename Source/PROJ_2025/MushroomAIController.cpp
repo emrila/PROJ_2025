@@ -15,6 +15,8 @@ void AMushroomAIController::StartAttackCooldown()
 	{
 		Cast<AMushroomCharacter>(GetPawn())->AttackIsOnCooldown = true;
 		Blackboard->SetValueAsBool("AttackIsOnCooldown", true);
+		Blackboard->SetValueAsBool("ChargeAttack", false);
+		Cast<AMushroomCharacter>(GetPawn())->bIsAttacking = false;
 	}
 
 	GetWorldTimerManager().SetTimer(

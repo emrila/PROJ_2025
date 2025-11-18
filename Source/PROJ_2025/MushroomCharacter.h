@@ -34,6 +34,13 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool SlowRunning = false;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool MeleeRun = false;
+
+
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool WarmingUp;
+
 	virtual void HandleHit() override;
 
 };
