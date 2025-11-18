@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "EnemySpawn.generated.h"
 
+enum class EEnemyType : uint8;
+
 UCLASS(Blueprintable)
 class PROJ_2025_API AEnemySpawn : public AActor
 {
@@ -17,12 +19,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawn")
 	TSubclassOf<AActor> EnemyClass;
-
-	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Spawn")
-	int WaveNumber;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Editor")
-	USkeletalMeshComponent* PreviewMesh;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawn")
+	EEnemyType EnemyType;
 
 protected:
 

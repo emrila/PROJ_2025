@@ -33,17 +33,35 @@ void ACombatManager::Server_StartWave_Implementation(int index)
 
 void ACombatManager::StartWave_Internal(int index)
 {
+	UE_LOG(LogTemp, Display, TEXT("StartWave"));
 	if (!Waves.IsValidIndex(index))
 	{
 		SpawnLoot();
 		return;
 	};
 	UE_LOG(LogTemp, Display, TEXT("Wave: %d"), index);
-	RemainingEnemies = Waves[index].Enemies.Num();
-	for (AEnemySpawn* SpawnPoint : Waves[index].Enemies)
+	TArray<int> EnemyCountsArray;
+	Waves[index].EnemyCounts.GenerateValueArray(EnemyCountsArray);
+	int Sum = 0;
+	for (const int Count : EnemyCountsArray)
 	{
-		if (SpawnPoint && SpawnPoint->EnemyClass)
+		Sum += Count;
+	}
+	RemainingEnemies = Sum;
+	TMap<EEnemyType, TArray<AEnemySpawn*>> EnemyLocationsCopy = EnemyLocations;
+	for (const TPair<EEnemyType, int> Pair : Waves[index].EnemyCounts)
+	{
+		TArray<AEnemySpawn*> Spawns = EnemyLocationsCopy[Pair.Key];
+		const int MaxSpawns = Pair.Value * 1;
+		for (int i = 0; i < MaxSpawns; i++)
 		{
+			if (Spawns.Num() == 0)
+			{
+				UE_LOG(LogTemp, Error, TEXT("RAN OUT OF %s TO SPAWN"),*UEnum::GetValueAsString(Pair.Key));
+				break;
+			}
+			const int32 RandomIndex = FMath::RandRange(0, Spawns.Num() - 1);
+			const AEnemySpawn* SpawnPoint = Spawns[RandomIndex];
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 			AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
@@ -55,6 +73,8 @@ void ACombatManager::StartWave_Internal(int index)
 			{
 				Enemy->CombatManager = this;
 			}
+			Spawns.RemoveAt(RandomIndex);
+
 		}
 	}
 }
@@ -77,26 +97,14 @@ void ACombatManager::OnRoomInitialized()
 	TArray<AActor*> FoundSpawns;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemySpawn::StaticClass(), FoundSpawns);
 
-	TMap<int32, TArray<AEnemySpawn*>> WaveMap;
-	Waves.Empty();
+	EnemyLocations.Empty();
 	WaveIndex = 0;
 	for (AActor* Actor : FoundSpawns)
 	{
 		if (AEnemySpawn* Spawn = Cast<AEnemySpawn>(Actor))
 		{
-			WaveMap.FindOrAdd(Spawn->WaveNumber).Add(Spawn);
+			EnemyLocations.FindOrAdd(Spawn->EnemyType).Add(Spawn);
 		}
-	}
-
-	WaveMap.KeySort([](int32 A, int32 B) { return A < B; });
-
-	for (auto& Pair : WaveMap)
-	{
-		FCombatWave Wave;
-		Wave.Enemies = Pair.Value;
-		Waves.Add(Wave);
-
-		UE_LOG(LogTemp, Display, TEXT("Wave %d has %d spawns"), Pair.Key, Pair.Value.Num());
 	}
 
 	FTimerHandle WaveTimerHandle;
@@ -107,7 +115,7 @@ void ACombatManager::OnRoomInitialized()
 		{
 			Server_StartWave(0);
 		}, 
-		1.5f,    
+		3.5f,    
 		false    
 	);
 }
