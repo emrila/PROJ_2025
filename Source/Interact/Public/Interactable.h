@@ -18,7 +18,7 @@ class INTERACT_API IInteractable
 	GENERATED_BODY()
 
 public:
-	UFUNCTION( BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Interactable" )
 	void OnPreInteract(UObject* Interactor);
 	virtual void OnPreInteract_Implementation(UObject* Interactor);
 

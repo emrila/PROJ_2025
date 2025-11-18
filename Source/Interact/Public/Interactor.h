@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "StructUtils/InstancedStruct.h"
 #include "UObject/Interface.h"
 #include "Interactor.generated.h"
 
@@ -21,7 +22,10 @@ class INTERACT_API IInteractor
 	GENERATED_BODY()
 
 public:
-
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	void OnSuperFinishedInteraction(FInstancedStruct InteractionData);
+	virtual void OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData);
+	
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnFinishedInteraction(const UObject* Interactable);
 	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable);

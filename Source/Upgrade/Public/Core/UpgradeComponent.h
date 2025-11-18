@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UpgradeSubsystem.h"
 #include "Components/ActorComponent.h"
+#include "StructUtils/InstancedStruct.h"
 #include "UpgradeComponent.generated.h"
 
 using FAttributeData = FAttributeBase;
@@ -27,6 +28,8 @@ public:
 	void UpgradeByRow(FName RowName) const;	
 	void DowngradeByRow(FName RowName) const;
 
+	UFUNCTION()
+	void OnUpgradeReceived(FInstancedStruct InstancedStruct);
 protected:
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;

@@ -121,16 +121,16 @@ void UInteractorComponent::OnInteract_Implementation(UObject* Interactor)
 
 	Server_SetInteracting(true);
 
-	if (!TargetInteractable.GetObject())
+	UObject* Interactable = TargetInteractable.GetObject();
+	if (!Interactable)
 	{
 		INTERACT_WARNING( TEXT("TargetInteractable is null when trying to interact!"));
 		ClearInteractable();
 		return;
 	}
-	Execute_OnPreInteract(TargetInteractable.GetObject(), this);
-	Server_InteractWith(TargetInteractable.GetObject());
-	Execute_OnPostInteract(TargetInteractable.GetObject());
-
+	TargetInteractable->Execute_OnPreInteract(Interactable, this);
+	Server_InteractWith(Interactable);
+	TargetInteractable->Execute_OnPostInteract(Interactable);
 }
 
 bool UInteractorComponent::CanInteract_Implementation()
@@ -166,6 +166,11 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 int32 UInteractorComponent::GetOwnerID_Implementation() const
 {	
 	return OwnerID;
+}
+
+void UInteractorComponent::OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData)
+{
+	OnFinishedInteraction.Broadcast( InteractionData);
 }
 
 void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)

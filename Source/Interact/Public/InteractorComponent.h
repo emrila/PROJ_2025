@@ -7,8 +7,11 @@
 #include "Interactor.h"
 #include "Components/ActorComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "StructUtils/InstancedStruct.h"
 #include "InteractorComponent.generated.h"
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFinishedInteractionEvent, FInstancedStruct , InteractionData);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class INTERACT_API UInteractorComponent : public UActorComponent, public IInteractable, public IInteractor
@@ -16,6 +19,10 @@ class INTERACT_API UInteractorComponent : public UActorComponent, public IIntera
 	GENERATED_BODY()
 
 public:
+	
+	UPROPERTY(BlueprintAssignable, Category="Interaction|Interactor")
+	FOnFinishedInteractionEvent OnFinishedInteraction;
+	
 	UInteractorComponent();
 
 protected:
@@ -33,7 +40,9 @@ public:
 	virtual void OnInteract_Implementation(UObject* Interactor) override;
 	virtual bool CanInteract_Implementation() override;
 	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable) override;
-
+	virtual int32 GetOwnerID_Implementation() const override;
+	virtual void OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData) override;
+	
 	UFUNCTION(Server, Reliable)
 	void Server_InteractWith(UObject* Interactable);
 	
@@ -93,7 +102,7 @@ public:
 		return InteractionDistance;
 	}
 
-	virtual int32 GetOwnerID_Implementation() const override;
+
 
 #if WITH_EDITORONLY_DATA
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Interact|Trace")

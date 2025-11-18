@@ -223,6 +223,10 @@ void APlayerCharacterBase::BeginPlay()
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"));
 	}
+	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
+	{		
+	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
+	}
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -233,7 +237,6 @@ void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, PossessedBy called"), __FUNCTION__);
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

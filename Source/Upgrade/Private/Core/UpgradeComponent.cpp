@@ -119,7 +119,7 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 			UPGRADE_ERROR(TEXT("%hs: Owner is no longer valid!"), __FUNCTION__);
 			return;
 		}
-		if (!UpgradeData->CanUpgrade(NewAttributeRaw->CurrentUpgradeLevel)/*UpgradeData->MaxNumberOfUpgrades <= NewAttributeRaw->CurrentUpgradeLevel && UpgradeData->MaxNumberOfUpgrades != -1*/)
+		if (!UpgradeData->CanUpgrade(NewAttributeRaw->CurrentUpgradeLevel))
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
@@ -168,6 +168,23 @@ void UUpgradeComponent::DowngradeByRow(FName RowName) const
 	{
 		TargetAttribute->OnRemoveModifier.Broadcast();
 	}
+}
+
+void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
+{
+	
+	const FString StructCPPName = InstancedStruct.GetScriptStruct()->GetStructCPPName();
+	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
+	FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
+	if (!UpgradeDataPtr)
+	{
+		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);
+		return;
+	}
+	const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;
+	
+	UpgradeByRow(UpgradeData.RowName);
+	
 }
 
 FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property) const
