@@ -56,13 +56,16 @@ EBTNodeResult::Type UBTT_BomberAttack::ExecuteTask(UBehaviorTreeComponent& Owner
 	AIPawn->SetActorRotation(RotToPlayer);
 
 	ACharacter* Character = Cast<ACharacter>(AIPawn);
-	if (Character && Character->GetCharacterMovement())
+	if (!BlackboardComp->GetValueAsBool("IsGonnaExplode"))
 	{
-		
-		FVector LaunchVelocity = JumpDir * BomberAICon->MoveSpeed*3.1 + FVector(0, 0, BomberAICon->JumpHeight*1.5);
-
-		Character->LaunchCharacter(LaunchVelocity, true, true);
+		if (Character && Character->GetCharacterMovement())
+		{
+			
+			FVector LaunchVelocity = JumpDir * BomberAICon->MoveSpeed*3.1 + FVector(0, 0, BomberAICon->JumpHeight*1.5);
+			
+			Character->LaunchCharacter(LaunchVelocity, true, true);
+		}
+		BomberCharacter->bIsDiving = true;
 	}
-	BomberCharacter->bIsDiving = true;
 	return EBTNodeResult::Succeeded;
 }

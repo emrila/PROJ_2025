@@ -3,13 +3,18 @@
 
 #include "BomberCharacter.h"
 
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 
 void ABomberCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABomberCharacter, bIsDiving);
+	DOREPLIFETIME(ABomberCharacter, bIsExploding);
 }
 
 ABomberCharacter::ABomberCharacter()
@@ -21,8 +26,12 @@ ABomberCharacter::ABomberCharacter()
 
 void ABomberCharacter::HandleDeath()
 {
-	Server_SpawnExplosion(GetActorLocation(),GetActorRotation());
+	Cast<AAIController>(GetController())->GetBlackboardComponent()->SetValueAsBool("IsGonnaExplode", true);
+}
 
+void ABomberCharacter::Server_Explode_Implementation()
+{
+	Server_SpawnExplosion(GetActorLocation(),GetActorRotation());
 	Super::HandleDeath();
 }
 
