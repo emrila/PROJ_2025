@@ -1,5 +1,6 @@
 ﻿#include "ShadowStrikeAttackComp.h"
 
+#include "EnemyBase.h"
 #include "GameFramework/Character.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -61,7 +62,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 	
 	Server_TeleportPlayer();
 	
-	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(GetOwner());
+	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter);
 	
 	if (!PlayerCharacter)	
 	{
@@ -75,6 +76,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
 		PlayerCharacter->GetFirstAttackComponent()->StartAttack();
 	}, AttackDelay, false);
+	
 	
 	FTimerHandle CameraReattachmentTimer;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -148,12 +150,22 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		return;
 	}
 
-	const FVector TeleportLocation = LockedTarget->GetActorLocation();
+	//Commented out to try a location in front of the tareget instead
+	/*const FVector TeleportLocation = LockedTarget->GetActorLocation();
 	const FRotator TeleportRotation = LockedTarget->GetActorRotation();
 	const FVector TargetForward = TeleportRotation.Vector();
-	const FVector LocationBehind = TeleportLocation - (TargetForward * OffsetDistanceBehindTarget);
+	const FVector LocationBehind = TeleportLocation - (TargetForward * OffsetDistanceBehindTarget);*/
 	
-	Multicast_TeleportPlayer(LocationBehind, TeleportRotation);
+	const FVector TeleportLocation = LockedTarget->GetActorLocation();
+	const FRotator TargetRotation = LockedTarget->GetActorRotation();
+	const FVector TargetForward = TargetRotation.Vector();
+	const FVector LocationInFront = TeleportLocation + (TargetForward * OffsetDistanceBehindTarget);
+	const FRotator OppositeRotation = TargetRotation + FRotator(0.f, 180.f, 0.f);
+	
+	
+	//Multicast_TeleportPlayer(LocationBehind, TeleportRotation);
+	
+	Multicast_TeleportPlayer(LocationInFront, OppositeRotation);
 
 	APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter);
 	
@@ -163,13 +175,19 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		return;
 	}
 	
-	const FVector CameraTargetLocation = 
+	/*const FVector CameraTargetLocation = 
 		LocationBehind - (TargetForward * CameraInterpDistanceBehind) + FVector(0.f, 0.f, CameraInterpHeight
 			);
 	
 	const FRotator CameraTargetRotation = 
 		UKismetMathLibrary::FindLookAtRotation(CameraTargetLocation, LocationBehind);
 	
+	PlayerCharacter->Client_StartCameraInterpolation(CameraTargetLocation, CameraTargetRotation, CameraInterpDuration);*/
+	
+	const FVector PlayerForward = OppositeRotation.Vector();
+	const FVector CameraTargetLocation = LocationInFront - (PlayerForward * CameraInterpDistanceBehind) + FVector(0.f, 0.f, CameraInterpHeight);
+	const FRotator CameraTargetRotation = OppositeRotation;
+
 	PlayerCharacter->Client_StartCameraInterpolation(CameraTargetLocation, CameraTargetRotation, CameraInterpDuration);
 }
 
@@ -180,6 +198,39 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
+	}
+	
+	if (!LockedTarget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s LockedTarget is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	LockedTarget->CustomTimeDilation = 0.f;
+	
+	AEnemyBase* TheLockedTarget = Cast<AEnemyBase>(LockedTarget);
+	
+	if (TheLockedTarget)
+	{
+		//TheLockedTarget->CustomTimeDilation = 0.f;
+		TheLockedTarget->GetController()->CustomTimeDilation = 0.f;
+	}
+	
+	if (TheLockedTarget)
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+				LockedTargetTickTimer,
+				[this, TheLockedTarget]()
+				{
+					if (TheLockedTarget)
+					{
+						TheLockedTarget->CustomTimeDilation = 1.f;
+						if (AController* C = TheLockedTarget->GetController())
+						{
+							C->CustomTimeDilation = 1.f;
+						}
+					}
+				}, 2.5f, false);
 	}
 	
 	OwnerCharacter->SetActorLocationAndRotation(
