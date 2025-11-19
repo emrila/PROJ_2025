@@ -13,12 +13,20 @@ struct FCandidate
 {
 	GENERATED_BODY()
 
+	FORCEINLINE bool operator==(const FCandidate& Other) const
+	{
+		return (Object == Other.Object);
+	}
+
 public:
 	UPROPERTY(BlueprintReadWrite)
 	int NumberOfVotes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UObject* Object;
+
+	
+	
 };
 
 UCLASS()
@@ -47,11 +55,17 @@ public:
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable)
 	void StartVote(int NumberOfChoices);
 
-	UPROPERTY(Replicated)
-	FCandidate Candidate;
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	TArray<FCandidate> Candidates;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	int Votes = 0;
+
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Vote(FCandidate Candidate);
 	
-
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void AddCandidate(FCandidate Candidate);
 	
 
 };
