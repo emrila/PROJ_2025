@@ -29,23 +29,17 @@ void UBTS_DistanceToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* N
 
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	if (!Blackboard) return;
-
-	bool AttackIsOnCooldown = Blackboard->GetValueAsBool("AttackIsOnCooldown");
-
-	bool IsOnDifferentZ = Blackboard->GetValueAsBool("IsOnDifferentZ");
 	
 	AActor* TargetActor = Cast<AActor>(Blackboard->GetValueAsObject(GetSelectedBlackboardKey()));
 	if (!TargetActor)
 	{
-		Blackboard->SetValueAsBool("canAttack", false);
+		Blackboard->SetValueAsBool("ChargeAttack", false);
+		Blackboard->SetValueAsBool("MeleeAttack", false);
 		Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = false;
 		
 		return;
 	}
-	
 	float Distance = FVector::Dist(AIPawn->GetActorLocation(), TargetActor->GetActorLocation());
-	Blackboard->SetValueAsBool("canAttack", Distance <= AttackRange && !AttackIsOnCooldown && !IsOnDifferentZ);
-	Cast<AMushroomCharacter>(AIPawn)->bIsAttacking = Distance <= AttackRange && !AttackIsOnCooldown && !IsOnDifferentZ;
-
+	Blackboard->SetValueAsBool("MeleeAttack", Distance <= InterruptRange);
 	
 }
