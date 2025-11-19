@@ -46,9 +46,13 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
+	/*UFUNCTION(Client, Reliable)
+	virtual void Client_StartCameraInterpolation(
+		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
+	
 	UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
-		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);
+		const FVector& TargetLocation, const float LerpDuration);
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
@@ -91,7 +95,7 @@ protected:
 	FRotator FollowCameraRelativeRotation = FRotator::ZeroRotator;
 	
 	//Handle camera interpolation
-	virtual void InterpolateCamera(FTransform& TargetTransform, const float LerpDuration);
+	virtual void InterpolateCamera(FVector& TargetLocation, const float LerpDuration);
 	
 	UPROPERTY(Transient)
 	bool bIsInterpolatingCamera = false;

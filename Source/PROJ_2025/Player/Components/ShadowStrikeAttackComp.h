@@ -5,6 +5,8 @@
 #include "ShadowStrikeAttackComp.generated.h"
 
 
+struct FInputActionInstance;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UShadowStrikeAttackComp : public UAttackComponentBase
 {
@@ -16,11 +18,19 @@ public:
 	virtual void StartAttack() override;
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
+	
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void PerformAttack() override;
+	
+	virtual void OnPrepareForAttack(const FInputActionInstance& ActionInstance);
+	
+	virtual void OnLockedTarget(const FInputActionInstance& ActionInstance);
+	
+	virtual void OnAttackCanceled(const FInputActionInstance& ActionInstance);
 	
 	virtual void PrepareForAttack();
 	
@@ -38,7 +48,7 @@ protected:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_TeleportPlayer(
-		const FVector& TeleportLocation, const FRotator& TeleportRotation);
+		const FVector& TeleportLocation);
 
 	virtual void ResetAttackCooldown() override;
 	
@@ -46,6 +56,8 @@ protected:
 
 	//Handle target
 	bool bIsLockingTarget = false;
+	
+	bool bHasLockedTarget = false;
 
 	UPROPERTY()
 	AActor* LockedTarget;
@@ -74,4 +86,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
 	float CameraInterpDuration = 0.35f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
+	float CameraInterpDelay = 1.f;
 };

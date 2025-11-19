@@ -17,6 +17,8 @@ public:
 	UAttackComponentBase();
 	
 	virtual void StartAttack();
+	
+	virtual void StartAttack(const float NewDamageAmount);
 
 	virtual bool GetCanAttack() const { return bCanAttack; }
 
@@ -46,6 +48,8 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
+	
+	float DamageAmountToStore= 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AttackCoolDown = 1.f;

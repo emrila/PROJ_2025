@@ -34,8 +34,35 @@ void UAttackComponentBase::StartAttack()
 		);
 }
 
+void UAttackComponentBase::StartAttack(const float NewDamageAmount)
+{
+	if (!bCanAttack)
+	{
+		return;
+	}
+
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
+		return;
+	}
+	
+	DamageAmountToStore = DamageAmount;
+	DamageAmount = NewDamageAmount;
+
+	bCanAttack = false;
+
+	GetWorld()->GetTimerManager().SetTimer(
+		AttackCoolDownTimerHandle,
+		this,
+		&UAttackComponentBase::ResetAttackCooldown,
+		AttackCoolDown,
+		false
+		);
+}
+
 void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
-	UInputAction* OwnerInputAction)
+                                                  UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
@@ -53,6 +80,12 @@ void UAttackComponentBase::BeginPlay()
 void UAttackComponentBase::ResetAttackCooldown()
 {
 	bCanAttack = true;
+	
+	if (DamageAmountToStore > 0.f)
+	{
+		DamageAmount = DamageAmountToStore;
+		DamageAmountToStore = 0.f;
+	}
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)
