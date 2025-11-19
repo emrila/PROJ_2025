@@ -19,11 +19,8 @@ struct FUpgradeDisplayData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Icon = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/VREditor/Devices/Vive/UE4_Logo.UE4_Logo")));
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<int32> TargetPlayers = {};
 	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{

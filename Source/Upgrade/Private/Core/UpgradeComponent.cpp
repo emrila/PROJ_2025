@@ -2,7 +2,6 @@
 
 
 #include "Core/UpgradeComponent.h"
-
 #include "Core/UpgradeDisplayData.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
@@ -65,7 +64,11 @@ UUpgradeComponent::UUpgradeComponent()
 void UUpgradeComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	NetMulticast_LoadDataTable();
+	
+	if (GetOwner()->HasAuthority())
+	{
+		Server_LoadDataTable();
+	}
 
 	bHasAppliedUpgrade = false;
 }
@@ -199,6 +202,40 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	
 }
 
+TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 NumberOfUpgrades)
+{
+	TArray<FUpgradeDisplayData> OutUpgrades;
+	
+	TArray<FAttributeUpgradeData*> UpgradeDataArrayCopy;
+	if (!UpgradeDataTable)
+	{
+		Server_LoadDataTable(); 
+		if (!UpgradeDataTable)
+		{
+			return OutUpgrades;
+		}
+	}
+	UpgradeDataTable->GetAllRows( __FUNCTION__ ,UpgradeDataArrayCopy);
+
+	for (int i = 1; i < NumberOfUpgrades; ++i)
+	{
+		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);		
+		if (!UpgradeDataArrayCopy.IsValidIndex(RandomIndex)) //Shouldn't be needed... But just in case
+		{
+			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex,UpgradeDataArrayCopy.Num());
+			break;
+		}
+		const FAttributeUpgradeData* Item = UpgradeDataArrayCopy[RandomIndex];
+		if (!Item)
+		{
+		}
+		OutUpgrades.Add(Item->UpgradeDisplayData);	
+		UpgradeDataArrayCopy.RemoveAt(RandomIndex); // To avoid duplicates
+	}
+	
+	return OutUpgrades;	
+}
+
 FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property) const
 {
 	return AttributesByKey.FindRef(GetKey(Owner, Property));
@@ -239,7 +276,7 @@ uint64 UUpgradeComponent::GetKey(UObject* Owner, FProperty* Property)
 	return reinterpret_cast<uint64>(Owner) << 32 ^ reinterpret_cast<uint64>(Property);
 }
 
-void UUpgradeComponent::NetMulticast_LoadDataTable_Implementation()
+void UUpgradeComponent::Server_LoadDataTable_Implementation()
 {
 	if (UpgradeDataTable)
 	{
@@ -255,11 +292,6 @@ void UUpgradeComponent::NetMulticast_LoadDataTable_Implementation()
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Successfully loaded UpgradeDataTable."), __FUNCTION__);
 	}
-}
-
-bool UUpgradeComponent::NetMulticast_LoadDataTable_Validate()
-{
-	return true;
 }
 
 void UUpgradeComponent::ClearAttributes(const FString& String)

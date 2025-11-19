@@ -3,23 +3,22 @@
 
 #include "World/UpgradeSpawner.h"
 
-#include "AdvancedSessionsLibrary.h"
 #include "Core/UpgradeComponent.h"
-#include "Core/UpgradeSubsystem.h"
 #include "Dev/UpgradeLog.h"
-#include "GameFramework/Character.h"
-#include "GameFramework/GameStateBase.h"
-#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Util/UpgradeFunctionLibrary.h"
 #include "World/UpgradeAlternative.h"
 
 AUpgradeSpawner::AUpgradeSpawner()
 {
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
+	
 	SpawnSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SpawnSplineComponent"));
 	SpawnSplineComponent->SetupAttachment(RootComponent);
+	
 	bReplicates = true;
+
 }
 
 void AUpgradeSpawner::TriggerSpawn()
@@ -30,25 +29,40 @@ void AUpgradeSpawner::TriggerSpawn()
 		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
 	}
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
-
 }
 
 void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativePair> InAssignableUpgrades)
 {
+	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
+
+	TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp
+		                                                    ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives)
+		                                                    : TArray<FUpgradeDisplayData>();
+	
+	for (const FUpgradeDisplayData& DisplayData : LocalUpgradeDataArray)
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Local upgrade data - RowName: %s"), __FUNCTION__, *DisplayData.RowName.ToString());
+	}
+	
 	for (const FUpgradeAlternativePair& UpgradeAlternativePair : InAssignableUpgrades)
 	{
-		if (!UpgradeAlternativePair.Alternative)
+		AUpgradeAlternative* UpgradeAlternative = UpgradeAlternativePair.Alternative;
+		if (!UpgradeAlternative)
 		{
 			UPGRADE_WARNING(TEXT("%hs: UpgradeAlternativePair.Alternative is null!"), __FUNCTION__);
 			continue;
 		}
-		UpgradeAlternativePair.Alternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
-		if (UpgradeAlternativePair.Alternative->OnUpgrade.IsAlreadyBound( this, &AUpgradeSpawner::OnUpgradeSelected))
+		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
+
+		if (!UpgradeAlternative->OnUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::OnUpgradeSelected))
 		{
-			continue;
+			UpgradeAlternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
 		}
-		UpgradeAlternativePair.Alternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-		UpgradeAlternativePair.Alternative->OnPreUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
+		if (!UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
+		{
+			UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
+		}
+
 		UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
 	}
 }
@@ -68,9 +82,9 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	const float SplineLength = SpawnSplineComponent->GetSplineLength();
 	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
 
-	TArray<FUpgradeDisplayData> UpgradeDataArray = PlayerUpgradeDisplayEntry.UpgradeDataArray; // Local copy or reference?
+	TArray<FUpgradeDisplayData> UpgradeDataArrayCopy = UpgradeDataArray; // Local copy or reference?
 	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs;
-
+	
 	for (int32 i = 1; i <= NumberOfSpawnAlternatives; ++i)
 	{
 		const float Distance = SegmentLength * i;
@@ -87,24 +101,36 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 			continue; // Or break?
 		}
 		SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
-		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArray.Num() - 1);
-		if (!UpgradeDataArray.IsValidIndex(RandomIndex))  //Shouldn't be needed... But just in case
+		
+		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);
+		if (!UpgradeDataArrayCopy.IsValidIndex(RandomIndex))  //Shouldn't be needed... But just in case
 		{
-			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArray.Num());
+			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArrayCopy.Num());
 			break;
 		}
-		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, UpgradeDataArray[RandomIndex]); //Waiting to trigger OnRep on clients after all alternatives are spawned
+		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, UpgradeDataArrayCopy[RandomIndex]); //Waiting to trigger OnRep on clients after all alternatives are spawned
 		SpawnedAlternative->Index = LocalUpgradeAlternativePairs.Num() - 1;
-		UpgradeDataArray.RemoveAt(RandomIndex); // To avoid duplicates
+		UpgradeDataArrayCopy.RemoveAt(RandomIndex); // To avoid duplicates
+		
 		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, RandomIndex);
 	}
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
 
-bool AUpgradeSpawner::Server_Spawn_Validate()
+#if WITH_EDITOR
+void AUpgradeSpawner::PostLoad()
 {
-	return true;
+	Super::PostLoad();
+    
+	if (UpgradeDataArray.IsEmpty() && !PlayerUpgradeDisplayEntry.UpgradeDataArray.IsEmpty())
+	{
+		UpgradeDataArray = PlayerUpgradeDisplayEntry.UpgradeDataArray;
+		UPGRADE_DISPLAY(TEXT("%hs: Migrated data to UpgradeDataArray"), __FUNCTION__);
+		
+		// MarkPackageDirty();
+	}
 }
+#endif
 
 void AUpgradeSpawner::BeginPlay()
 {
@@ -117,108 +143,11 @@ void AUpgradeSpawner::BeginPlay()
 }
 
 void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
-{
-	auto GetPlayerPawn = [](const AController* Controller) -> APawn*
-	{
-		if (!Controller)
-		{
-			UPGRADE_ERROR( TEXT("%hs: Controller is null!"), __FUNCTION__);
-			return nullptr;
-		}
-		
-		if (!Controller->IsA(APlayerController::StaticClass()))
-		{
-			UPGRADE_ERROR( TEXT("%hs: Controller is not a PlayerController!"), __FUNCTION__);
-			return nullptr;
-		}
-		
-		return Controller->GetPawn();
-	};
-	auto GetUpgradeComponent = [](const APawn* Pawn) -> UUpgradeComponent*
-	{
-		if (!Pawn)
-		{
-			return nullptr;
-		}
-		if (!Pawn->IsA(ACharacter::StaticClass()))
-		{
-			UPGRADE_ERROR( TEXT("%hs: Pawn is not a Character!"), __FUNCTION__);
-			return nullptr;
-		}
-		UActorComponent* ComponentByClass = Pawn->GetComponentByClass(UUpgradeComponent::StaticClass());
-
-		return ComponentByClass ? Cast<UUpgradeComponent>(ComponentByClass) : nullptr;
-	};	
+{	
+	UPGRADE_DISPLAY(TEXT("👌👌👌👌👌👌👌👌👌👌👌👌%hs: Before %d"), __FUNCTION__,CompletedUpgrades);	
+	CompletedUpgrades++;
+	UPGRADE_DISPLAY(TEXT("👌👌👌👌👌👌👌👌👌👌%hs: After %d"), __FUNCTION__,CompletedUpgrades);	
 	
-	UPGRADE_DISPLAY(TEXT("%hs: An upgrade alternative was selected."), __FUNCTION__);
-	const int32 PlayerID = SelectedUpgrade.TargetPlayers.IsEmpty() ? -1 : SelectedUpgrade.TargetPlayers[0];
-		
-	TArray<UUpgradeComponent*> Targets;
-	Targets.SetNum(SelectedUpgrade.TargetPlayers.Num());
-	
-	int32 Index = 0;
-	TArray<TObjectPtr<APlayerState>> PlayerStates = GetWorld()->GetGameState()->PlayerArray;
-	for (const TObjectPtr<APlayerState>& PlayerState : PlayerStates)
-	{				
-		if (!SelectedUpgrade.TargetPlayers.Contains(PlayerState->GetPlayerId()))
-		{
-			//UPGRADE_WARNING( TEXT("%hs: PlayerID %d not found in upgrade target players."), __FUNCTION__, PlayerState->GetPlayerId());
-			continue;
-		}
-		Index = PlayerStates.IndexOfByKey(PlayerState);
-		UPGRADE_DISPLAY(TEXT("%hs: Found Player at index %d"), __FUNCTION__, Index);
-		const APawn* Pawn = PlayerState->GetPawn();			
-		if (!Pawn)
-		{
-			UPGRADE_WARNING( TEXT("%hs: PlayerState %s has no pawn!"), __FUNCTION__, *PlayerState->GetName());
-			continue;
-		}
-		UPGRADE_DISPLAY(TEXT("%hs: ID in upgrade: %d ---- ID in PlayerState: %d "), __FUNCTION__, PlayerID, PlayerState->GetPlayerId());
-		
-		UUpgradeComponent* UpgradeComponent = GetUpgradeComponent(Pawn);
-		if (!UpgradeComponent)
-		{
-			UPGRADE_WARNING(TEXT("%hs: Could not find upgrade component!"), __FUNCTION__);
-			continue;
-		}
-		Targets.Add(UpgradeComponent);
-	}
-	
-	if (APawn* TargetPlayer = UGameplayStatics::GetPlayerPawn(this, Index))
-	{
-		UPGRADE_DISPLAY( TEXT("%hs: TargetPlayer Pawn found: %s"), __FUNCTION__, *TargetPlayer->GetName());
-	}
-	
-	/*APlayerController* FirstLocalPlayerFromController = GetWorld()->GetFirstPlayerController();
-	if (!FirstLocalPlayerFromController)
-	{
-		return;
-	}
-	APawn* PawnOrSpectator = FirstLocalPlayerFromController->GetPawnOrSpectator();
-	if (!PawnOrSpectator)
-	{
-		return;
-	}
-	UActorComponent* ComponentByClass = PawnOrSpectator->GetComponentByClass(UUpgradeComponent::StaticClass());
-	if (!ComponentByClass)
-	{
-		return;
-	}
-	UUpgradeComponent* UpgradeComponent = Cast<UUpgradeComponent>(ComponentByClass);
-	if (!UpgradeComponent)
-	{
-		return;
-	}*/
-	
-	for (const UUpgradeComponent* Target : Targets)
-	{
-		if (!Target)
-		{
-			UPGRADE_ERROR(TEXT("%hs: Target UpgradeComponent is null!"), __FUNCTION__);
-			continue;
-		}
-	//	Target->UpgradeByRow(SelectedUpgrade.RowName);
-	}
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
@@ -227,9 +156,24 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 	{
 		if (UpgradeAlternativePair.Alternative)
 		{
-			UpgradeAlternativePair.Alternative->bLocked = true;
-		}
+			//TODO: Lock function (handle the edge case -> non-selected alternative stuck on hover effect			
+			UpgradeAlternativePair.Alternative->bLocked = true;		
+		}		
 	}
+	Server_HandleCompletion();
+}
+
+void AUpgradeSpawner::Server_HandleCompletion_Implementation()
+{	
+	UPGRADE_DISPLAY(TEXT("%hs: Upgrades completed: %d / %d"), __FUNCTION__, CompletedUpgrades, TotalUpgradeNeededForCompletion);
+	if (CompletedUpgrades >= TotalUpgradeNeededForCompletion)
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: All upgrades completed, broadcasting event."), __FUNCTION__)
+		if (OnCompletedAllUpgrades.IsBound())
+		{
+			OnCompletedAllUpgrades.Broadcast();
+		}
+	} 	
 }
 
 void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -238,6 +182,10 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AUpgradeSpawner, PlayerUpgradeDisplayEntry);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeAlternativePairs);
 	DOREPLIFETIME(AUpgradeSpawner, bSpawnOnBeginPlay);
+	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
+	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
+	DOREPLIFETIME(AUpgradeSpawner, TotalUpgradeNeededForCompletion);
+	DOREPLIFETIME(AUpgradeSpawner, CompletedUpgrades);
 }
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()

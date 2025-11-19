@@ -3,7 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UpgradeSubsystem.h"
+#include "AttributeData.h"
+#include "UpgradeDisplayData.h"
 #include "Components/ActorComponent.h"
 #include "StructUtils/InstancedStruct.h"
 #include "UpgradeComponent.generated.h"
@@ -20,24 +21,28 @@ public:
 
 	virtual void BeginPlay() override;	
 
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(Server, Reliable)
 	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
+	
 	UFUNCTION(Server, Reliable)
 	void UpgradeByRow(FName RowName);	
 	void DowngradeByRow(FName RowName) const;
 
 	UFUNCTION()
 	void OnUpgradeReceived(FInstancedStruct InstancedStruct);
+	
+	UFUNCTION(BlueprintCallable)
+	TArray<FUpgradeDisplayData> GetRandomUpgrades(const int32 NumberOfUpgrades);
 protected:
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;
 	static uint64 GetKey(UObject* Owner, FProperty* Property);
 
-	UFUNCTION(NetMulticast, Reliable, WithValidation)
-	void NetMulticast_LoadDataTable();
+	UFUNCTION(Server, Reliable)
+	void Server_LoadDataTable();
 
 private:
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")

@@ -48,7 +48,8 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);	
+	
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -81,21 +82,9 @@ bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 	return false;
 }
 
-/*void AUpgradeAlternative::Server_SelectUpgrade_Implementation(bool bIsSelected)
-{
-	bSelected = bIsSelected;
-	UPGRADE_DISPLAY(TEXT("%hs: bSelected set to %s on server."), __FUNCTION__,  bSelected ? TEXT("true") : TEXT("false"));
-	SelectUpgrade();
-}
-
-bool AUpgradeAlternative::Server_SelectUpgrade_Validate(bool bIsSelected)
-{
-	return true;
-}*/
-
 void AUpgradeAlternative::OnRep_Selected()
 {
-	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
+	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));	
 	SelectUpgrade();
 }
 
@@ -106,24 +95,21 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
 		return;
 	}
+	
 	bSelected = true;
 	SelectUpgrade();
 	
-	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
-	{
-		const int32 OwnerID = IInteractor::Execute_GetOwnerID(Interactor);
-		UPGRADE_DISPLAY(TEXT("%hs: Interactor OwnerID: %d"), __FUNCTION__, OwnerID);
-		UpgradeDisplayData.TargetPlayers.Add(OwnerID);
-		UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
-		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
-		
-		const FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDisplayData);
-		IInteractor::Execute_OnSuperFinishedInteraction(Interactor, InstancedStruct);
-	}
-	else
+	if (!Interactor || !Interactor->Implements<IInteractor::UClassType>())
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
+		return;
 	}
+	
+	UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
+	IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+		
+	const FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDisplayData);
+	IInteractor::Execute_OnSuperFinishedInteraction(Interactor, InstancedStruct);
 	//Destroy(); 
 }
 
@@ -134,17 +120,13 @@ bool AUpgradeAlternative::CanInteract_Implementation()
 
 void AUpgradeAlternative::OnPostInteract_Implementation()
 {
-	if (OnPreUpgrade.IsBound())
+	if (OnPostUpgrade.IsBound())
 	{
-		OnPreUpgrade.Broadcast();
+		OnPostUpgrade.Broadcast();
 	}
 }
 
-void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp,
-                                                  AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,
-                                                  [[maybe_unused]] int32 OtherBodyIndex,
-                                                  [[maybe_unused]] bool bFromSweep,
-                                                  [[maybe_unused]] const FHitResult& SweepResult)
+void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
 	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
 	{
@@ -156,10 +138,8 @@ void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveCom
 	}
 }
 
-void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent,
-                                                AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,
-                                                [[maybe_unused]] int32 OtherBodyIndex)
-{
+void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,[[maybe_unused]] int32 OtherBodyIndex)
+{	
 	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
 	{
 		bFocus = false;

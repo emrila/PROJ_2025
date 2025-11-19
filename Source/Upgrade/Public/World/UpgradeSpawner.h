@@ -9,6 +9,7 @@
 #include "GameFramework/Actor.h"
 #include "UpgradeSpawner.generated.h"
 
+
 class AUpgradeAlternative;
 
 USTRUCT(BlueprintType)
@@ -46,8 +47,12 @@ public:
 		NumberOfSpawnAlternatives = InNumberOfSpawnAlternatives;
 	}
 
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_Spawn();
+	UFUNCTION(Server, Reliable)
+	void Server_Spawn();	
+
+#if WITH_EDITOR
+	virtual void PostLoad() override;
+#endif
 
 protected:
 	virtual void BeginPlay() override;
@@ -58,7 +63,9 @@ protected:
 
 	UFUNCTION()
 	void LockUpgradeAlternatives();
-
+	
+	UFUNCTION(Server, Reliable)
+	void Server_HandleCompletion();
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
@@ -67,22 +74,35 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
 	int32 NumberOfSpawnAlternatives = 3;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
 	TSoftClassPtr<AUpgradeAlternative> UpgradeAlternativeClass;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
-	FPlayerUpgradeDisplayEntry PlayerUpgradeDisplayEntry; //TODO: Sync with UpgradeSubsystem
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	FPlayerUpgradeDisplayEntry PlayerUpgradeDisplayEntry;
 
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, TitleProperty="RowName"))
+	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
+	
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
 	TArray<FUpgradeAlternativePair> UpgradeAlternativePairs;
-
+	
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
 	
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
-	bool bSpawnOnBeginPlay = true;	
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	bool bSpawnOnBeginPlay = true;
+	
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
+	int32 TotalUpgradeNeededForCompletion = 3;
+	
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	int32 CompletedUpgrades = 0;
+	
+public:
+	UPROPERTY(BlueprintAssignable, Category="Upgrade Spawner|Events", meta=(AllowPrivateAccess=true))
+	FOnUpgradeEvent OnCompletedAllUpgrades;
 
 };
