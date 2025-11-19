@@ -13,6 +13,7 @@ struct FCandidate
 {
 	GENERATED_BODY()
 
+public:
 	UPROPERTY(BlueprintReadWrite)
 	int NumberOfVotes;
 
