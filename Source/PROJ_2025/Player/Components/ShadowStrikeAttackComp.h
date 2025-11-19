@@ -46,6 +46,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LockOnRange = 2000.f;
+	
+	FTimerHandle LockedTargetTickTimer;
 
 	//Handle attack properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
