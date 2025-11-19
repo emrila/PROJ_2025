@@ -3,6 +3,7 @@
 
 #include "VotingBooth.h"
 
+#include "NiagaraValidationRule.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -16,6 +17,7 @@ AVotingBooth::AVotingBooth()
 void AVotingBooth::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AVotingBooth, Votes);
 
 	
 }
@@ -31,6 +33,24 @@ void AVotingBooth::BeginPlay()
 void AVotingBooth::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+}
+
+void AVotingBooth::AddCandidate_Implementation(FCandidate Candidate)
+{
+	Candidates.Add(Candidate);
+}
+
+
+void AVotingBooth::Vote_Implementation(FCandidate Candidate)
+{
+	if (Candidates.Contains(Candidate))
+	{
+		Candidate.NumberOfVotes += 1;
+		Votes += 1;
+
+		UE_LOG(LogTemp, Warning, TEXT("Current votes: %d"), Votes);
+	}
 
 }
 
