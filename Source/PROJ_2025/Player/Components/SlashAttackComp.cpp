@@ -1,5 +1,4 @@
 ﻿#include "SlashAttackComp.h"
-
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -31,7 +30,6 @@ void USlashAttackComp::StartAttack()
 	}
 	PerformAttack();
 }
-
 
 void USlashAttackComp::BeginPlay()
 {

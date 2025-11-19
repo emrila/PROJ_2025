@@ -26,8 +26,7 @@ public:
 	
 	//Handle override parent functions
 	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(NetMulticast, Reliable)
+	
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	//Handle components
@@ -68,9 +67,14 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
+	
 	UFUNCTION(BlueprintCallable)
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
+	
+	//Handle take damage
+	bool IFrame = false;
+	
+	virtual void ResetIframe();
 	
 	//Handle nametag
 	virtual void TickNotLocal();
@@ -121,6 +125,8 @@ protected:
 
 	virtual void Interact(const FInputActionValue& Value);
 	
+	virtual void SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent);
+	
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
@@ -162,9 +168,6 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
-	bool IFrame = false;
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
@@ -189,9 +192,6 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
-
-	void ResetIframe();
-	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

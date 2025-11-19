@@ -4,6 +4,10 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponentBase.generated.h"
 
+class UInputAction;
+class UEnhancedInputComponent;
+class APlayerCharacterBase;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
@@ -25,6 +29,8 @@ public:
 	virtual float GetAttackCoolDown() const { return AttackCoolDown; }
 
 	virtual void SetAttackCoolDown(const float Value) { AttackCoolDown = Value; }
+	
+	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction);
 
 protected:
 	virtual void BeginPlay() override;
@@ -47,5 +53,5 @@ protected:
 	FTimerHandle AttackCoolDownTimerHandle;
 
 	UFUNCTION(NetMulticast, Reliable)
-	void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
+	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 };

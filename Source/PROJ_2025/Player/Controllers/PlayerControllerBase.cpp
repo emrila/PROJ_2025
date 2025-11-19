@@ -7,13 +7,13 @@
 
 APlayerControllerBase::APlayerControllerBase()
 {
-	ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
+	ControlledPlayer = nullptr;
 }
 
 void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(APlayerControllerBase, ControlledPlayer);
+	//DOREPLIFETIME(APlayerControllerBase, ControlledPlayer);
 }
 
 void APlayerControllerBase::Tick(float DeltaTime)
@@ -54,10 +54,13 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 
 	ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
 
-	SetupInputComponent_Implementation();
+	if (IsLocalPlayerController())
+	{
+		SetupInputComponent();
+	}
 }
 
-void APlayerControllerBase::SetupInputComponent_Implementation()
+void APlayerControllerBase::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 

@@ -1,8 +1,9 @@
 ﻿#include "ShadowStrikeAttackComp.h"
 
 #include "EnemyBase.h"
+#include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
-#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -36,6 +37,17 @@ void UShadowStrikeAttackComp::StartAttack()
 	}
 }
 
+void UShadowStrikeAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
+	UInputAction* OwnerInputAction)
+{
+	Super::SetupOwnerInputBinding(OwnerInputComp, OwnerInputAction);
+	
+	if (OwnerInputComp && OwnerInputAction)
+	{
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UShadowStrikeAttackComp::PrepareForAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &UShadowStrikeAttackComp::StartAttack);
+	}
+}
 
 void UShadowStrikeAttackComp::BeginPlay()
 {
@@ -75,7 +87,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 	{
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
 		PlayerCharacter->GetFirstAttackComponent()->StartAttack();
-	}, AttackDelay, false);
+	}, StrikeDelay, false);
 	
 	
 	FTimerHandle CameraReattachmentTimer;
@@ -86,6 +98,11 @@ void UShadowStrikeAttackComp::PerformAttack()
 		StrikeDuration,
 		false
 	);
+}
+
+void UShadowStrikeAttackComp::PrepareForAttack()
+{
+	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Shadow Strike Attack!"));
 }
 
 void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Target)
@@ -212,8 +229,10 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	
 	if (TheLockedTarget)
 	{
-		//TheLockedTarget->CustomTimeDilation = 0.f;
-		TheLockedTarget->GetController()->CustomTimeDilation = 0.f;
+		if (TheLockedTarget->GetController())
+		{
+			TheLockedTarget->GetController()->CustomTimeDilation = 0.f;
+		}
 	}
 	
 	if (TheLockedTarget)
@@ -334,6 +353,32 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 	Super::ResetAttackCooldown();
 	bIsLockingTarget = false;
 }
+
+void UShadowStrikeAttackComp::KillTarget(AActor* Target)
+{
+	if (!Target)
+	{
+		return;
+	}
+	
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (!OwnerCharacter->GetController())
+	{
+		return;
+	}
+	
+	UGameplayStatics::ApplyDamage(
+		Target,
+		10000.f,
+		OwnerCharacter->GetController(),
+		OwnerCharacter,
+		UDamageType::StaticClass()
+		);
+}
+
 
 
 

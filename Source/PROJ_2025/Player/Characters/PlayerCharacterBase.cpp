@@ -12,6 +12,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
+#include "Player/Components/SlashAttackComp.h"
 #include "Player/UI/PlayerNameTagWidget.h"
 
 
@@ -70,15 +71,21 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	}
 }
 
-void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
+void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (!PlayerInputComponent)
 	{
 		return;
 	}
+	
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::StopJumping);
@@ -86,10 +93,20 @@ void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputCompon
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
 
-		EnhancedInputComponent->BindAction(FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
-		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
-
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
+		
+		
+		FTimerHandle AttackComponentInputTimer;
+		
+		GetWorld()->GetTimerManager().SetTimer(
+			AttackComponentInputTimer,
+			[this, EnhancedInputComponent]()
+			{
+				SetupAttackComponentInput(EnhancedInputComponent);
+			},
+			1.f,
+			false
+			);
 	}
 }
 
@@ -344,6 +361,43 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 	{
         InteractorComponent->Execute_OnInteract(InteractorComponent,InteractorComponent->GetTargetInteractable().GetObject());
 	}
+}
+
+void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent)
+{
+	if (!EnhancedInputComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, EnhancedInputComponent is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	FirstAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	
+	if (!SecondAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!SecondAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+
+	}
+	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
 }
 
 void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()

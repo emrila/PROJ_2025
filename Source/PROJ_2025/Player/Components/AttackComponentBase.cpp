@@ -1,5 +1,6 @@
 ﻿#include "AttackComponentBase.h"
 
+#include "EnhancedInputComponent.h"
 #include "MeleeAttackComp.h"
 #include "GameFramework/Character.h"
 
@@ -33,6 +34,14 @@ void UAttackComponentBase::StartAttack()
 		);
 }
 
+void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
+	UInputAction* OwnerInputAction)
+{
+	if (OwnerInputComp && OwnerInputAction)
+	{
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UAttackComponentBase::StartAttack);
+	}
+}
 
 void UAttackComponentBase::BeginPlay()
 {

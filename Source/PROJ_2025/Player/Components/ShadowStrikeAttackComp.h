@@ -14,11 +14,15 @@ public:
 	UShadowStrikeAttackComp();
 
 	virtual void StartAttack() override;
+	
+	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void PerformAttack() override;
+	
+	virtual void PrepareForAttack();
 	
 	virtual void TryLockingTarget();
 	
@@ -37,6 +41,8 @@ protected:
 		const FVector& TeleportLocation, const FRotator& TeleportRotation);
 
 	virtual void ResetAttackCooldown() override;
+	
+	virtual void KillTarget(AActor* Target);
 
 	//Handle target
 	bool bIsLockingTarget = false;
@@ -57,7 +63,7 @@ protected:
 	float StrikeDuration = 3.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackDelay = 1.f;
+	float StrikeDelay = 1.f;
 	
 	//Handle camera interpolation
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")

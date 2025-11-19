@@ -38,5 +38,4 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AttackRadius = 50.f;
-	
 };
