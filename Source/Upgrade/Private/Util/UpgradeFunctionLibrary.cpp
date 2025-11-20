@@ -4,6 +4,18 @@
 #include "Util/UpgradeFunctionLibrary.h"
 
 #include "Core/UpgradeComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "World/UpgradeSpawner.h"
+
+AUpgradeSpawner* UUpgradeFunctionLibrary::GetLocalUpgradeSpawner(UObject* WorldContextObject)
+{
+	if (!WorldContextObject)
+	{
+		return nullptr;
+	}
+	AActor* ActorOfClass = UGameplayStatics::GetActorOfClass(WorldContextObject, AUpgradeSpawner::StaticClass());	
+	return ActorOfClass ? Cast<AUpgradeSpawner>(ActorOfClass) : nullptr;		
+}
 
 UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* WorldContextObject)
 {
