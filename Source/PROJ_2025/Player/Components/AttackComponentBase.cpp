@@ -1,5 +1,6 @@
 ﻿#include "AttackComponentBase.h"
 
+#include "EnhancedInputComponent.h"
 #include "MeleeAttackComp.h"
 #include "GameFramework/Character.h"
 
@@ -33,6 +34,41 @@ void UAttackComponentBase::StartAttack()
 		);
 }
 
+void UAttackComponentBase::StartAttack(const float NewDamageAmount)
+{
+	if (!bCanAttack)
+	{
+		return;
+	}
+
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
+		return;
+	}
+	
+	DamageAmountToStore = DamageAmount;
+	DamageAmount = NewDamageAmount;
+
+	bCanAttack = false;
+
+	GetWorld()->GetTimerManager().SetTimer(
+		AttackCoolDownTimerHandle,
+		this,
+		&UAttackComponentBase::ResetAttackCooldown,
+		AttackCoolDown,
+		false
+		);
+}
+
+void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
+                                                  UInputAction* OwnerInputAction)
+{
+	if (OwnerInputComp && OwnerInputAction)
+	{
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UAttackComponentBase::StartAttack);
+	}
+}
 
 void UAttackComponentBase::BeginPlay()
 {
@@ -44,6 +80,12 @@ void UAttackComponentBase::BeginPlay()
 void UAttackComponentBase::ResetAttackCooldown()
 {
 	bCanAttack = true;
+	
+	if (DamageAmountToStore > 0.f)
+	{
+		DamageAmount = DamageAmountToStore;
+		DamageAmountToStore = 0.f;
+	}
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)

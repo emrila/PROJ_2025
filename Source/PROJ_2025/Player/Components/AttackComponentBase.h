@@ -4,6 +4,10 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponentBase.generated.h"
 
+class UInputAction;
+class UEnhancedInputComponent;
+class APlayerCharacterBase;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
@@ -13,6 +17,8 @@ public:
 	UAttackComponentBase();
 	
 	virtual void StartAttack();
+	
+	virtual void StartAttack(const float NewDamageAmount);
 
 	virtual bool GetCanAttack() const { return bCanAttack; }
 
@@ -25,6 +31,8 @@ public:
 	virtual float GetAttackCoolDown() const { return AttackCoolDown; }
 
 	virtual void SetAttackCoolDown(const float Value) { AttackCoolDown = Value; }
+	
+	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction);
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,6 +48,8 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
+	
+	float DamageAmountToStore= 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AttackCoolDown = 1.f;
@@ -47,5 +57,5 @@ protected:
 	FTimerHandle AttackCoolDownTimerHandle;
 
 	UFUNCTION(NetMulticast, Reliable)
-	void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
+	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 };

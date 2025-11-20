@@ -62,11 +62,12 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		const float Alpha = FMath::Clamp(CameraInterpElapsed / FMath::Max(0.01f, CameraInterpDuration), 0.f, 1.f);
 
 		const FVector NewLoc = FMath::Lerp(CameraInterpStartLocation, CameraInterpolateTargetLocation, Alpha);
-		const FQuat StartQ = CameraInterpStartRotation.Quaternion();
+		/*const FQuat StartQ = CameraInterpStartRotation.Quaternion();
 		const FQuat EndQ = CameraInterpolateTargetRotation.Quaternion();
-		const FQuat NewQ = FQuat::Slerp(StartQ, EndQ, Alpha);
+		const FQuat NewQ = FQuat::Slerp(StartQ, EndQ, Alpha);*/
 
-		FollowCamera->SetWorldLocationAndRotation(NewLoc, NewQ.Rotator());
+		//FollowCamera->SetWorldLocationAndRotation(NewLoc, NewQ.Rotator());
+		FollowCamera->SetWorldLocation(NewLoc);
 
 		if (Alpha >= 1.f)
 		{
@@ -75,15 +76,21 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	}
 }
 
-void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
+void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (!PlayerInputComponent)
 	{
 		return;
 	}
+	
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::StopJumping);
@@ -91,10 +98,20 @@ void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputCompon
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
 
-		EnhancedInputComponent->BindAction(FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
-		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
-
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
+		
+		
+		FTimerHandle AttackComponentInputTimer;
+		
+		GetWorld()->GetTimerManager().SetTimer(
+			AttackComponentInputTimer,
+			[this, EnhancedInputComponent]()
+			{
+				SetupAttackComponentInput(EnhancedInputComponent);
+			},
+			1.f,
+			false
+			);
 	}
 }
 
@@ -172,6 +189,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	bShouldUseLookInput = false;
 	bShouldUseMoveInput = false;
 	
+	FollowCamera->bUsePawnControlRotation = false;
+	
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
 	
@@ -196,12 +215,13 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	bShouldUseLookInput = true;
 	bShouldUseMoveInput = true;
 	
+	FollowCamera->bUsePawnControlRotation = true;
+	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
-void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation,
-	const FRotator& TargetRotation, const float LerpDuration)
+void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation, const float LerpDuration)
 {
 	if (!FollowCamera)
 	{
@@ -209,10 +229,12 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 		return;
 	}
 	
-	FTransform TargetTransform;
+	/*FTransform TargetTransform;
 	TargetTransform.SetLocation(TargetLocation);
-	TargetTransform.SetRotation(TargetRotation.Quaternion());
-	InterpolateCamera(TargetTransform, LerpDuration);
+	TargetTransform.SetRotation(TargetRotation.Quaternion());*/
+	
+	FVector ToTargetLocation = TargetLocation;
+	InterpolateCamera(ToTargetLocation, LerpDuration);
 }
 
 void APlayerCharacterBase::BeginPlay()
@@ -285,7 +307,7 @@ void APlayerCharacterBase::TickNotLocal()
 	}
 }
 
-void APlayerCharacterBase::InterpolateCamera(FTransform& TargetTransform, const float LerpDuration)
+void APlayerCharacterBase::InterpolateCamera(FVector& TargetLocation, const float LerpDuration)
 {
 	if (!FollowCamera)
 	{
@@ -294,10 +316,10 @@ void APlayerCharacterBase::InterpolateCamera(FTransform& TargetTransform, const 
 	}
 	
 	CameraInterpStartLocation = FollowCamera->GetComponentLocation();
-	CameraInterpStartRotation = FollowCamera->GetComponentRotation();
+	//CameraInterpStartRotation = FollowCamera->GetComponentRotation();
 	
-	CameraInterpolateTargetLocation = TargetTransform.GetLocation();
-	CameraInterpolateTargetRotation = TargetTransform.Rotator();
+	CameraInterpolateTargetLocation = TargetLocation;
+	//CameraInterpolateTargetRotation = TargetTransform.Rotator();
 	
 	CameraInterpDuration = FMath::Max(0.01f, LerpDuration);
 	CameraInterpElapsed = 0.f;
@@ -358,6 +380,43 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 	{
         InteractorComponent->Execute_OnInteract(InteractorComponent,InteractorComponent->GetTargetInteractable().GetObject());
 	}
+}
+
+void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent)
+{
+	if (!EnhancedInputComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, EnhancedInputComponent is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	FirstAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	
+	if (!SecondAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!SecondAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+
+	}
+	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
 }
 
 void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
