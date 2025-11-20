@@ -247,8 +247,8 @@ void APlayerCharacterBase::BeginPlay()
 
 	SetUpLocalCustomPlayerName();
 	if (UpgradeComponent && IsLocallyControlled())
-	{
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"));
+	{	
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 	}
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
