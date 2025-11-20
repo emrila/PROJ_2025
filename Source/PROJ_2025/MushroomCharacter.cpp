@@ -25,10 +25,17 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 	DOREPLIFETIME(AMushroomCharacter, Projectile);
 }
 
-void AMushroomCharacter::HandleHit()
+void AMushroomCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	Super::HandleHit();
-	LaunchCharacter(GetActorForwardVector() * -1555, false, false);
+	Super::HandleHit(DamageEvent, DamageCauser);
+	GetController()->StopMovement();
+	if (DamageCauser)
+	{
+		LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
+	}else
+	{
+		LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);
+	}
 }
 
 void AMushroomCharacter::Multicast_Jump_Implementation(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength)

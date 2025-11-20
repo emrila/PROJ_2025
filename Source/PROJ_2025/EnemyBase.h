@@ -35,7 +35,7 @@ protected:
 	virtual void HandleDeath();
 
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void HandleHit();
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
 	
 
 };

@@ -39,6 +39,22 @@ void ABomberCharacter::HandleDeath()
 	BlackboardComponent->SetValueAsBool("IsGonnaExplode", true);
 }
 
+void ABomberCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
+{
+	Super::HandleHit(DamageEvent, DamageCauser);
+
+		GetController()->StopMovement();
+		if (DamageCauser)
+		{
+			LaunchCharacter((FVector(0.f, 0.f, 0.5f) + DamageCauser->GetActorForwardVector()) * 500 , false, false);
+		}
+		else
+		{
+			LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);
+		}
+	
+}
+
 void ABomberCharacter::Server_Explode_Implementation()
 {
 	Server_SpawnExplosion(GetActorLocation(),GetActorRotation());
