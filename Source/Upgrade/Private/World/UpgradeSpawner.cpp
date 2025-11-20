@@ -11,6 +11,10 @@
 
 AUpgradeSpawner::AUpgradeSpawner()
 {
+	PrimaryActorTick.bCanEverTick = true;
+	bAllowTickBeforeBeginPlay = false;
+	PrimaryActorTick.TickInterval = 1.f;
+	
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 	
@@ -21,12 +25,38 @@ AUpgradeSpawner::AUpgradeSpawner()
 
 }
 
+void AUpgradeSpawner::OnUpgradeCompleted()
+{
+	UPGRADE_DISPLAY(TEXT("🎶🎶🎶🎶🎶🎶🎶🎶🎶%hs: Upgrade completed."), __FUNCTION__);
+}
+
 void AUpgradeSpawner::TriggerSpawn()
 {
 	if (HasAuthority())
 	{
 		Server_Spawn();
-		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
+				
+		/*const FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
+			{
+				bool bCompleted = true;
+				for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+				{
+					if (UpgradeAlternativePair.Alternative && !UpgradeAlternativePair.Alternative->bSelected)
+					{
+						bCompleted = false;
+						break;
+					}
+				}
+			UPGRADE_DISPLAY( TEXT("%hs: Checking completion status: %s"), __FUNCTION__, bCompleted ? TEXT("true") : TEXT("false"));
+				if (bCompleted)
+				{
+					OnCompletedAllUpgrades.Broadcast();
+					GetWorld()->GetTimerManager().ClearTimer(CompletionTimerHandle);
+				}
+			});
+		GetWorld()->GetTimerManager().SetTimer(CompletionTimerHandle, TimerDel, 1.f, true);*/
+		
+		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);	
 	}
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
 }
@@ -140,14 +170,12 @@ void AUpgradeSpawner::BeginPlay()
 	{
 		TriggerSpawn();
 	}
+	
 }
 
 void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
 {	
-	UPGRADE_DISPLAY(TEXT("👌👌👌👌👌👌👌👌👌👌👌👌%hs: Before %d"), __FUNCTION__,CompletedUpgrades);	
-	CompletedUpgrades++;
-	UPGRADE_DISPLAY(TEXT("👌👌👌👌👌👌👌👌👌👌%hs: After %d"), __FUNCTION__,CompletedUpgrades);	
-	
+	CompletedUpgrades++;	
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
@@ -158,22 +186,10 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 		{
 			//TODO: Lock function (handle the edge case -> non-selected alternative stuck on hover effect			
 			UpgradeAlternativePair.Alternative->bLocked = true;		
+		 
+			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
 		}		
 	}
-	Server_HandleCompletion();
-}
-
-void AUpgradeSpawner::Server_HandleCompletion_Implementation()
-{	
-	UPGRADE_DISPLAY(TEXT("%hs: Upgrades completed: %d / %d"), __FUNCTION__, CompletedUpgrades, TotalUpgradeNeededForCompletion);
-	if (CompletedUpgrades >= TotalUpgradeNeededForCompletion)
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: All upgrades completed, broadcasting event."), __FUNCTION__)
-		if (OnCompletedAllUpgrades.IsBound())
-		{
-			OnCompletedAllUpgrades.Broadcast();
-		}
-	} 	
 }
 
 void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -192,4 +208,29 @@ void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
 {
 	UPGRADE_DISPLAY(TEXT("%hs: called."), __FUNCTION__);
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
+}
+
+void AUpgradeSpawner::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	
+	if (HasAuthority())
+	{
+		bool bCompleted = true;
+		for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+		{
+			if (UpgradeAlternativePair.Alternative && !UpgradeAlternativePair.Alternative->bSelected)
+			{
+				bCompleted = false;
+				break;
+			}		
+		}
+		if (bCompleted)
+		{
+			UPGRADE_DISPLAY( TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
+			OnCompletedAllUpgrades.Broadcast();
+			SetActorTickEnabled(false);
+		}	
+		
+	}	
 }

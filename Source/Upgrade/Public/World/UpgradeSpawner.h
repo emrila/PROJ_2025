@@ -35,6 +35,9 @@ class UPGRADE_API AUpgradeSpawner : public AActor
 public:	
 	AUpgradeSpawner();
 
+	UFUNCTION()
+	void OnUpgradeCompleted();
+	
 	UFUNCTION(BlueprintCallable, Category="Upgrade Spawner")
 	void TriggerSpawn();
 
@@ -63,9 +66,6 @@ protected:
 
 	UFUNCTION()
 	void LockUpgradeAlternatives();
-	
-	UFUNCTION(Server, Reliable)
-	void Server_HandleCompletion();
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
@@ -91,7 +91,11 @@ private:
 	
 	UFUNCTION()
 	void OnRep_UpgradeAlternativePairs();
-	
+
+public:
+	virtual void Tick(float DeltaSeconds) override;
+
+private:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
 	bool bSpawnOnBeginPlay = true;
 	
