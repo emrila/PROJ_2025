@@ -219,11 +219,10 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 		bool bCompleted = true;
 		for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
 		{
-			if (UpgradeAlternativePair.Alternative && !UpgradeAlternativePair.Alternative->bSelected)
+			if (UpgradeAlternativePair.Alternative && UpgradeAlternativePair.Alternative->bSelected)
 			{
-				bCompleted = false;
-				break;
-			}		
+				Completed++;
+			}
 		}
 		if (bCompleted)
 		{
