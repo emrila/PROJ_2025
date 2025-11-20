@@ -1,5 +1,6 @@
 ﻿#include "ChronoRiftComp.h"
 
+#include "ChronoRiftDamageType.h"
 #include "EnemyBase.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
@@ -135,7 +136,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 			TargetAreaCenter = HitResult.ImpactPoint;
 		}
 		
-		//DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, AttackCoolDown);
+		//DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, AttackCooldown);
 		if (!bShouldLaunch)
 		{
 			return;
@@ -265,13 +266,13 @@ void UChronoRiftComp::TickDamage_Implementation()
 		{
 			UGameplayStatics::ApplyDamage(
 				Target,
-				DamageToGive,
+				DamageAmount,
 				OwnerCharacter->GetController(),
 				OwnerCharacter,
-				UDamageType::StaticClass()
+				UChronoRiftDamageType::StaticClass()
 				);
 			
-			UE_LOG(LogTemp, Warning, TEXT("%s dealt %f damage to %s"), *FString(__FUNCTION__), DamageToGive, *Target->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("%s dealt %f damage to %s"), *FString(__FUNCTION__), DamageAmount, *Target->GetName());
 		}
 	}
 }

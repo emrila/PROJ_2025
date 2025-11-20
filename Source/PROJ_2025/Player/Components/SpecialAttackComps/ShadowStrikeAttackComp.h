@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "AttackComponentBase.h"
+#include "../AttackComponentBase.h"
 #include "ShadowStrikeAttackComp.generated.h"
 
 

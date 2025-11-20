@@ -29,9 +29,9 @@ public:
 
 	virtual float GetDamageAmount() const { return DamageAmount; }
 
-	virtual float GetAttackCoolDown() const { return AttackCoolDown; }
+	virtual float GetAttackCooldown() const { return AttackCooldown; }
 
-	virtual void SetAttackCoolDown(const float Value) { AttackCoolDown = Value; }
+	virtual void SetAttackCooldown(const float Value) { AttackCooldown = Value; }
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction);
 	
@@ -61,9 +61,9 @@ protected:
 	float DamageAmountToStore= 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackCoolDown = 1.f;
+	float AttackCooldown = 1.f;
 
-	FTimerHandle AttackCoolDownTimerHandle;
+	FTimerHandle AttackCooldownTimerHandle;
 
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);

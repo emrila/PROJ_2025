@@ -1,7 +1,7 @@
 ﻿#include "SlashAttackComp.h"
 
 #include "EnemyBase.h"
-#include "ShadowStrikeAttackComp.h"
+#include "../SpecialAttackComps/ShadowStrikeAttackComp.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -21,7 +21,7 @@ void USlashAttackComp::StartAttack()
 	}
 	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
-		SetAttackCoolDown(AttackAnimLength);
+		SetAttackCooldown(AttackAnimLength);
 	}
 	
 	Super::StartAttack();
@@ -43,7 +43,7 @@ void USlashAttackComp::StartAttack(const float NewDamageAmount)
 	}
 	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
-		SetAttackCoolDown(AttackAnimLength);
+		SetAttackCooldown(AttackAnimLength);
 	}
 	
 	Super::StartAttack(NewDamageAmount);
@@ -120,7 +120,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		return;
 	}
 
-	//TArray<FHitResult> HitResults;
+	TArray<FHitResult> HitResults;
 	
 	FHitResult HitResult;
 
@@ -131,7 +131,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 
-	/*const bool bHit = GetWorld()->SweepMultiByObjectType(
+	const bool bHit = GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		SweepLocation,
 		SweepLocation, 
@@ -139,9 +139,9 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
 		QueryParams
-		);*/
+		);
 	
-	const bool bWasHit = GetWorld()->SweepSingleByObjectType(
+	/*const bool bWasHit = GetWorld()->SweepSingleByObjectType(
 		HitResult,
 		SweepLocation,
 		SweepLocation,
@@ -149,9 +149,9 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
 		QueryParams
-		);
+		);*/
 
-	if (bWasHit)
+	/*if (bWasHit)
 	{
 		AActor* HitActor = nullptr;
 		if (HitResult.GetActor() && HitResult.GetActor()->IsA(AEnemyBase::StaticClass()))
@@ -196,9 +196,9 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		}
 		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 		return;
-	}
-	DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
-	/*if (bHit)
+	}*/
+	//DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
+	if (bHit)
 	{
 		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
@@ -229,13 +229,13 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 
 			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), DamageAmount);
 
-			DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
+			//DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
 		}
 	}
 	else
 	{
-		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
-	}*/
+		//DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
+	}
 }
 
 void USlashAttackComp::Server_PlayAttackAnim_Implementation()

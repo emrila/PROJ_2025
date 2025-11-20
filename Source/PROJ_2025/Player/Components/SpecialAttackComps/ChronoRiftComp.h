@@ -2,10 +2,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AttackComponentBase.h"
+#include "../AttackComponentBase.h"
 #include "ChronoRiftComp.generated.h"
 
 
+class UChronoRiftDamageType;
 class AEnemyBase;
 struct FInputActionInstance;
 
@@ -70,9 +71,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ChronoDuration = 5.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DamageToGive = 2.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EnemyTimeDilationFactor = 0.3f;

@@ -2,9 +2,9 @@
 
 #include "EnemyBase.h"
 #include "EnhancedInputComponent.h"
+#include "Golem.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
-#include "Kismet/GameplayStatics.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -67,15 +67,15 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (bKilledTarget)
 	{
 		UE_LOG(LogTemp, Warning, TEXT(
-			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), AttackCoolDown, AttackCoolDown/2.f);
-		if (GetWorld()->GetTimerManager().IsTimerActive(AttackCoolDownTimerHandle))
+			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), AttackCooldown, AttackCooldown/2.f);
+		if (GetWorld()->GetTimerManager().IsTimerActive(AttackCooldownTimerHandle))
 		{
-			GetWorld()->GetTimerManager().ClearTimer(AttackCoolDownTimerHandle);
+			GetWorld()->GetTimerManager().ClearTimer(AttackCooldownTimerHandle);
 			GetWorld()->GetTimerManager().SetTimer(
-				AttackCoolDownTimerHandle,
+				AttackCooldownTimerHandle,
 				this, 
 				&UShadowStrikeAttackComp::ResetAttackCooldown,
-				AttackCoolDown/2.f,
+				AttackCooldown/2.f,
 				false);
 		}
 		bKilledTarget = false;
@@ -134,6 +134,19 @@ void UShadowStrikeAttackComp::PerformAttack()
 		this,
 		&UShadowStrikeAttackComp::HandlePostAttackState,
 		StrikeDuration,
+		false
+	);
+	
+	PlayerCharacter->StartIFrame();
+	
+	FTimerHandle PlayerIFrameTimer;
+	GetWorld()->GetTimerManager().SetTimer(
+		PlayerIFrameTimer,
+		[PlayerCharacter]()
+		{
+			PlayerCharacter->ResetIFrame();
+		},
+		StrikeDuration + 1.f,
 		false
 	);
 }
@@ -276,7 +289,14 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		return;
 	}
 
-	DistanceToTarget -= OffsetDistanceBehindTarget;
+	if (LockedTarget->IsA(AGolem::StaticClass()))
+	{
+		DistanceToTarget -= (OffsetDistanceBehindTarget + 100.f);
+	}
+	else
+	{
+		DistanceToTarget -= OffsetDistanceBehindTarget;
+	}
 
 	FVector NewTargetLocation =
 		CurrentPlayerCameraForwardVector * DistanceToTarget + CurrentPlayerCameraLocation;

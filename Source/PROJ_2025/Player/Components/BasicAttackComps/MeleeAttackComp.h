@@ -2,7 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AttackComponentBase.h"
+#include "../AttackComponentBase.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "MeleeAttackComp.generated.h"
 

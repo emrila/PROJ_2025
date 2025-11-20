@@ -47,6 +47,11 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
+	//Handle Damage
+	virtual void StartIFrame() { IFrame = true;}
+	
+	virtual void ResetIFrame() { IFrame = false;}
+	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
 		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
@@ -81,9 +86,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
 	float DefenceStat = 0.f;
-	
-	virtual void ResetIframe();
-	
 	//Handle nametag
 	virtual void TickNotLocal();
 	

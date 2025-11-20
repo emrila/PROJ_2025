@@ -194,8 +194,6 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
 	
-	IFrame = true;
-	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
@@ -218,8 +216,6 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	bShouldUseMoveInput = true;
 	
 	FollowCamera->bUsePawnControlRotation = true;
-	
-	IFrame = false;
 	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
@@ -275,11 +271,6 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	/*if (IFrame)
-	{
-		return 0;
-	}*/
-	
 	const float NewDamageAmount = DamageAmount * DefenceStat;
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
@@ -288,12 +279,10 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		{
 			IFrame = true;
 			FTimerHandle TimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 		}
 		return NewDamageAmount;
 	}
-	
-	//return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	return 0;
 }
 
@@ -523,9 +512,4 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	}
 	Server_SetCustomPlayerName(NewName);
 	OnRep_CustomPlayerName();
-}
-
-void APlayerCharacterBase::ResetIframe()
-{
-	IFrame = false;
 }

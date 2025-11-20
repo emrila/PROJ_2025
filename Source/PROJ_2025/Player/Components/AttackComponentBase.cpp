@@ -1,7 +1,7 @@
 ﻿#include "AttackComponentBase.h"
 
 #include "EnhancedInputComponent.h"
-#include "MeleeAttackComp.h"
+#include "BasicAttackComps/MeleeAttackComp.h"
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 
@@ -27,10 +27,10 @@ void UAttackComponentBase::StartAttack()
 	bCanAttack = false;
 
 	GetWorld()->GetTimerManager().SetTimer(
-		AttackCoolDownTimerHandle,
+		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCoolDown,
+		AttackCooldown,
 		false
 		);
 }
@@ -54,10 +54,10 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 	bCanAttack = false;
 
 	GetWorld()->GetTimerManager().SetTimer(
-		AttackCoolDownTimerHandle,
+		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCoolDown,
+		AttackCooldown,
 		false
 		);
 }
