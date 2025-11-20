@@ -5,54 +5,9 @@
 #include "Core/UpgradeDisplayData.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
-
+#include "Util/UpgradeUtil.h"
 
 struct FAttributeUpgradeData;
-
-namespace UpgradeUtils
-{
-	FProperty* GetProperty(const UObject* Owner, const FName PropertyName)
-	{
-		if (!Owner)
-		{
-			return nullptr;
-		}
-
-		return Owner->GetClass()->FindPropertyByName(PropertyName);
-	}
-
-	bool IsValidProperty(const FProperty* Property)
-	{
-		return Property && (
-			Property->IsA<FFloatProperty>() ||
-			Property->IsA<FIntProperty>()
-		);
-	}
-
-	FString GetClassNameKey(const UObject* Object)
-	{
-		return FString::Printf(TEXT("%s_%s"), *Object->GetClass()->GetName(), *Object->GetName());
-	}
-
-	static TUniquePtr<FAttributeBase> CreateAttribute(UObject* InOwner, FProperty* InProperty, const FName InRowName)
-	{
-		if (!InProperty)
-		{
-			return nullptr;
-		}
-
-		if (InProperty->IsA<FFloatProperty>())
-		{
-			return MakeUnique<FAttributeFloat>(InOwner, InProperty, InRowName);
-		}
-		if (InProperty->IsA<FIntProperty>())
-		{
-			return MakeUnique<FAttributeInt32>(InOwner, InProperty, InRowName);
-		}
-
-		return nullptr;
-	}
-}
 
 #define TABLE_PATH TEXT("/Game/Developer/Emma/DT_UpgradeData.DT_UpgradeData")
 
@@ -95,13 +50,8 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 		UPGRADE_ERROR(TEXT("%hs: Property %s is invalid on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtils::GetClassNameKey(Owner));		
 		return;
 	}
-	/*if (const FAttributeData* ExistingAttribute = GetByCategory(Category, RowName))
-	{
-		BindDependentAttribute(Owner, PropertyName, false, ExistingAttribute->Owner.Get(),ExistingAttribute->Property->GetFName());
-		return;
-	}*/
 
-	const uint64 Key = GetKey(Owner, Prop);
+	const uint64 Key = UpgradeUtils::GetKey(Owner, Prop);
 	const FAttributeUpgradeData* UpgradeData = UpgradeDataTable->FindRow<FAttributeUpgradeData>(RowName, __FUNCTION__);
 	if (!UpgradeData)
 	{
@@ -109,7 +59,7 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 		return;
 	}
 
-	TUniquePtr<FAttributeData> NewAttribute = UpgradeUtils::CreateAttribute(Owner, Prop, RowName);//MakeUnique<FAttributeData>(Owner, Prop, RowName, InitialValue);
+	TUniquePtr<FAttributeData> NewAttribute = UpgradeUtils::CreateAttribute(Owner, Prop, RowName);
 	if (!NewAttribute)
 	{
 		UPGRADE_ERROR(TEXT("%hs: Failed to create attribute for property %s on owner %s!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtils::GetClassNameKey(Owner));
@@ -150,7 +100,6 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 	
 	});
 
-	// Lägg till i alla listor/loop-ups
 	AttributesByRow.FindOrAdd(RowName).Add(NewAttributeRaw);
 	AttributesByKey.Add(Key, NewAttributeRaw);
 	AttributesByCategory.FindOrAdd(Category).Add(NewAttributeRaw);
@@ -167,8 +116,13 @@ void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
 	}
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
-		TargetAttribute->OnAddModifier.Broadcast();
-		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s with row %s."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(TargetAttribute->Owner.Get()), *RowName.ToString());
+		const int32 CurrentUpgradeLevel = TargetAttribute->CurrentUpgradeLevel;
+		TargetAttribute->OnAddModifier.Broadcast();		
+		UPGRADE_DISPLAY(TEXT("⬆️%hs: Upgraded attribute %s with row %s."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(TargetAttribute->Owner.Get()), *RowName.ToString());
+		if (CurrentUpgradeLevel != TargetAttribute->CurrentUpgradeLevel && OnUpgraded.IsBound())
+		{		
+			OnUpgraded.Broadcast();
+		}
 	}
 	
 	bHasAppliedUpgrade = true;
@@ -190,12 +144,13 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	}
 	const FString StructCPPName = InstancedStruct.GetScriptStruct()->GetStructCPPName();
 	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
-	FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
+	const FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
 	if (!UpgradeDataPtr)
 	{
 		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);
 		return;
 	}
+	
 	const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;
 	
 	UpgradeByRow(UpgradeData.RowName);
@@ -213,7 +168,7 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 		if (!UpgradeDataTable)
 		{
 			return OutUpgrades;
-		}
+		} 
 	}
 	UpgradeDataTable->GetAllRows( __FUNCTION__ ,UpgradeDataArrayCopy);
 
@@ -238,7 +193,7 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 
 FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property) const
 {
-	return AttributesByKey.FindRef(GetKey(Owner, Property));
+	return AttributesByKey.FindRef(UpgradeUtils::GetKey(Owner, Property));
 
 }
 
@@ -269,11 +224,6 @@ TArray<const FAttributeData*> UUpgradeComponent::GetByRow(FName RowName) const
 		}
 	}
 	return Out;
-}
-
-uint64 UUpgradeComponent::GetKey(UObject* Owner, FProperty* Property)
-{
-	return reinterpret_cast<uint64>(Owner) << 32 ^ reinterpret_cast<uint64>(Property);
 }
 
 void UUpgradeComponent::Server_LoadDataTable_Implementation()

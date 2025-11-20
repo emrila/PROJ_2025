@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "AttributeData.h"
 #include "UpgradeDisplayData.h"
+#include "UpgradeEvents.h"
 #include "Components/ActorComponent.h"
 #include "StructUtils/InstancedStruct.h"
 #include "UpgradeComponent.generated.h"
@@ -16,7 +17,7 @@ class UPGRADE_API UUpgradeComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:
+public:	
 	UUpgradeComponent();
 
 	virtual void BeginPlay() override;	
@@ -35,12 +36,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	TArray<FUpgradeDisplayData> GetRandomUpgrades(const int32 NumberOfUpgrades);
+	
 protected:
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;
-	static uint64 GetKey(UObject* Owner, FProperty* Property);
-
+	
 	UFUNCTION(Server, Reliable)
 	void Server_LoadDataTable();
 
@@ -63,5 +64,7 @@ private:
 
 protected:
 	void ClearAttributes(const FString& String);
-
+	
+public:
+	FOnUpgradeEvent OnUpgraded;
 };
