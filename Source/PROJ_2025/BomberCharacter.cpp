@@ -26,7 +26,17 @@ ABomberCharacter::ABomberCharacter()
 
 void ABomberCharacter::HandleDeath()
 {
-	Cast<AAIController>(GetController())->GetBlackboardComponent()->SetValueAsBool("IsGonnaExplode", true);
+	AAIController* Controller = Cast<AAIController>(GetController());
+	if (!Controller)
+	{
+		return;
+	}
+	UBlackboardComponent* BlackboardComponent = Controller->GetBlackboardComponent();
+	if (!BlackboardComponent)
+	{
+		return;
+	}
+	BlackboardComponent->SetValueAsBool("IsGonnaExplode", true);
 }
 
 void ABomberCharacter::Server_Explode_Implementation()
