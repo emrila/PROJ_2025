@@ -213,10 +213,10 @@ void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
 void AUpgradeSpawner::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-	
+
 	if (HasAuthority())
 	{
-		bool bCompleted = true;
+		int32 Completed = 0;
 		for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
 		{
 			if (UpgradeAlternativePair.Alternative && UpgradeAlternativePair.Alternative->bSelected)
@@ -224,12 +224,11 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 				Completed++;
 			}
 		}
-		if (bCompleted)
+		if (Completed >= TotalUpgradeNeededForCompletion)
 		{
-			UPGRADE_DISPLAY( TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
+			UPGRADE_DISPLAY(TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
 			OnCompletedAllUpgrades.Broadcast();
 			SetActorTickEnabled(false);
-		}	
-		
-	}	
+		}
+	}
 }
