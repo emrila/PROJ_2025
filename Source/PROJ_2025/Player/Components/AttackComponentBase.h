@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponentBase.generated.h"
 
+class UNiagaraSystem;
 class UInputAction;
 class UEnhancedInputComponent;
 class APlayerCharacterBase;
@@ -33,6 +34,12 @@ public:
 	virtual void SetAttackCoolDown(const float Value) { AttackCoolDown = Value; }
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SpawnEffect(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect);
 
 protected:
 	virtual void BeginPlay() override;
@@ -40,8 +47,10 @@ protected:
 	virtual void PerformAttack() {}
 
 	virtual void ResetAttackCooldown();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	ACharacter* OwnerCharacter;
 	
 	bool bCanAttack = true;

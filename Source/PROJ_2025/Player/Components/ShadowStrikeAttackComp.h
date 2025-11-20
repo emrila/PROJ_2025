@@ -5,6 +5,7 @@
 #include "ShadowStrikeAttackComp.generated.h"
 
 
+class UNiagaraSystem;
 struct FInputActionInstance;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -81,16 +82,35 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float StrikeDelay = 1.f;
 	
+	//Handle player teleport
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float TeleportDelay = 0.2f;
+	
+	FTimerHandle PlayerTeleportTimerHandle;
+	
 	//Handle camera interpolation
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
 	float CameraInterpDistanceBehind = 500.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
-	float CameraInterpHeight = 120.f;
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
+	float CameraInterpHeight = 120.f;*/
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
 	float CameraInterpDuration = 0.35f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
 	float CameraInterpDelay = 1.f;
+	
+	//VFX
+	FVector DisappearLocation;
+	FVector AppearLocation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	UNiagaraSystem* DisappearEffect;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	UNiagaraSystem* AppearEffect;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	UNiagaraSystem* TeleportEffect;
 };
