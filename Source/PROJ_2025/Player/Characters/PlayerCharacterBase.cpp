@@ -282,9 +282,12 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 	{
 		GameState->DamageHealth(DamageAmount);
-		IFrame = true;
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
+		if (DamageAmount >= 10)
+		{
+			IFrame = true;
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
+		}
 		return DamageAmount;
 	}
 	
