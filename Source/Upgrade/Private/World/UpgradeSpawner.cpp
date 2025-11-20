@@ -27,35 +27,14 @@ AUpgradeSpawner::AUpgradeSpawner()
 
 void AUpgradeSpawner::OnUpgradeCompleted()
 {
-	UPGRADE_DISPLAY(TEXT("🎶🎶🎶🎶🎶🎶🎶🎶🎶%hs: Upgrade completed."), __FUNCTION__);
+	UPGRADE_DISPLAY(TEXT("🎶%hs: Upgrade completed."), __FUNCTION__);
 }
 
 void AUpgradeSpawner::TriggerSpawn()
 {
 	if (HasAuthority())
 	{
-		Server_Spawn();
-				
-		/*const FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
-			{
-				bool bCompleted = true;
-				for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
-				{
-					if (UpgradeAlternativePair.Alternative && !UpgradeAlternativePair.Alternative->bSelected)
-					{
-						bCompleted = false;
-						break;
-					}
-				}
-			UPGRADE_DISPLAY( TEXT("%hs: Checking completion status: %s"), __FUNCTION__, bCompleted ? TEXT("true") : TEXT("false"));
-				if (bCompleted)
-				{
-					OnCompletedAllUpgrades.Broadcast();
-					GetWorld()->GetTimerManager().ClearTimer(CompletionTimerHandle);
-				}
-			});
-		GetWorld()->GetTimerManager().SetTimer(CompletionTimerHandle, TimerDel, 1.f, true);*/
-		
+		Server_Spawn();		
 		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);	
 	}
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
@@ -63,17 +42,6 @@ void AUpgradeSpawner::TriggerSpawn()
 
 void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativePair> InAssignableUpgrades)
 {
-	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
-
-	TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp
-		                                                    ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives)
-		                                                    : TArray<FUpgradeDisplayData>();
-	
-	for (const FUpgradeDisplayData& DisplayData : LocalUpgradeDataArray)
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: Local upgrade data - RowName: %s"), __FUNCTION__, *DisplayData.RowName.ToString());
-	}
-	
 	for (const FUpgradeAlternativePair& UpgradeAlternativePair : InAssignableUpgrades)
 	{
 		AUpgradeAlternative* UpgradeAlternative = UpgradeAlternativePair.Alternative;
@@ -109,13 +77,17 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	{
 		return;
 	}
-	const float SplineLength = SpawnSplineComponent->GetSplineLength();
-	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
+	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
+	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp
+															? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives)
+															: TArray<FUpgradeDisplayData>();	
 
-	TArray<FUpgradeDisplayData> UpgradeDataArrayCopy = UpgradeDataArray; // Local copy or reference?
-	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs;
+	const float SplineLength = SpawnSplineComponent->GetSplineLength();
+   	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
 	
-	for (int32 i = 1; i <= NumberOfSpawnAlternatives; ++i)
+	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs; //Waiting to trigger OnRep on clients after all alternatives are spawned
+	
+	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
 	{
 		const float Distance = SegmentLength * i;
 		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
@@ -130,19 +102,17 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		{
 			continue; // Or break?
 		}
+
 		SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
 		
-		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);
-		if (!UpgradeDataArrayCopy.IsValidIndex(RandomIndex))  //Shouldn't be needed... But just in case
+		if (!LocalUpgradeDataArray.IsValidIndex(i)) //Shouldn't be needed... But just in case
 		{
-			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex, UpgradeDataArrayCopy.Num());
+			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, i, LocalUpgradeDataArray.Num());
 			break;
 		}
-		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, UpgradeDataArrayCopy[RandomIndex]); //Waiting to trigger OnRep on clients after all alternatives are spawned
-		SpawnedAlternative->Index = LocalUpgradeAlternativePairs.Num() - 1;
-		UpgradeDataArrayCopy.RemoveAt(RandomIndex); // To avoid duplicates
-		
-		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, RandomIndex);
+		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i]); //Waiting to trigger OnRep on clients after all alternatives are spawned
+		SpawnedAlternative->Index = i;		
+		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, i);
 	}
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
@@ -185,8 +155,7 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 		if (UpgradeAlternativePair.Alternative)
 		{
 			//TODO: Lock function (handle the edge case -> non-selected alternative stuck on hover effect			
-			UpgradeAlternativePair.Alternative->bLocked = true;		
-		 
+			UpgradeAlternativePair.Alternative->bLocked = true;				 
 			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
 		}		
 	}
