@@ -479,31 +479,6 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 	AppearLocation = FVector::ZeroVector;
 }
 
-void UShadowStrikeAttackComp::KillTarget(AActor* Target)
-{
-	if (!Target)
-	{
-		return;
-	}
-	
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-	if (!OwnerCharacter->GetController())
-	{
-		return;
-	}
-	
-	UGameplayStatics::ApplyDamage(
-		Target,
-		10000.f,
-		OwnerCharacter->GetController(),
-		OwnerCharacter,
-		UDamageType::StaticClass()
-		);
-}
-
 
 
 

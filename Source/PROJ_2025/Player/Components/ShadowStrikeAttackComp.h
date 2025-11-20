@@ -54,12 +54,8 @@ protected:
 		const FVector& TeleportLocation);
 
 	virtual void ResetAttackCooldown() override;
-	
-	virtual void KillTarget(AActor* Target);
 
 	//Handle target
-	bool bIsLockingTarget = false;
-	
 	bool bHasLockedTarget = false;
 
 	UPROPERTY()
