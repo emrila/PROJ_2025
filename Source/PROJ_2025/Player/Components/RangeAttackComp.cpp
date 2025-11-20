@@ -1,7 +1,7 @@
 ﻿#include "RangeAttackComp.h"
 #include "MageProjectile.h"
 #include "GameFramework/Character.h"
-#include "Player/Characters/PlayerCharacterMage.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
 
 URangeAttackComp::URangeAttackComp()
