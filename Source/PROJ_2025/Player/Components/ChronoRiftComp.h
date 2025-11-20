@@ -6,6 +6,7 @@
 #include "ChronoRiftComp.generated.h"
 
 
+class AEnemyBase;
 struct FInputActionInstance;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -38,18 +39,47 @@ protected:
 	
 	virtual void PrepareForLaunch();
 	
+	virtual void ResetAttackCooldown() override;
+	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_PerformLaunch();
 	
 	UFUNCTION(Server, Reliable)
+	virtual void TickDamage();
+	
+	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_SetLockedEnemies(const TArray<AActor*>& Enemies);
 	
 	FVector TargetAreaCenter;
 	
+	UPROPERTY(VisibleAnywhere)
+	TArray<AActor*> LockedTargets;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TargetAreaRadius = 1000.f;
 	
 	bool bIsLockingTargetArea = false;
 	
+	bool bShouldLaunch = false;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LockOnRange = 3000.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ChronoDuration = 5.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageToGive = 2.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float EnemyTimeDilationFactor = 0.3f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float DamageTickInterval = 1.f;
+	
+	FTimerHandle ResetEnemiesTimerHandle;
+	FTimerHandle TickDamageTimerHandle;
 };
