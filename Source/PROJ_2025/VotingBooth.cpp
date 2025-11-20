@@ -3,7 +3,9 @@
 
 #include "VotingBooth.h"
 
+#include "EditorMetadataOverrides.h"
 #include "NiagaraValidationRule.h"
+#include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
 // Sets default values
@@ -29,12 +31,12 @@ void AVotingBooth::BeginPlay()
 	
 }
 
-// Called every frame
-void AVotingBooth::Tick(float DeltaTime)
+void AVotingBooth::AttemptVote(FCandidate Candidate)
 {
-	Super::Tick(DeltaTime);
-
+	Vote(Candidate);
 }
+
+
 
 void AVotingBooth::AddCandidate_Implementation(FCandidate Candidate)
 {
@@ -44,6 +46,11 @@ void AVotingBooth::AddCandidate_Implementation(FCandidate Candidate)
 
 void AVotingBooth::Vote_Implementation(FCandidate Candidate)
 {
+
+	if (!HasAuthority())
+	{
+		return;
+	}
 	if (Candidates.Contains(Candidate))
 	{
 		Candidate.NumberOfVotes += 1;
@@ -51,8 +58,43 @@ void AVotingBooth::Vote_Implementation(FCandidate Candidate)
 
 		UE_LOG(LogTemp, Warning, TEXT("Current votes: %d"), Votes);
 	}
-
+	CheckResults();
+	
 }
+void AVotingBooth::CheckResults_Implementation()
+ {
+	if (Votes == GetWorld()->GetGameState()->PlayerArray.Num())
+	{
+		for (FCandidate CurrentCandidate : Candidates)
+		{
+			if (CurrentCandidate.NumberOfVotes >= 2)
+			{
+				const FActorSpawnParameters SpawnInfo;
+				GetWorld()->SpawnActor<AActor>(
+					CurrentCandidate.CandidateClass,
+					GetActorLocation() + FVector(0,0,200),
+					GetActorRotation(),
+					SpawnInfo
+				);
+				this->Destroy();
+				return;
+			}
+		}
+		
+		int32 Index = FMath::RandRange(0, Candidates.Num() - 1);
+
+		FActorSpawnParameters SpawnInfo;
+		
+		GetWorld()->SpawnActor<AActor>(
+			Candidates[Index].CandidateClass,
+			GetActorLocation() + FVector(0,0,200),
+			GetActorRotation(),
+			SpawnInfo
+		);
+
+		this->Destroy();
+	}
+ }
 
 void AVotingBooth::StartVote_Implementation(int NumberOfChoices)
 {
