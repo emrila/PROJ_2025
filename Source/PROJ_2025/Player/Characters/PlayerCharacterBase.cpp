@@ -275,23 +275,26 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (IFrame)
+	/*if (IFrame)
 	{
 		return 0;
-	}
-	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+	}*/
+	
+	const float NewDamageAmount = DamageAmount * DefenceStat;
+	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
-		GameState->DamageHealth(DamageAmount);
+		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			IFrame = true;
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
 		}
-		return DamageAmount;
+		return NewDamageAmount;
 	}
 	
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	//return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	return 0;
 }
 
 void APlayerCharacterBase::TickNotLocal()

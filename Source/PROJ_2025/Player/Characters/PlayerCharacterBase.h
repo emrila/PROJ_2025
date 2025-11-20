@@ -79,6 +79,9 @@ protected:
 	//Handle take damage
 	bool IFrame = false;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	float DefenceStat = 0.f;
+	
 	virtual void ResetIframe();
 	
 	//Handle nametag
