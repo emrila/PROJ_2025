@@ -28,9 +28,9 @@ float AGolem::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 	return 0;
 }
 
-void AGolem::HandleHit()
+void AGolem::HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	Super::HandleHit();
+	Super::HandleHit(DamageEvent,DamageCauser);
 	RageBuildup += 10;
 }
 

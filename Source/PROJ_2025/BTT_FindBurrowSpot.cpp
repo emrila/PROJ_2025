@@ -18,18 +18,21 @@ EBTNodeResult::Type UBTT_FindBurrowSpot::ExecuteTask(UBehaviorTreeComponent& Own
 	AAIController* AICon = OwnerComp.GetAIOwner();
 	if (!AICon)
 	{
+
 		return EBTNodeResult::Failed;
 	}
 
 	APawn* AIPawn = AICon->GetPawn();
 	if (!AIPawn)
 	{
+
 		return EBTNodeResult::Failed;
 	}
 
 	UBlackboardComponent* Blackboard = OwnerComp.GetBlackboardComponent();
 	if (!Blackboard)
 	{
+
 		return EBTNodeResult::Failed;
 	}
 
@@ -42,6 +45,8 @@ EBTNodeResult::Type UBTT_FindBurrowSpot::ExecuteTask(UBehaviorTreeComponent& Own
 			PlayerPawns.Add(PC->GetPawn());
 		}
 	}
+
+
 	if (PlayerPawns.Num() == 0) return EBTNodeResult::Failed;
 	
 	const FVector Origin = AIPawn->GetActorLocation();

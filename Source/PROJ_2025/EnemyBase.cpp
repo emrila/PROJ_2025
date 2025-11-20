@@ -8,7 +8,6 @@
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
 	bReplicates = true;
 
 }
@@ -18,7 +17,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 	class AController* EventInstigator, AActor* DamageCauser)
 {
 	Health -= DamageAmount;
-	HandleHit();
+	HandleHit(DamageEvent, DamageCauser);
 	if (Health <= 0)
 	{
 		HandleDeath();
@@ -45,7 +44,7 @@ void AEnemyBase::HandleDeath()
 	Destroy();
 }
 
-void AEnemyBase::HandleHit_Implementation()
+void AEnemyBase::HandleHit_Implementation(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
 	HitFeedback();
 }
