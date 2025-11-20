@@ -26,12 +26,12 @@ ABomberCharacter::ABomberCharacter()
 
 void ABomberCharacter::HandleDeath()
 {
-	AAIController* Controller = Cast<AAIController>(GetController());
-	if (!Controller)
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
 	{
 		return;
 	}
-	UBlackboardComponent* BlackboardComponent = Controller->GetBlackboardComponent();
+	UBlackboardComponent* BlackboardComponent = AIController->GetBlackboardComponent();
 	if (!BlackboardComponent)
 	{
 		return;
