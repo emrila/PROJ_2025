@@ -44,6 +44,6 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool Projectile = false;
 
-	virtual void HandleHit() override;
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
 
 };

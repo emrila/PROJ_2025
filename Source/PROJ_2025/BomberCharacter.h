@@ -37,5 +37,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ExplosionActor;
 	
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
 
 };

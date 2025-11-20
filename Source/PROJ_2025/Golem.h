@@ -32,7 +32,7 @@ public:
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	
-	virtual void HandleHit() override;
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
 
 	virtual void HandleDeath() override;
 	
