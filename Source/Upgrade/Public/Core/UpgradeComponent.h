@@ -25,7 +25,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(Server, Reliable)
-	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName, FName Category);
+	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName);
 	
 	UFUNCTION(Server, Reliable)
 	void UpgradeByRow(FName RowName);	
@@ -53,8 +53,6 @@ private:
 	bool bHasAppliedUpgrade = false;
 	
 	TArray<TUniquePtr<FAttributeData>> RegisteredAttributes;
-
-	TArray<TUniquePtr<FDependentAttribute>> RegisteredDependentAttributes;
 
 	TMap<FName, TArray<FAttributeData*>> AttributesByRow;
 

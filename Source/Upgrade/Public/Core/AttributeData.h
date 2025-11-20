@@ -12,8 +12,13 @@ USTRUCT(BlueprintType)
 struct FModiferData
 {
 	GENERATED_BODY()
+	FModiferData() = default;
 
-	float Multiplier = 0.f;
+	FModiferData(const float InMultiplier, const bool bInRemoveModifier) : Multiplier(InMultiplier), bRemoveModifier(bInRemoveModifier)	{}
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value * Multiplier"))
+	float Multiplier = 0.1f;
+	
 	bool bRemoveModifier = false;
 
 	template <typename T>
@@ -21,11 +26,10 @@ struct FModiferData
 	{
 		if (bRemoveModifier)
 		{
-			return BaseValue - BaseValue * Multiplier;
+			return BaseValue /*- BaseValue */* Multiplier;
 		}
-		return BaseValue + BaseValue * Multiplier;
-	}
-
+		return BaseValue /*+ BaseValue */* Multiplier;
+	}	
 };
 
 USTRUCT()
@@ -131,20 +135,4 @@ struct FAttributeInt32 : public FAttributeBase
 
 	virtual void Modify(FModiferData ModifierData) override;
 	int32 InitialValue = 0.f;
-};
-
-USTRUCT(BlueprintType)
-struct FDependentAttribute
-{
-	GENERATED_BODY()
-
-	FDependentAttribute() = default;
-	FDependentAttribute(UObject* InOwner, FProperty* InProperty, const bool InOverrideOnModified)
-		: Owner(InOwner), Property(InProperty), bOverrideOnModified(InOverrideOnModified)
-	{
-	}
-
-	TWeakObjectPtr<UObject> Owner;
-	FProperty* Property = nullptr;
-	bool bOverrideOnModified = false; // Ifall nuvarande värde ska spegla det modifierade värdet. Om inte så kommer den ändras procentuellt.
 };

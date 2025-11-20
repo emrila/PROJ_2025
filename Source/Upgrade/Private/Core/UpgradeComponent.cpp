@@ -35,7 +35,7 @@ void UUpgradeComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	DOREPLIFETIME(UUpgradeComponent, bHasAppliedUpgrade);
 }
 
-void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName PropertyName, FName RowName, FName Category)
+void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName PropertyName, const FName RowName)
 {
 	UPGRADE_HI_FROM(__FUNCTION__);
 
@@ -80,10 +80,12 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
-	
-		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier});
+		const int32 Level = NewAttributeRaw->CurrentUpgradeLevel+1;		
+		NewAttributeRaw->Modify(UpgradeData->GetModifier(Level));
+		
 		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s to level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 	});
+	
 	NewAttributeRaw->OnRemoveModifier.AddLambda([NewAttributeRaw, UpgradeData]
 	{
 		if (!NewAttributeRaw->Owner.IsValid())
@@ -91,21 +93,23 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, FName Prope
 			UPGRADE_ERROR(TEXT("%hs: Owner is no longer valid!"), __FUNCTION__);
 			return;
 		}
+		
 		if (!UpgradeData->CanDowngrade(NewAttributeRaw->CurrentUpgradeLevel))
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached min downgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
-		NewAttributeRaw->Modify(FModiferData{UpgradeData->Multiplier, true});
+		const int32 Level = NewAttributeRaw->CurrentUpgradeLevel-1;		
+
+		NewAttributeRaw->Modify({ UpgradeData->GetModifier(Level).Multiplier, true});
 	
 	});
 
 	AttributesByRow.FindOrAdd(RowName).Add(NewAttributeRaw);
 	AttributesByKey.Add(Key, NewAttributeRaw);
-	AttributesByCategory.FindOrAdd(Category).Add(NewAttributeRaw);
 	RegisteredAttributes.Add(MoveTemp(NewAttribute));
 
-	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s under category %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString(), *Category.ToString());
+	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString());
 }
 
 void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
@@ -172,7 +176,7 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 	}
 	UpgradeDataTable->GetAllRows( __FUNCTION__ ,UpgradeDataArrayCopy);
 
-	for (int i = 1; i < NumberOfUpgrades; ++i)
+	for (int i = 1; i <= NumberOfUpgrades; ++i)
 	{
 		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);		
 		if (!UpgradeDataArrayCopy.IsValidIndex(RandomIndex)) //Shouldn't be needed... But just in case
@@ -251,6 +255,5 @@ void UUpgradeComponent::ClearAttributes(const FString& String)
 	AttributesByRow.Empty();
 	AttributesByKey.Empty();
 	AttributesByCategory.Empty();
-	RegisteredDependentAttributes.Empty();
 }
 
