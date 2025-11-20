@@ -21,6 +21,7 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (bIsLockingTargetArea && bCanAttack)
 	{
 		TryLockingTargetArea();
+		DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, 0.1);
 	}
 }
 
@@ -134,7 +135,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 			TargetAreaCenter = HitResult.ImpactPoint;
 		}
 		
-		DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, AttackCoolDown);
+		//DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, AttackCoolDown);
 		if (!bShouldLaunch)
 		{
 			return;
@@ -242,6 +243,10 @@ void UChronoRiftComp::ResetAttackCooldown()
 
 void UChronoRiftComp::TickDamage_Implementation()
 {
+	if (!OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
@@ -339,6 +344,12 @@ void UChronoRiftComp::Server_PerformLaunch_Implementation()
 		&UChronoRiftComp::TickDamage,
 		DamageTickInterval,
 		true);
+	
+	FTimerHandle ClearTickDamageTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+	}, ChronoDuration, false);
 }
 
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
