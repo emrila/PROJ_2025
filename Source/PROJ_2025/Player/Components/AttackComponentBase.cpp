@@ -3,6 +3,7 @@
 #include "EnhancedInputComponent.h"
 #include "MeleeAttackComp.h"
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 
 
 UAttackComponentBase::UAttackComponentBase()
@@ -70,6 +71,31 @@ void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* Owner
 	}
 }
 
+void UAttackComponentBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect)
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!Effect)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+	if (!OwnerCharacter->HasAuthority() || EffectSpawnLocation.IsNearlyZero())
+	{
+		return;
+	}
+	Multicast_SpawnEffect_Implementation(EffectSpawnLocation, Effect);
+}
+
+void UAttackComponentBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect)
+{
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Effect, EffectSpawnLocation);
+}
+
 void UAttackComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -86,6 +112,12 @@ void UAttackComponentBase::ResetAttackCooldown()
 		DamageAmount = DamageAmountToStore;
 		DamageAmountToStore = 0.f;
 	}
+}
+
+void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, OwnerCharacter);
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)

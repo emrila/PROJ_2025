@@ -41,8 +41,12 @@ public:
 	virtual void OnRoomInitialized();
 
 	void SpawnLoot();
+	
+	UFUNCTION()
+	void EnableExits();
 
 private:
+
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
 
