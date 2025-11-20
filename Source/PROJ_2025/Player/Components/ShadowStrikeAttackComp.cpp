@@ -63,6 +63,14 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 			DrawDebugSphere(GetWorld(), LockedTarget->GetActorLocation(), 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
 	}
+	
+	if (bKilledTarget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT(
+			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), AttackCoolDown, AttackCoolDown*0.9f);
+		AttackCoolDown *= 0.9f;
+		bKilledTarget = false;
+	}
 }
 
 void UShadowStrikeAttackComp::BeginPlay()
@@ -172,11 +180,12 @@ void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Targ
 {
 	if (!Target)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s Target is Null."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to null."), *FString(__FUNCTION__));
 		LockedTarget = nullptr;
 		return;
 	}
 	LockedTarget = Target;
+	UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to %s."), *FString(__FUNCTION__), *LockedTarget->GetName());
 }
 
 void UShadowStrikeAttackComp::HandlePreAttackState()
@@ -269,7 +278,6 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 
 	//Teleport player but cache current player location relativ to the camera
 	FVector PlayerToCameraVector = CurrentPlayerCameraLocation - PlayerCharacter->GetActorLocation();
-	CameraInterpHeight = PlayerToCameraVector.Z;
 	Multicast_TeleportPlayer(NewTargetLocation);
 
 	// TODO: Play VFX after teleporting the player
@@ -280,7 +288,6 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		[this, PlayerCharacter, PlayerToCameraVector]()
 		{
 			FVector NewCameraLocation = PlayerCharacter->GetActorLocation() + PlayerToCameraVector;
-			NewCameraLocation.Z = CameraInterpHeight;
 
 			PlayerCharacter->Client_StartCameraInterpolation(NewCameraLocation, CameraInterpDuration);
 		},

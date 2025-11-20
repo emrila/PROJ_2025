@@ -1,4 +1,7 @@
 ﻿#include "SlashAttackComp.h"
+
+#include "EnemyBase.h"
+#include "ShadowStrikeAttackComp.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -18,7 +21,7 @@ void USlashAttackComp::StartAttack()
 	}
 	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
-		SetAttackCoolDown(GetAttackCoolDown());
+		SetAttackCoolDown(AttackAnimLength);
 	}
 	
 	Super::StartAttack();
@@ -28,6 +31,29 @@ void USlashAttackComp::StartAttack()
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
+	bWasUsedByShadowStrike = false;
+	PerformAttack();
+}
+
+void USlashAttackComp::StartAttack(const float NewDamageAmount)
+{
+	if (!bCanAttack)
+	{
+		return;
+	}
+	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
+	{
+		SetAttackCoolDown(AttackAnimLength);
+	}
+	
+	Super::StartAttack(NewDamageAmount);
+
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+	bWasUsedByShadowStrike = true;
 	PerformAttack();
 }
 
@@ -94,7 +120,9 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		return;
 	}
 
-	TArray<FHitResult> HitResults;
+	//TArray<FHitResult> HitResults;
+	
+	FHitResult HitResult;
 
 	FCollisionQueryParams QueryParams;
 
@@ -103,7 +131,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 
-	const bool bHit = GetWorld()->SweepMultiByObjectType(
+	/*const bool bHit = GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		SweepLocation,
 		SweepLocation, 
@@ -111,9 +139,66 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
 		QueryParams
+		);*/
+	
+	const bool bWasHit = GetWorld()->SweepSingleByObjectType(
+		HitResult,
+		SweepLocation,
+		SweepLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(AttackRadius),
+		QueryParams
 		);
 
-	if (bHit)
+	if (bWasHit)
+	{
+		AActor* HitActor = nullptr;
+		if (HitResult.GetActor() && HitResult.GetActor()->IsA(AEnemyBase::StaticClass()))
+		{
+			HitActor = HitResult.GetActor();
+		}
+		
+		if (HitActor)
+		{
+			SpawnParticles(Cast<APlayerCharacterBase>(GetOwner()), HitResult);
+			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *HitActor->GetName(), DamageAmount);
+
+			DrawDebugSphere(GetWorld(), HitActor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
+			UGameplayStatics::ApplyDamage(
+				HitActor,
+				DamageAmount,
+				OwnerCharacter->GetController(),
+				OwnerCharacter,
+				UDamageType::StaticClass()
+				);
+			
+			if (bWasUsedByShadowStrike)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("%s informing ShadowStrikeAttackComp about kill status."), *FString(__FUNCTION__));
+				FTimerHandle OtherAttackCompTimer;
+				GetWorld()->GetTimerManager().SetTimer(
+					OtherAttackCompTimer,
+					[this, HitActor]()
+					{
+						const bool bIsDead = !(IsValid(HitActor));
+						if (bIsDead)
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Target was killed"));
+						}
+				if (UShadowStrikeAttackComp* OtherAttackComponent = OwnerCharacter->FindComponentByClass<UShadowStrikeAttackComp>())
+				{
+					OtherAttackComponent->SetKilledTarget(bIsDead);
+				}
+					}, 0.5f, false);
+			}
+			return;
+		}
+		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
+		return;
+	}
+	DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
+	/*if (bHit)
 	{
 		TArray<AActor*> HitActors;
 		for (const FHitResult& Hit : HitResults)
@@ -150,7 +235,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 	else
 	{
 		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
-	}
+	}*/
 }
 
 void USlashAttackComp::Server_PlayAttackAnim_Implementation()

@@ -20,6 +20,8 @@ public:
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
+	virtual void SetKilledTarget(const bool Value) { bKilledTarget = Value; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -66,6 +68,8 @@ protected:
 	float LockOnRange = 2000.f;
 	
 	FTimerHandle LockedTargetTickTimer;
+	
+	bool bKilledTarget = false;
 
 	//Handle attack properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
