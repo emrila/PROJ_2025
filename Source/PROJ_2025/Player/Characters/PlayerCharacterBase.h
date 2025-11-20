@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UUpgradeComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UWidgetComponent;
@@ -163,6 +164,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
+	TObjectPtr<UUpgradeComponent> UpgradeComponent;
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
@@ -182,10 +185,10 @@ protected:
 	
 	//TODO: Remove unused functions 
 	UFUNCTION(Server, Reliable)
-	void Server_SpawnHitParticles();
+	void Server_SpawnEffect(const FVector& EffectSpawnLocation);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SpawnHitParticles();
+	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
 private:
 	//Handle nametag	
 	UFUNCTION()

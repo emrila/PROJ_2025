@@ -6,9 +6,12 @@
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Core/UpgradeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -41,6 +44,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	Tags.Add(TEXT("Player"));
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
+	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
 	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
@@ -189,6 +194,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
 	
+	IFrame = true;
+	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
@@ -211,6 +218,8 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	bShouldUseMoveInput = true;
 	
 	FollowCamera->bUsePawnControlRotation = true;
+	
+	IFrame = false;
 	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
@@ -235,7 +244,16 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
 	SetUpLocalCustomPlayerName();
+	if (UpgradeComponent && IsLocallyControlled())
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"), TEXT("MaxWalkSpeed"));
+	}
+	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
+	{		
+	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
+	}
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -405,12 +423,13 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
 }
 
-void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
 }
 
-void APlayerCharacterBase::Multicast_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
+	
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()
@@ -449,33 +468,55 @@ bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& In
 
 void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 {
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	
+	if (!GetPlayerState())
+	{
+		constexpr float InRate = 0.2f;
+		UE_LOG(PlayerBaseLog, Warning, TEXT("%hs, PlayerState is Null, retrying in %f"), __FUNCTION__, InRate);
+		FTimerHandle TimerHandle;
+
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		                                {
+			                                SetUpLocalCustomPlayerName();
+		                                },
+		                                InRate, false);
+
+		return;
+	}
+
+	const int32 PlayerId = GetPlayerState()->GetPlayerId(); //FMath::RandRange(10, 99);		
+	InteractorComponent->Server_SetOwnerID(PlayerId);
+	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Local player id: %d"), __FUNCTION__, PlayerId);
+
+	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
 	if (!bChangedName)
 	{
 #if WITH_EDITORONLY_DATA
-		if (!bUsePlayerLoginProfile)
+		if (bUsePlayerLoginProfile)
 		{
-			const int32 RandomNum = FMath::RandRange(10, 99);
-			CustomPlayerName = FString::Printf(TEXT("Player_%d"), RandomNum);
-		}
-		else if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+			{
+				NewName = PlayerLoginSystem->GetProfile().Username;
+			}
 		}
 #else
 		if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
 		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
 #endif
 		bChangedName = true;
-}
-		if (IsLocallyControlled())
-		{
-			Server_SetCustomPlayerName(CustomPlayerName);
-
-		}
-		OnRep_CustomPlayerName();
-	
+	}
+	else
+	{
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
+	}
+	Server_SetCustomPlayerName(NewName);
+	OnRep_CustomPlayerName();
 }
 
 void APlayerCharacterBase::ResetIframe()

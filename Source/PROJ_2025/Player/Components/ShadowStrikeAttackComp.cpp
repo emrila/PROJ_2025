@@ -63,6 +63,23 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 			DrawDebugSphere(GetWorld(), LockedTarget->GetActorLocation(), 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
 	}
+	
+	if (bKilledTarget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT(
+			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), AttackCoolDown, AttackCoolDown/2.f);
+		if (GetWorld()->GetTimerManager().IsTimerActive(AttackCoolDownTimerHandle))
+		{
+			GetWorld()->GetTimerManager().ClearTimer(AttackCoolDownTimerHandle);
+			GetWorld()->GetTimerManager().SetTimer(
+				AttackCoolDownTimerHandle,
+				this, 
+				&UShadowStrikeAttackComp::ResetAttackCooldown,
+				AttackCoolDown/2.f,
+				false);
+		}
+		bKilledTarget = false;
+	}
 }
 
 void UShadowStrikeAttackComp::BeginPlay()
@@ -172,11 +189,12 @@ void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Targ
 {
 	if (!Target)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s Target is Null."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to null."), *FString(__FUNCTION__));
 		LockedTarget = nullptr;
 		return;
 	}
 	LockedTarget = Target;
+	UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to %s."), *FString(__FUNCTION__), *LockedTarget->GetName());
 }
 
 void UShadowStrikeAttackComp::HandlePreAttackState()
@@ -266,10 +284,12 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 	NewTargetLocation.Z = CurrentTargetZ;
 
 	// TODO: Play VFX before teleporting the player
+	DisappearLocation = PlayerCharacter->GetActorLocation();
+	Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
 
 	//Teleport player but cache current player location relativ to the camera
 	FVector PlayerToCameraVector = CurrentPlayerCameraLocation - PlayerCharacter->GetActorLocation();
-	CameraInterpHeight = PlayerToCameraVector.Z;
+	
 	Multicast_TeleportPlayer(NewTargetLocation);
 
 	// TODO: Play VFX after teleporting the player
@@ -280,7 +300,6 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		[this, PlayerCharacter, PlayerToCameraVector]()
 		{
 			FVector NewCameraLocation = PlayerCharacter->GetActorLocation() + PlayerToCameraVector;
-			NewCameraLocation.Z = CameraInterpHeight;
 
 			PlayerCharacter->Client_StartCameraInterpolation(NewCameraLocation, CameraInterpDuration);
 		},
@@ -316,6 +335,8 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 		}
 	}
 	
+	AppearLocation = TeleportLocation;
+	
 	if (TheLockedTarget)
 	{
 		GetWorld()->GetTimerManager().SetTimer(
@@ -333,9 +354,27 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 				}, 2.5f, false);
 	}
 	
-	OwnerCharacter->SetActorLocation(
-		TeleportLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	
+	ACharacter* LocalOwner = Cast<ACharacter>(GetOwner());
+	if (LocalOwner && LocalOwner->GetMesh())
+	{
+		LocalOwner->GetMesh()->SetHiddenInGame(true, true);
+	}
+
+	TWeakObjectPtr<ACharacter> WeakOwner(LocalOwner);
+	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this, WeakOwner, TeleportLocation]()
+	{
+		if (ACharacter* Owner = WeakOwner.Get())
+		{
+			Owner->SetActorLocation(TeleportLocation, false, nullptr, ETeleportType::TeleportPhysics);
+			if (Owner->GetMesh())
+			{
+				Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
+				Owner->GetMesh()->SetHiddenInGame(false, true);
+			}
+		}
+	});
+
+	GetWorld()->GetTimerManager().SetTimer(PlayerTeleportTimerHandle, TimerDel, TeleportDelay, false);	
 	/*if (AController* C = OwnerCharacter->GetController())
 	{
 		if (APlayerController* PC = Cast<APlayerController>(C))
@@ -436,6 +475,8 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetLockedTarget_Implementation(nullptr);
+	DisappearLocation = FVector::ZeroVector;
+	AppearLocation = FVector::ZeroVector;
 }
 
 void UShadowStrikeAttackComp::KillTarget(AActor* Target)

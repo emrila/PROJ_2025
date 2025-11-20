@@ -41,34 +41,17 @@ void AMageProjectile::BeginPlay()
 	CollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
 }
 
-void AMageProjectile::OnProjectileOverlap(
-	UPrimitiveComponent* OverlappedComponent,
-	AActor* OtherActor,
-	UPrimitiveComponent* OtherComp,
-	int32 OtherBodyIndex,
-	bool bFromSweep,
-	const FHitResult& SweepResult
-)
+void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
 {
-	if (OtherActor->IsA(AEnemyBase::StaticClass()))
+	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
 	{
-		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
-		
 		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
-		
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,SweepResult.ImpactPoint);
-		Destroy();
-		return;
+
+		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
+
+		Destroy();	
 	}
-	/*if (APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(OtherActor))
-	{
-		return;
-	}
-	
-	if (OtherComp->GetCollisionProfileName() == this->CollisionComponent->GetCollisionProfileName())
-	{
-		return;
-	}*/
 }
 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
