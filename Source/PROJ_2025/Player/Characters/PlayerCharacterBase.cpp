@@ -194,6 +194,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
 	
+	IFrame = true;
+	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
 
@@ -216,6 +218,8 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	bShouldUseMoveInput = true;
 	
 	FollowCamera->bUsePawnControlRotation = true;
+	
+	IFrame = false;
 	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
@@ -419,12 +423,13 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
 }
 
-void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
 }
 
-void APlayerCharacterBase::Multicast_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
+	
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()
