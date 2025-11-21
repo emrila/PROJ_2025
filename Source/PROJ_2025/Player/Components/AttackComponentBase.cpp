@@ -18,7 +18,7 @@ void UAttackComponentBase::StartAttack()
 		return;
 	}
 
-	if (!OwnerCharacter)
+	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
@@ -42,7 +42,7 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 		return;
 	}
 
-	if (!OwnerCharacter)
+	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
