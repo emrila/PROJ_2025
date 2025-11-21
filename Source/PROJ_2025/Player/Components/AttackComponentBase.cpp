@@ -18,14 +18,19 @@ void UAttackComponentBase::StartAttack()
 		return;
 	}
 
-	if (!OwnerCharacter)
+	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
 	}
 
 	bCanAttack = false;
-
+	
+	
+	if (OnCooldownTimerStarted.IsBound())
+	{
+		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+	}
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
@@ -42,7 +47,7 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 		return;
 	}
 
-	if (!OwnerCharacter)
+	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
@@ -52,6 +57,11 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 	DamageAmount = NewDamageAmount;
 
 	bCanAttack = false;
+
+	if (OnCooldownTimerStarted.IsBound())
+	{
+		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+	}
 
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
