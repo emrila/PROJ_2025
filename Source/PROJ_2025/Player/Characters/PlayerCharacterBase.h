@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UUpgradeComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UWidgetComponent;
@@ -26,8 +27,7 @@ public:
 	
 	//Handle override parent functions
 	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(NetMulticast, Reliable)
+	
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	//Handle components
@@ -47,9 +47,18 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
+	//Handle Damage
+	virtual void StartIFrame() { IFrame = true;}
+	
+	virtual void ResetIFrame() { IFrame = false;}
+	
+	/*UFUNCTION(Client, Reliable)
+	virtual void Client_StartCameraInterpolation(
+		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
+	
 	UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
-		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);
+		const FVector& TargetLocation, const float LerpDuration);
 
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
@@ -68,10 +77,15 @@ protected:
 	virtual void PossessedBy(AController* NewController) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
+	
 	UFUNCTION(BlueprintCallable)
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
 	
+	//Handle take damage
+	bool IFrame = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	float DefenceStat = 0.f;
 	//Handle nametag
 	virtual void TickNotLocal();
 	
@@ -87,7 +101,7 @@ protected:
 	FRotator FollowCameraRelativeRotation = FRotator::ZeroRotator;
 	
 	//Handle camera interpolation
-	virtual void InterpolateCamera(FTransform& TargetTransform, const float LerpDuration);
+	virtual void InterpolateCamera(FVector& TargetLocation, const float LerpDuration);
 	
 	UPROPERTY(Transient)
 	bool bIsInterpolatingCamera = false;
@@ -121,6 +135,8 @@ protected:
 
 	virtual void Interact(const FInputActionValue& Value);
 	
+	virtual void SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent);
+	
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
@@ -153,6 +169,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
+	TObjectPtr<UUpgradeComponent> UpgradeComponent;
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
@@ -162,9 +180,6 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combat")
-	bool IFrame = false;
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
@@ -175,10 +190,10 @@ protected:
 	
 	//TODO: Remove unused functions 
 	UFUNCTION(Server, Reliable)
-	void Server_SpawnHitParticles();
+	void Server_SpawnEffect(const FVector& EffectSpawnLocation);
 
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SpawnHitParticles();
+	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
 private:
 	//Handle nametag	
 	UFUNCTION()
@@ -189,9 +204,6 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
-
-	void ResetIframe();
-	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

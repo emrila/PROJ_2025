@@ -6,14 +6,19 @@
 #include "Dev/InteractLog.h"
 
 
-void IInteractable::OnPreInteract_Implementation()
+void IInteractable::OnPreInteract_Implementation(UObject* Interactor)
 {
-	INTERACT_WARNING( TEXT("OnPreInteract is not implemented"))
+	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
 }
 
 void IInteractable::OnInteract_Implementation(UObject* Interactor)
 {
-	INTERACT_WARNING( TEXT("OnInteract is not implemented"))
+	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
+}
+
+void IInteractable::OnPostInteract_Implementation()
+{
+	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
 }
 
 bool IInteractable::CanInteract_Implementation()

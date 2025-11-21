@@ -6,9 +6,12 @@
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Core/UpgradeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -41,6 +44,8 @@ APlayerCharacterBase::APlayerCharacterBase()
 	Tags.Add(TEXT("Player"));
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
+	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
 	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
@@ -57,11 +62,12 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		const float Alpha = FMath::Clamp(CameraInterpElapsed / FMath::Max(0.01f, CameraInterpDuration), 0.f, 1.f);
 
 		const FVector NewLoc = FMath::Lerp(CameraInterpStartLocation, CameraInterpolateTargetLocation, Alpha);
-		const FQuat StartQ = CameraInterpStartRotation.Quaternion();
+		/*const FQuat StartQ = CameraInterpStartRotation.Quaternion();
 		const FQuat EndQ = CameraInterpolateTargetRotation.Quaternion();
-		const FQuat NewQ = FQuat::Slerp(StartQ, EndQ, Alpha);
+		const FQuat NewQ = FQuat::Slerp(StartQ, EndQ, Alpha);*/
 
-		FollowCamera->SetWorldLocationAndRotation(NewLoc, NewQ.Rotator());
+		//FollowCamera->SetWorldLocationAndRotation(NewLoc, NewQ.Rotator());
+		FollowCamera->SetWorldLocation(NewLoc);
 
 		if (Alpha >= 1.f)
 		{
@@ -70,15 +76,21 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	}
 }
 
-void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputComponent* PlayerInputComponent)
+void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	if (!PlayerInputComponent)
 	{
 		return;
 	}
+	
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::StopJumping);
@@ -86,10 +98,20 @@ void APlayerCharacterBase::SetupPlayerInputComponent_Implementation(UInputCompon
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
 
-		EnhancedInputComponent->BindAction(FirstAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseFirstAttackComponent);
-		EnhancedInputComponent->BindAction(SecondAttackAction, ETriggerEvent::Started, this, &APlayerCharacterBase::UseSecondAttackComponent);
-
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
+		
+		
+		FTimerHandle AttackComponentInputTimer;
+		
+		GetWorld()->GetTimerManager().SetTimer(
+			AttackComponentInputTimer,
+			[this, EnhancedInputComponent]()
+			{
+				SetupAttackComponentInput(EnhancedInputComponent);
+			},
+			1.f,
+			false
+			);
 	}
 }
 
@@ -167,6 +189,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	bShouldUseLookInput = false;
 	bShouldUseMoveInput = false;
 	
+	FollowCamera->bUsePawnControlRotation = false;
+	
 	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
 	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
 	
@@ -191,12 +215,13 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	bShouldUseLookInput = true;
 	bShouldUseMoveInput = true;
 	
+	FollowCamera->bUsePawnControlRotation = true;
+	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
-void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation,
-	const FRotator& TargetRotation, const float LerpDuration)
+void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation, const float LerpDuration)
 {
 	if (!FollowCamera)
 	{
@@ -204,16 +229,27 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 		return;
 	}
 	
-	FTransform TargetTransform;
+	/*FTransform TargetTransform;
 	TargetTransform.SetLocation(TargetLocation);
-	TargetTransform.SetRotation(TargetRotation.Quaternion());
-	InterpolateCamera(TargetTransform, LerpDuration);
+	TargetTransform.SetRotation(TargetRotation.Quaternion());*/
+	
+	FVector ToTargetLocation = TargetLocation;
+	InterpolateCamera(ToTargetLocation, LerpDuration);
 }
 
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+
 	SetUpLocalCustomPlayerName();
+	if (UpgradeComponent && IsLocallyControlled())
+	{	
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+	}
+	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
+	{		
+	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
+	}
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -235,20 +271,19 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (IFrame)
+	const float NewDamageAmount = DamageAmount * DefenceStat;
+	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
-		return 0;
+		GameState->DamageHealth(NewDamageAmount);
+		if (DamageAmount >= 10)
+		{
+			IFrame = true;
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
+		}
+		return NewDamageAmount;
 	}
-	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
-	{
-		GameState->DamageHealth(DamageAmount);
-		IFrame = true;
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIframe, 0.5, false);
-		return DamageAmount;
-	}
-	
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	return 0;
 }
 
 void APlayerCharacterBase::TickNotLocal()
@@ -271,7 +306,7 @@ void APlayerCharacterBase::TickNotLocal()
 	}
 }
 
-void APlayerCharacterBase::InterpolateCamera(FTransform& TargetTransform, const float LerpDuration)
+void APlayerCharacterBase::InterpolateCamera(FVector& TargetLocation, const float LerpDuration)
 {
 	if (!FollowCamera)
 	{
@@ -280,10 +315,10 @@ void APlayerCharacterBase::InterpolateCamera(FTransform& TargetTransform, const 
 	}
 	
 	CameraInterpStartLocation = FollowCamera->GetComponentLocation();
-	CameraInterpStartRotation = FollowCamera->GetComponentRotation();
+	//CameraInterpStartRotation = FollowCamera->GetComponentRotation();
 	
-	CameraInterpolateTargetLocation = TargetTransform.GetLocation();
-	CameraInterpolateTargetRotation = TargetTransform.Rotator();
+	CameraInterpolateTargetLocation = TargetLocation;
+	//CameraInterpolateTargetRotation = TargetTransform.Rotator();
 	
 	CameraInterpDuration = FMath::Max(0.01f, LerpDuration);
 	CameraInterpElapsed = 0.f;
@@ -346,12 +381,50 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacterBase::Server_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent)
+{
+	if (!EnhancedInputComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, EnhancedInputComponent is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!FirstAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	FirstAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	
+	if (!SecondAttackComponent)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackComp is Null"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!SecondAttackAction)
+	{
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackAction is Null"), *FString(__FUNCTION__));
+		return;
+
+	}
+	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+}
+
+void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
 }
 
-void APlayerCharacterBase::Multicast_SpawnHitParticles_Implementation()
+void APlayerCharacterBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
+	
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()
@@ -390,36 +463,53 @@ bool APlayerCharacterBase::Server_SetCustomPlayerName_Validate(const FString& In
 
 void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 {
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
+	
+	if (!GetPlayerState())
+	{
+		constexpr float InRate = 0.2f;
+		UE_LOG(PlayerBaseLog, Warning, TEXT("%hs, PlayerState is Null, retrying in %f"), __FUNCTION__, InRate);
+		FTimerHandle TimerHandle;
+
+		GetWorldTimerManager().SetTimer(TimerHandle, [this]()
+		                                {
+			                                SetUpLocalCustomPlayerName();
+		                                },
+		                                InRate, false);
+
+		return;
+	}
+
+	const int32 PlayerId = GetPlayerState()->GetPlayerId(); //FMath::RandRange(10, 99);		
+	InteractorComponent->Server_SetOwnerID(PlayerId);
+	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Local player id: %d"), __FUNCTION__, PlayerId);
+
+	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
 	if (!bChangedName)
 	{
 #if WITH_EDITORONLY_DATA
-		if (!bUsePlayerLoginProfile)
+		if (bUsePlayerLoginProfile)
 		{
-			const int32 RandomNum = FMath::RandRange(10, 99);
-			CustomPlayerName = FString::Printf(TEXT("Player_%d"), RandomNum);
-		}
-		else if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
-		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
+			{
+				NewName = PlayerLoginSystem->GetProfile().Username;
+			}
 		}
 #else
 		if (UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
 		{
-			CustomPlayerName = PlayerLoginSystem->GetProfile().Username;
+			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
 #endif
 		bChangedName = true;
-}
-		if (IsLocallyControlled())
-		{
-			Server_SetCustomPlayerName(CustomPlayerName);
-
-		}
-		OnRep_CustomPlayerName();
-	
-}
-
-void APlayerCharacterBase::ResetIframe()
-{
-	IFrame = false;
+	}
+	else
+	{
+		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
+	}
+	Server_SetCustomPlayerName(NewName);
+	OnRep_CustomPlayerName();
 }

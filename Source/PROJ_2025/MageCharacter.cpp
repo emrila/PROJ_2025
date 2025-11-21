@@ -7,7 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Player/Components/RangeAttackComp.h"
+#include "Player/Components/BasicAttackComps/RangeAttackComp.h"
 
 
 AMageCharacter::AMageCharacter()

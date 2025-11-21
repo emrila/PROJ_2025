@@ -3,13 +3,18 @@
 
 #include "BomberCharacter.h"
 
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "PhysicsEngine/ConstraintInstance.h"
 
 void ABomberCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ABomberCharacter, bIsDiving);
+	DOREPLIFETIME(ABomberCharacter, bIsExploding);
 }
 
 ABomberCharacter::ABomberCharacter()
@@ -21,8 +26,38 @@ ABomberCharacter::ABomberCharacter()
 
 void ABomberCharacter::HandleDeath()
 {
-	Server_SpawnExplosion(GetActorLocation(),GetActorRotation());
+	AAIController* AIController = Cast<AAIController>(GetController());
+	if (!AIController)
+	{
+		return;
+	}
+	UBlackboardComponent* BlackboardComponent = AIController->GetBlackboardComponent();
+	if (!BlackboardComponent)
+	{
+		return;
+	}
+	BlackboardComponent->SetValueAsBool("IsGonnaExplode", true);
+}
 
+void ABomberCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
+{
+	Super::HandleHit(DamageEvent, DamageCauser);
+
+		GetController()->StopMovement();
+		if (DamageCauser)
+		{
+			LaunchCharacter((FVector(0.f, 0.f, 0.5f) + DamageCauser->GetActorForwardVector()) * 500 , false, false);
+		}
+		else
+		{
+			LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);
+		}
+	
+}
+
+void ABomberCharacter::Server_Explode_Implementation()
+{
+	Server_SpawnExplosion(GetActorLocation(),GetActorRotation());
 	Super::HandleDeath();
 }
 

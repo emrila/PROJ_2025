@@ -25,11 +25,18 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bIsDiving = false;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	bool bIsExploding = false;
+
 	UFUNCTION(Server, Reliable)
 	void Server_SpawnExplosion(FVector SpawnLocation, FRotator SpawnRotation);
+
+	UFUNCTION(Server, Reliable, BlueprintCallable)
+	void Server_Explode();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ExplosionActor;
 	
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
 
 };

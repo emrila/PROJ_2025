@@ -44,7 +44,7 @@ void ACactusCharacter::Tick(float DeltaSeconds)
 		if (!Direction.IsNearlyZero())
 		{
 			FRotator TargetRot = Direction.Rotation();
-			FRotator NewRot = FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaSeconds, 1.5f);
+			FRotator NewRot = FMath::RInterpTo(GetActorRotation(), TargetRot, DeltaSeconds, InterpSpeed);
 			SetActorRotation(NewRot);
 		}
 	}

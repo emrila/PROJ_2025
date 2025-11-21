@@ -7,17 +7,25 @@
 #include "VotingBooth.generated.h"
 
 
-
 USTRUCT(Blueprintable)
 struct FCandidate
 {
 	GENERATED_BODY()
 
+	FORCEINLINE bool operator==(const FCandidate& Other) const
+	{
+		return (CandidateClass == Other.CandidateClass);
+	}
+	
 	UPROPERTY(BlueprintReadWrite)
 	int NumberOfVotes;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UObject* Object;
+	TSubclassOf<AActor> CandidateClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText Description;
+	
 };
 
 UCLASS()
@@ -39,18 +47,28 @@ protected:
 
 	
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
+public:
+	
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable)
 	void StartVote(int NumberOfChoices);
 
-	UPROPERTY(Replicated)
-	FCandidate Candidate;
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	TArray<FCandidate> Candidates;
 
+	UPROPERTY(Replicated, BlueprintReadWrite)
+	int Votes = 0;
+
+	UFUNCTION(BlueprintCallable)
+	void AttemptVote(FCandidate Candidate);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void Vote(FCandidate Candidate);
+
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void CheckResults();
 	
-
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void AddCandidate(FCandidate Candidate);
 	
 
 };

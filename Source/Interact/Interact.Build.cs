@@ -9,7 +9,7 @@ public class Interact : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core",
+                "Core", "Engine",
             }
         );
 
@@ -17,7 +17,6 @@ public class Interact : ModuleRules
             new string[]
             {
                 "CoreUObject",
-                "Engine",
                 "Slate",
                 "SlateCore"
             }

@@ -10,6 +10,7 @@
 #include "Chaos/ChaosPerfTest.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
 
@@ -148,9 +149,14 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		LootSpawnLocation->TriggerSpawn();
 	}
+	LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
+}
+
+void ARoomManagerBase::EnableExits()
+{
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
-	
+
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
@@ -160,7 +166,6 @@ void ARoomManagerBase::SpawnLoot()
 		}
 	}
 }
-
 
 /*
 public class dontRunThis

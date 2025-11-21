@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/AttributeData.h"
 #include "UpgradeDisplayData.generated.h"
 
 USTRUCT(BlueprintType)
@@ -19,13 +20,13 @@ struct FUpgradeDisplayData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Icon = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/VREditor/Devices/Vive/UE4_Logo.UE4_Logo")));
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
+	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
-	};
-	
+	};	
 	bool operator!=(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return !(*this == UpgradeData);
@@ -39,7 +40,7 @@ struct FPlayerUpgradeDisplayEntry
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName PlayerType = NAME_None;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
 };
@@ -47,7 +48,7 @@ struct FPlayerUpgradeDisplayEntry
 USTRUCT(BlueprintType)
 struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 {
-	GENERATED_USTRUCT_BODY()
+	GENERATED_BODY()
 
 	virtual void OnDataTableChanged(const UDataTable* InDataTable, const FName InRowName) override
 	{
@@ -57,22 +58,46 @@ struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FUpgradeDisplayData UpgradeDisplayData;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite upgrades"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bIsLinear = false;	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite upgrades", editcondition = "bIsLinear", editconditionHides))
 	int32 MaxNumberOfUpgrades = -1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite downgrades"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "-1 = Infinite downgrades", editcondition = "bIsLinear", editconditionHides))
 	int32 MaxNumberOfDowngrades = -1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value += InitialValue * Multiplier"))
-	float Multiplier = 0.1f;
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value  * Multiplier", editcondition = "bIsLinear", editconditionHides))
+	FModiferData ModifierData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta =(TitleProperty="Multiplier", editcondition = "!bIsLinear", editconditionHides))
+	TArray<FModiferData> UpgradeModifiers =
+	{
+		FModiferData()
+	};
+	
+#if WITH_EDITORONLY_DATA
+	UPROPERTY(EditAnywhere)
+	FName DevComment = NAME_None;
+#endif
+	
+	
+	FModiferData GetModifier(const int32 Level) const 
+	{
+		return bIsLinear ? ModifierData : UpgradeModifiers[Level];
+	}
+	
 	bool CanUpgrade(const int32 CurrentLevel) const
 	{
-		return MaxNumberOfUpgrades > CurrentLevel || MaxNumberOfUpgrades == -1;
+		return bIsLinear
+			       ? MaxNumberOfUpgrades > CurrentLevel || MaxNumberOfUpgrades == -1
+			       : UpgradeModifiers.IsValidIndex(CurrentLevel + 1);
 	}
-
+	
 	bool CanDowngrade(const int32 CurrentLevel) const
 	{
-		return MaxNumberOfDowngrades < CurrentLevel || MaxNumberOfDowngrades == -1;
-	}
+		return bIsLinear
+			       ? MaxNumberOfDowngrades < CurrentLevel || MaxNumberOfDowngrades == -1
+			       : UpgradeModifiers.IsValidIndex(CurrentLevel - 1);
+	}	
 };

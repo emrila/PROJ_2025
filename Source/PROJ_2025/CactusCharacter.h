@@ -33,6 +33,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool bIsBurrowing;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float InterpSpeed = 1.5f;
+
 protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;

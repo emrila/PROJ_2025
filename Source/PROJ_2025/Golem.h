@@ -22,8 +22,20 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool Charging;
 
+	UPROPERTY(ReplicatedUsing= OnRep_Death, BlueprintReadWrite)
+	bool Dead;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void OnRep_Death();
+
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
-	virtual void HandleHit() override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	
+	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
+
+	virtual void HandleDeath() override;
+	
+	void Die();
 	
 };
