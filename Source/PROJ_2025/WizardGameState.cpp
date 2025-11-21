@@ -5,7 +5,9 @@
 
 #include "VectorUtil.h"
 #include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
 
 void AWizardGameState::BeginPlay()
@@ -73,6 +75,17 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	HealthPercent = Health/MaxHealth;
 
 	OnRep_Health();
+
+	if (HealthPercent <= 0)
+	{
+		for (APlayerState* Player : PlayerArray)
+		{
+			if (Player->GetPawn())
+			{
+				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+			}
+		}
+	}
 	
 }
 
@@ -83,6 +96,31 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 	HealthPercent = Health/MaxHealth;
 
 	OnRep_Health();
+
+	if (HealthPercent > 0)
+	{
+		for (APlayerState* Player : PlayerArray)
+		{
+			if (Player->GetPawn())
+			{
+				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
+				{
+					PlayerCharacter->EndSuddenDeath();
+					PlayerCharacter->SetIsAlive(true);
+				}
+			}
+		}
+	}
+	if (HealthPercent <= 0)
+	{
+		for (APlayerState* Player : PlayerArray)
+		{
+			if (Player->GetPawn())
+			{
+				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+			}
+		}
+	}
 }
 
 void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
@@ -94,6 +132,21 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 	HealthPercent = Health/MaxHealth;
 
 	OnRep_Health();
+
+	if (HealthPercent > 0)
+	{
+		for (APlayerState* Player : PlayerArray)
+		{
+			if (Player->GetPawn())
+			{
+				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
+				{
+					PlayerCharacter->EndSuddenDeath();
+					PlayerCharacter->SetIsAlive(true);
+				}
+			}
+		}
+	}
 }
 
 void AWizardGameState::SetMaxHealth_Implementation(float HealthAmount)
