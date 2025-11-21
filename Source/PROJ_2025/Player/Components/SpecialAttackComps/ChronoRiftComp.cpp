@@ -52,6 +52,11 @@ void UChronoRiftComp::StartAttack()
 		return;
 	}
 
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
+
 	bShouldLaunch = true;
 	TryLockingTargetArea();
 
@@ -228,6 +233,10 @@ void UChronoRiftComp::OnStartLockingCanceled(const FInputActionInstance& InputAc
 
 void UChronoRiftComp::PrepareForLaunch()
 {
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
 	//Handle animation and spawning the circle here
 	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Chrono Rift Launch!"));
 }
