@@ -278,6 +278,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		if (SuddenDeath)
 		{
 			bIsAlive = false;
+			GameState->SetHealth(GameState->Health);
 			return 0;
 		}
 	
