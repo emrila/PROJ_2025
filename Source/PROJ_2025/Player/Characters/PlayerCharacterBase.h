@@ -222,7 +222,8 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
-	
+
+	UPROPERTY(Replicated)
 	bool SuddenDeath;
 
 	//Handle editor debug
