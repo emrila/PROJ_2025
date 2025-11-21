@@ -27,11 +27,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
-protected:
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Stats")
 	float Health;
-
+	
+	UPROPERTY(BlueprintReadOnly)
+	float DamageMultiplier = 1.f;
+	
+protected:
+	
 	virtual void HandleDeath();
 
 	UFUNCTION(NetMulticast, Reliable)

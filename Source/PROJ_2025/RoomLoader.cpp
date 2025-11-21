@@ -31,6 +31,26 @@ void ARoomLoader::Multicast_AddProgressWidget_Implementation()
 	}
 }
 
+void ARoomLoader::IncrementProgress(const bool CountAsClearedRoom)
+{
+	if (CountAsClearedRoom)
+	{
+		ClearedRooms++;
+	}
+	OneTwoThreeScale++;
+	if (OneTwoThreeScale >= 3)
+	{
+		OneTwoThreeScale = 0;
+		DungeonScaling += IncrementPerScale;
+	}
+	
+}
+
+float ARoomLoader::GetDungeonScaling() const
+{
+	return DungeonScaling;
+}
+
 void ARoomLoader::RegisterNextRoom(URoomData* RoomData)
 {
 	if (PastSevenRooms.Num() > 6)
