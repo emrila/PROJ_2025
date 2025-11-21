@@ -65,7 +65,7 @@ struct FAttributeBase
 	void SetValueInContainer(const T& InValue);
 
 	template <typename T, class PropType>
-	bool ModifyContainer(const FModiferData ModifierData);
+	bool AttemptModifyContainer(const FModiferData ModifierData);
 };
 
 template <typename T, class PropType>
@@ -87,7 +87,7 @@ void FAttributeBase::SetValueInContainer(const T& InValue)
 }
 
 template <typename T, class PropType>
-bool FAttributeBase::ModifyContainer(const FModiferData ModifierData)
+bool FAttributeBase::AttemptModifyContainer(const FModiferData ModifierData)
 {
 	const T NewValue = ModifierData.ApplyModifier<T>(GetValueFromContainer<T, PropType>());
 	SetValueInContainer<T, PropType>(NewValue);
