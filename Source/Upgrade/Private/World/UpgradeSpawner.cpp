@@ -3,6 +3,7 @@
 
 #include "World/UpgradeSpawner.h"
 
+#include "Interactor.h"
 #include "Core/UpgradeComponent.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
@@ -18,8 +19,11 @@ AUpgradeSpawner::AUpgradeSpawner()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 	
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(RootComponent);
+	
 	SpawnSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SpawnSplineComponent"));
-	SpawnSplineComponent->SetupAttachment(RootComponent);
+	SpawnSplineComponent->SetupAttachment(RootComponent);	
 	
 	bReplicates = true;
 
@@ -78,9 +82,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		return;
 	}
 	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
-	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp
-															? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives)
-															: TArray<FUpgradeDisplayData>();	
+	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives) : TArray<FUpgradeDisplayData>();	
 
 	const float SplineLength = SpawnSplineComponent->GetSplineLength();
    	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
@@ -139,8 +141,7 @@ void AUpgradeSpawner::BeginPlay()
 	if (bSpawnOnBeginPlay) 
 	{
 		TriggerSpawn();
-	}
-	
+	}	
 }
 
 void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
@@ -154,8 +155,7 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 	{
 		if (UpgradeAlternativePair.Alternative)
 		{
-			//TODO: Lock function (handle the edge case -> non-selected alternative stuck on hover effect			
-			UpgradeAlternativePair.Alternative->bLocked = true;				 
+			UpgradeAlternativePair.Alternative->SetLocked(true);	 
 			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
 		}		
 	}
@@ -200,4 +200,23 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 			SetActorTickEnabled(false);
 		}
 	}
+}
+
+void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
+{
+	if (!Execute_CanInteract(this))
+	{
+		return;
+	}
+	TriggerSpawn();
+	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
+	{
+		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+	}
+		
+}
+
+bool AUpgradeSpawner::CanInteract_Implementation()
+{
+	return UpgradeAlternativePairs.IsEmpty();
 }

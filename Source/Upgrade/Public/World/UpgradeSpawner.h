@@ -28,7 +28,7 @@ struct FUpgradeAlternativePair
 };
 
 UCLASS()
-class UPGRADE_API AUpgradeSpawner : public AActor
+class UPGRADE_API AUpgradeSpawner : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 
@@ -72,6 +72,9 @@ private:
 	TObjectPtr<USceneComponent> SceneComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UStaticMeshComponent> MeshComponent; 
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
@@ -94,9 +97,12 @@ private:
 
 public:
 	virtual void Tick(float DeltaSeconds) override;
+	
+	virtual void OnInteract_Implementation(UObject* Interactor = nullptr) override;
+	virtual bool CanInteract_Implementation() override;
 
 private:
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))
 	bool bSpawnOnBeginPlay = true;
 	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))

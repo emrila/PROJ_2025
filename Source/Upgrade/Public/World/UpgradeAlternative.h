@@ -30,8 +30,7 @@ public:
 
 protected:
 	
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;	
 	virtual void Tick(float DeltaTime) override;
 	
 	void SelectUpgrade();		
@@ -42,8 +41,11 @@ protected:
 	UFUNCTION()
 	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	void SetLocked(bool bToggle);
+	void SetFocus(bool bToggle);
 private:	
 	bool IsTargetLocalPlayer(const AActor* OtherActor) const;
+
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
