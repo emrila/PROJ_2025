@@ -4,19 +4,23 @@
 #include "CactusCharacter.h"
 
 #include "AIController.h"
+#include "EnemySubAttack.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Net/UnrealNetwork.h"
 
 void ACactusCharacter::Server_ShootProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
 {
-	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation);
+	AActor* Projectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation);
+	Cast<AEnemySubAttack>(Projectile)->DamageMultiplier = DamageMultiplier;
+
 }
 
 void ACactusCharacter::Server_SpawnSpikeExplosion_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
 {
 	if (!HasAuthority()) return;
 	
-	GetWorld()->SpawnActor<AActor>(SpikeExplosionClass, GetActorLocation(),GetActorRotation());
+	AActor* Explosion = GetWorld()->SpawnActor<AActor>(SpikeExplosionClass, GetActorLocation(),GetActorRotation());
+	Cast<AEnemySubAttack>(Explosion)->DamageMultiplier = DamageMultiplier;
 }
 
 void ACactusCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const

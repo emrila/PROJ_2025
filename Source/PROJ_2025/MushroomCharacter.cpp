@@ -27,14 +27,17 @@ void AMushroomCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
 
 void AMushroomCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)
 {
-	Super::HandleHit(DamageEvent, DamageCauser);
-	GetController()->StopMovement();
-	if (DamageCauser)
+	if (AController* ControllerNullCheck = GetController())
 	{
-		LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
-	}else
-	{
-		LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);
+		Super::HandleHit(DamageEvent, DamageCauser);
+		ControllerNullCheck->StopMovement();
+		if (DamageCauser)
+		{
+			LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
+		}else
+		{
+			LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);
+		}
 	}
 }
 

@@ -33,19 +33,36 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	int ClearedRooms = 0;
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	void IncrementProgress(const bool CountAsClearedRoom);
+	
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	float GetDungeonScaling() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void RegisterNextRoom(URoomData* RoomData);
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	TArray<URoomData*> GetPreviousRooms();
-
-
+	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scaling")
+	float IncrementPerScale = 0.2f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scaling")
+	int OneTwoThreeScale = 0;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int ClearedRooms = 0;
 protected:
 	virtual void BeginPlay() override;
 private:
+	UPROPERTY()
+	float DungeonScaling = 1.f;
+	
+	
+	
+	
 	UPROPERTY(Replicated)
 	TArray<URoomData*> PastSevenRooms;
 	
