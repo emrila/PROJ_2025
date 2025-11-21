@@ -58,6 +58,11 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 
 	bCanAttack = false;
 
+	if (OnCooldownTimerStarted.IsBound())
+	{
+		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+	}
+
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
