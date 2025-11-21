@@ -25,7 +25,12 @@ void UAttackComponentBase::StartAttack()
 	}
 
 	bCanAttack = false;
-
+	
+	
+	if (OnCooldownTimerStarted.IsBound())
+	{
+		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+	}
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
