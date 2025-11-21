@@ -163,6 +163,11 @@ void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInterac
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
 }
 
+FName UInteractorComponent::GetOwnerName_Implementation() const
+{
+	return GetOwner() ? GetOwner()->GetFName() : NAME_None;
+}
+
 int32 UInteractorComponent::GetOwnerID_Implementation() const
 {	
 	return OwnerID;

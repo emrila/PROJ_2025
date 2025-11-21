@@ -102,6 +102,7 @@ public:
 		return InteractionDistance;
 	}
 
+	virtual FName GetOwnerName_Implementation() const override;
 
 
 #if WITH_EDITORONLY_DATA

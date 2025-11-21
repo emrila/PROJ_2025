@@ -65,6 +65,7 @@ void AUpgradeAlternative::SelectUpgrade()
 {
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
+		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 		UpgradeWidget->OnUpgradeSelected(bSelected);
 	}
 	if (bSelected && !bLocked)
@@ -96,10 +97,13 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
+	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
+
 	bSelected = true;
+	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
 	SelectUpgrade();
-	
-	if (!Interactor || !Interactor->Implements<IInteractor::UClassType>())
+
+	if (bIsInteractor)
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 		return;

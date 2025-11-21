@@ -37,4 +37,8 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	int32 GetOwnerID() const;
 	virtual int32 GetOwnerID_Implementation() const;
+	
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
+	FName GetOwnerName() const;
+	virtual FName GetOwnerName_Implementation() const;
 };

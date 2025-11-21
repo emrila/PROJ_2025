@@ -23,6 +23,9 @@ struct FUpgradeDisplayData
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
 	
+	UPROPERTY(BlueprintReadWrite)
+	FName TargetName = NAME_None;
+	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
