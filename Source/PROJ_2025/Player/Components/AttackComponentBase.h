@@ -9,6 +9,9 @@ class UInputAction;
 class UEnhancedInputComponent;
 class APlayerCharacterBase;
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownTimerStarted, float, CurrentCoolDownTime);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
@@ -40,6 +43,9 @@ public:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect);
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnCooldownTimerStarted OnCooldownTimerStarted;
 
 protected:
 	virtual void BeginPlay() override;
@@ -67,4 +73,7 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
+	
+	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	float UpgradeMultiplier = 1.f;
 };
