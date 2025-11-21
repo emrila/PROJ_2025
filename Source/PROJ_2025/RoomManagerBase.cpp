@@ -148,8 +148,11 @@ void ARoomManagerBase::SpawnLoot()
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->TriggerSpawn();
+		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
+	}else
+	{
+		EnableExits();
 	}
-	LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
 }
 
 void ARoomManagerBase::EnableExits()

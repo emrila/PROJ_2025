@@ -33,6 +33,7 @@ void AEnemyBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(AEnemyBase, Health);
 }
 
+
 void AEnemyBase::HandleDeath()
 {
 	if (CombatManager && CombatManager->HasAuthority())

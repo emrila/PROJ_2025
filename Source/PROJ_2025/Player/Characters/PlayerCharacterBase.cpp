@@ -268,6 +268,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, CustomPlayerName);
 	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
+	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -278,6 +279,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		if (SuddenDeath)
 		{
 			bIsAlive = false;
+			GameState->OnRep_Health();
 			return 0;
 		}
 	
