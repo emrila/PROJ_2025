@@ -267,6 +267,8 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(APlayerCharacterBase, CustomPlayerName);
 	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
+	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
+	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -274,6 +276,14 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	const float NewDamageAmount = DamageAmount * DefenceStat;
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
+		if (SuddenDeath)
+		{
+			bIsAlive = false;
+			GameState->OnRep_Health();
+			return 0;
+		}
+	
+	
 		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
@@ -282,6 +292,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 		}
 		return NewDamageAmount;
+		
 	}
 	return 0;
 }
@@ -327,7 +338,7 @@ void APlayerCharacterBase::InterpolateCamera(FVector& TargetLocation, const floa
 
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
-	if (!bShouldUseMoveInput)
+	if (!bShouldUseMoveInput || !bIsAlive)
 	{
 		return;
 	}
@@ -359,8 +370,12 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
 		return;
 	}
+	if (bIsAlive)
+	{
+		GetFirstAttackComponent()->StartAttack();
+	}
 
-	GetFirstAttackComponent()->StartAttack();
+	
 }
 
 void APlayerCharacterBase::UseSecondAttackComponent()
@@ -370,12 +385,15 @@ void APlayerCharacterBase::UseSecondAttackComponent()
 		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
 		return;
 	}
-	GetSecondAttackComponent()->StartAttack();
+	if (bIsAlive)
+	{
+		GetSecondAttackComponent()->StartAttack();
+	}
 }
 
 void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 {
-	if (InteractorComponent)
+	if (InteractorComponent && bIsAlive)
 	{
         InteractorComponent->Execute_OnInteract(InteractorComponent,InteractorComponent->GetTargetInteractable().GetObject());
 	}
@@ -425,6 +443,16 @@ void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& Effe
 void APlayerCharacterBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
 {
 	
+}
+
+void APlayerCharacterBase::StartSuddenDeath()
+{
+	SuddenDeath = true;
+}
+
+void APlayerCharacterBase::EndSuddenDeath()
+{
+	SuddenDeath = false;
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()

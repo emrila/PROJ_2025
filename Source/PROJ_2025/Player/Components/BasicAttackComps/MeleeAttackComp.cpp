@@ -26,6 +26,11 @@ void UMeleeAttackComp::StartAttack()
 		return;
 	}
 
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
+
 	SetCurrentAnimIndex();
 
 	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)

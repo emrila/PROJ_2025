@@ -51,6 +51,10 @@ public:
 	virtual void StartIFrame() { IFrame = true;}
 	
 	virtual void ResetIFrame() { IFrame = false;}
+
+	virtual bool IsAlive() const { return bIsAlive; }
+
+	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
 	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
@@ -67,6 +71,14 @@ public:
 	//TODO: This may be moved to the belonging attack component
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Particles")
 	UNiagaraSystem* ImpactParticles;
+
+	UFUNCTION()
+	void StartSuddenDeath();
+
+	UFUNCTION()
+	void EndSuddenDeath();
+
+	
 
 protected:
 	//Handle override parent functions
@@ -141,6 +153,9 @@ protected:
 	
 	bool bShouldUseMoveInput = true;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (AllowPrivateAccess = true))
+	bool bIsAlive = true;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;
 
@@ -194,6 +209,9 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
+
+
+
 private:
 	//Handle nametag	
 	UFUNCTION()
@@ -204,6 +222,9 @@ private:
 
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
+
+	UPROPERTY(Replicated)
+	bool SuddenDeath;
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

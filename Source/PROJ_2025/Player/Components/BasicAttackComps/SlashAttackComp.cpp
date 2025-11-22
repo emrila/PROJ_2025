@@ -26,6 +26,11 @@ void USlashAttackComp::StartAttack()
 	
 	Super::StartAttack();
 
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
+
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));

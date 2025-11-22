@@ -17,6 +17,11 @@ void URangeAttackComp::StartAttack()
 	}
 	Super::StartAttack();
 	
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
+	
 	if (!ProjectileClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("MageFirstAttackComp, StartAttack, ProjectileClass is NULL!"));

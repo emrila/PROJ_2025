@@ -29,6 +29,11 @@ void UShadowStrikeAttackComp::StartAttack()
 		return;
 	}
 
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
+
 	TryLockingTarget();
 
 	if (LockedTarget)
@@ -194,6 +199,10 @@ void UShadowStrikeAttackComp::OnAttackCanceled(const FInputActionInstance& Actio
 
 void UShadowStrikeAttackComp::PrepareForAttack()
 {
+	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	{
+		return;
+	}
 	//TODO: Handle before attack animation here
 	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Shadow Strike Attack!"));
 }

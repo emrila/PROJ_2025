@@ -35,10 +35,6 @@ void APlayerControllerBase::BeginPlay()
 		ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
 	}
 	
-	if (HudWidget)
-	{
-		HudWidget->AddToViewport();
-	}
 }
 
 void APlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)

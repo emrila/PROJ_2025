@@ -6,6 +6,8 @@
 #include "BomberCharacter.h"
 #include "EnemySpawn.h"
 #include "MushroomCharacter.h"
+#include "RoomLoader.h"
+#include "WizardGameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -49,6 +51,10 @@ void ACombatManager::StartWave_Internal(int index)
 	}
 	RemainingEnemies = Sum;
 	TMap<EEnemyType, TArray<AEnemySpawn*>> EnemyLocationsCopy = EnemyLocations;
+	
+	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+	float DungeonScaling = GI->RoomLoader->GetDungeonScaling();
+	
 	for (const TPair<EEnemyType, int> Pair : Waves[index].EnemyCounts)
 	{
 		TArray<AEnemySpawn*> Spawns = EnemyLocationsCopy[Pair.Key];
@@ -72,6 +78,9 @@ void ACombatManager::StartWave_Internal(int index)
 			if (AEnemyBase* Enemy = Cast<AEnemyBase>(SpawnedActor))
 			{
 				Enemy->CombatManager = this;
+				Enemy->Health = Enemy->Health * DungeonScaling;
+				Enemy->DamageMultiplier = DungeonScaling;
+				UE_LOG(LogTemp, Warning, TEXT("Spawned enemy with scaling %f"), DungeonScaling);
 			}
 			Spawns.RemoveAt(RandomIndex);
 
