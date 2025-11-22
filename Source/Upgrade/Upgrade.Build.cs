@@ -16,7 +16,7 @@ public class Upgrade : ModuleRules
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "CoreUObject", "Engine", "Slate", "SlateCore", "UMG", "AdvancedSessions"
+                "CoreUObject", "Engine", "Slate", "SlateCore", "UMG"
             }
         );
     }
