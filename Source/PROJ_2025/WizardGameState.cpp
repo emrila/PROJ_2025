@@ -16,6 +16,17 @@ void AWizardGameState::BeginPlay()
 	SetHealth(MaxHealth);
 }
 
+void AWizardGameState::PlayerEnteredStartDungeon_Implementation(bool Entered)
+{
+	if (Entered)
+	{
+		PlayersInStartDungeon++;
+	}else
+	{
+		PlayersInStartDungeon--;
+	}
+}
+
 void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -27,8 +38,12 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, TankSelected);
 	DOREPLIFETIME(AWizardGameState, RogueSelected);
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
+	DOREPLIFETIME(AWizardGameState, CurrentPlayerCount);
+	DOREPLIFETIME(AWizardGameState, PlayersInStartDungeon);
 	
 }
+
+
 
 bool AWizardGameState::SetHealth_Validate(float HealthAmount)
 {

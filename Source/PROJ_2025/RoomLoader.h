@@ -26,9 +26,8 @@ public:
 	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Rooms")
 	void LoadNextRoom(URoomData* NextRoomData);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_AddProgressWidget();
+	
+	void AddProgressWidget();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
@@ -43,35 +42,34 @@ public:
 	void RegisterNextRoom(URoomData* RoomData);
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
-	TArray<URoomData*> GetPreviousRooms();
+	TArray<ERoomType> GetPreviousRooms();
 	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scaling")
 	float IncrementPerScale = 0.2f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scaling")
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Scaling")
 	int OneTwoThreeScale = 0;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(Replicated, BlueprintReadOnly)
 	int ClearedRooms = 0;
 protected:
 	virtual void BeginPlay() override;
 private:
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	float DungeonScaling = 1.f;
 	
-	
-	
-	
-	UPROPERTY(Replicated)
-	TArray<URoomData*> PastSevenRooms;
+	UPROPERTY(ReplicatedUsing=OnRep_PastSevenRooms)
+	TArray<ERoomType> PastSevenRooms;
+
+	UFUNCTION()
+	void OnRep_PastSevenRooms();
 	
 	UPROPERTY(Replicated)
 	URoomData* PendingNextRoomData = nullptr;
 
 	FTimerHandle UnloadCheckHandle;
 	
-	void CheckLevelUnloaded();
 
 	UFUNCTION()
 	void OnNextLevelLoaded();

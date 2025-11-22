@@ -32,7 +32,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
 
-
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void PlayerEnteredStartDungeon(bool Entered);
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -59,5 +60,11 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	TArray<UWidget*> SelectionWidgets;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int32 CurrentPlayerCount;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int32 PlayersInStartDungeon;
 	
 };
