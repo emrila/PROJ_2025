@@ -11,9 +11,7 @@
 void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ARoomLoader, CurrentRoom);
-	DOREPLIFETIME(ARoomLoader, PendingNextRoomData);
+	
 	DOREPLIFETIME(ARoomLoader, PastSevenRooms);
 	DOREPLIFETIME(ARoomLoader, OneTwoThreeScale);
 	DOREPLIFETIME(ARoomLoader, ClearedRooms);
@@ -73,11 +71,11 @@ TArray<ERoomType> ARoomLoader::GetPreviousRooms()
 }
 
 
-void ARoomLoader::LoadNextRoom_Implementation(URoomData* NextRoomData)
+void ARoomLoader::LoadNextRoom_Implementation(const FRoomInstance& NextRoomData)
 {
 	PendingNextRoomData = NextRoomData;
 	UWorld* World = GetWorld();
-	if (!World || !PendingNextRoomData) return;
+	if (!World || !PendingNextRoomData.RoomData) return;
 	if (!CurrentLoadedLevelName.IsNone())
 	{
 		FLatentActionInfo UnloadInfo;
@@ -111,22 +109,22 @@ void ARoomLoader::OnNextLevelLoaded()
 	AActor* RoomManagerActor = UGameplayStatics::GetActorOfClass(GetWorld(), ARoomManagerBase::StaticClass());
 	if (ARoomManagerBase* RoomManager = Cast<ARoomManagerBase>(RoomManagerActor))
 	{
-		RoomManager->OnRoomInitialized();
+		RoomManager->OnRoomInitialized(CurrentRoom);
 	}
 }
 
 
 void ARoomLoader::OnPreviousLevelUnloaded()
 {
-	if (!PendingNextRoomData)
+	if (!PendingNextRoomData.RoomData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("PendingNextRoomData is null, skipping level load."));
 		return;
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
-	   *PendingNextRoomData->RoomLevel.ToString()));
+	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
-	FString LevelName = PendingNextRoomData->RoomLevel.GetAssetName();
+	FString LevelName = PendingNextRoomData.RoomData->RoomLevel.GetAssetName();
 
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
@@ -145,7 +143,6 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
 	CurrentLoadedLevelName = FName(LevelName);
 	CurrentRoom = PendingNextRoomData;
-	PendingNextRoomData = nullptr;
 	
 
 }

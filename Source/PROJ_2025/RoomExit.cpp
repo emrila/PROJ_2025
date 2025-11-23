@@ -17,7 +17,7 @@ void ARoomExit::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ARoomExit, LinkedRoomData);
+	DOREPLIFETIME(ARoomExit, LinkedRoomInstance);
 	DOREPLIFETIME(ARoomExit, CanExit);
 }
 

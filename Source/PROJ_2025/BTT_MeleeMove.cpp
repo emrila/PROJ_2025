@@ -66,7 +66,6 @@ void UBTT_MeleeMove::CheckIfOutOfRangeFromTarget()
 		return;
 	}
 	float Distance = FVector::Dist(Mushroom->GetActorLocation(), TargetActor->GetActorLocation());
-	UE_LOG(LogTemp, Warning, TEXT("%f"), Distance);
 	if (Distance >= InterruptRange)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
@@ -83,8 +82,7 @@ void UBTT_MeleeMove::CheckIfOutOfRangeFromTarget()
 
 void UBTT_MeleeMove::TimedOut()
 {
-
-	UE_LOG(LogTemp, Error, TEXT("TimedOut"));
+	
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
 	Blackboard->SetValueAsBool("MeleeAttack", false);
 	if (AMushroomCharacter* MushroomChar = Cast<AMushroomCharacter>(Mushroom))
