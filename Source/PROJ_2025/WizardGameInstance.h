@@ -6,6 +6,7 @@
 #include "AdvancedFriendsGameInstance.h"
 #include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
+#include "RoomModifierBase.h"
 #include "WizardGameInstance.generated.h"
 
 
@@ -29,7 +30,8 @@ public:
 	class ARoomLoader* RoomLoader = nullptr;
 	
 	
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 	
 private:
 	float ChanceForCamp = 0.f;

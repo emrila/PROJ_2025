@@ -17,15 +17,15 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Rooms")
-	URoomData* CurrentRoom = nullptr;
+	UPROPERTY(BlueprintReadWrite, Category = "Rooms")
+	FRoomInstance CurrentRoom;
 
 
 	UPROPERTY()
 	FName CurrentLoadedLevelName;
 	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Rooms")
-	void LoadNextRoom(URoomData* NextRoomData);
+	void LoadNextRoom(const FRoomInstance& NextRoomData);
 	
 	void AddProgressWidget();
 	
@@ -65,8 +65,8 @@ private:
 	UFUNCTION()
 	void OnRep_PastSevenRooms();
 	
-	UPROPERTY(Replicated)
-	URoomData* PendingNextRoomData = nullptr;
+	UPROPERTY()
+	FRoomInstance PendingNextRoomData;
 
 	FTimerHandle UnloadCheckHandle;
 	

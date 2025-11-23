@@ -8,6 +8,7 @@
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
 #include "Chaos/ChaosPerfTest.h"
+#include "RoomExit.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -20,9 +21,20 @@ ARoomManagerBase::ARoomManagerBase()
 
 }
 
-void ARoomManagerBase::OnRoomInitialized()
+void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
+
+	for (URoomModifierBase* Mod : Room.ActiveModifiers)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Mod"));
+		if (!Mod)
+		{
+			continue;
+		}
+		UE_LOG(LogTemp, Display, TEXT("Modpassednullcheck"));
+		Mod->OnRoomEntered(this);
+	}
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
@@ -64,9 +76,9 @@ void ARoomManagerBase::OnRoomInitialized()
 		ChosenRooms.Add(GI->GetCampRoomData());
 	}
 
-	if (GI->RoomLoader->CurrentRoom != nullptr)
+	if (Room.RoomData)
 	{
-		AllRooms.Remove(GI->RoomLoader->CurrentRoom);
+		AllRooms.Remove(Room.RoomData);
 	}
 	if (AllRooms.Num() <= 0)
 	{
@@ -102,7 +114,30 @@ void ARoomManagerBase::OnRoomInitialized()
 		if (!RoomExits[i]) continue;
 
 		URoomData* RoomData = ChosenRooms.IsValidIndex(i) ? ChosenRooms[i] : nullptr;
-		RoomExits[i]->LinkedRoomData = RoomData;
+		FRoomInstance RoomInstance;
+		RoomInstance.RoomData = RoomData;
+		const float ChanceForModifiers = 0.05f;
+		if (FMath::FRand() <= ChanceForModifiers)
+		{
+			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
+			{
+				TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
+
+				if (Mods.Num() > 0)
+				{
+					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
+					TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
+
+					URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
+					RoomInstance.ActiveModifiers.Add(ModInstance);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
+			}
+		}
+		RoomExits[i]->LinkedRoomInstance = RoomInstance;
 
 		if (RoomData)
 		{
@@ -145,6 +180,7 @@ void ARoomManagerBase::OnRoomInitialized()
 
 void ARoomManagerBase::SpawnLoot()
 {
+	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->TriggerSpawn();
