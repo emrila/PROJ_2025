@@ -14,9 +14,12 @@ struct FModiferData
 	GENERATED_BODY()
 	FModiferData() = default;
 
-	FModiferData(const float InMultiplier, const bool bInRemoveModifier) : Multiplier(InMultiplier), bRemoveModifier(bInRemoveModifier)	{}
+	//FModiferData(const float InMultiplier, const bool bInRemoveModifier) : Multiplier(InMultiplier), bRemoveModifier(bInRemoveModifier)	{}
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value * Multiplier"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Should the initial value be added to or multiplied by the Multiplier"))
+	bool bUseAddition = false;	
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value * Multiplier OR value + Multiplier"))
 	float Multiplier = 0.1f;
 	
 	bool bRemoveModifier = false;
@@ -24,11 +27,12 @@ struct FModiferData
 	template <typename T>
 	T ApplyModifier(const T& BaseValue) const
 	{
-		if (bRemoveModifier)
+		return bUseAddition ? BaseValue + Multiplier : BaseValue * Multiplier;
+		/*if (bRemoveModifier)
 		{
-			return BaseValue /*- BaseValue */* Multiplier;
+			return BaseValue /*- BaseValue #1#* Multiplier;
 		}
-		return BaseValue /*+ BaseValue */* Multiplier;
+		return BaseValue /*+ BaseValue #1#* Multiplier;*/
 	}	
 };
 
@@ -48,7 +52,7 @@ struct FAttributeBase
 	FProperty* Property = nullptr;
 
 	FName RowName;
-	int32 CurrentUpgradeLevel = 1;
+	int32 CurrentUpgradeLevel = 0;
 
 	FOnAttributeModified OnAttributeModified;
 	FOnAttributeModified OnRemoveModifier;
@@ -56,7 +60,10 @@ struct FAttributeBase
 
 	static bool IsValidProperty(const FProperty* Property);
 
-	virtual void Modify(const FModiferData ModifierData){}
+	virtual bool Modify(const FModiferData ModifierData)
+	{
+		return false;
+	}
 
 	template <typename T, class PropType>
 	T GetValueFromContainer() const;
@@ -96,14 +103,6 @@ bool FAttributeBase::AttemptModifyContainer(const FModiferData ModifierData)
 	{
 		return false;
 	}
-	if (ModifierData.bRemoveModifier)
-	{
-		CurrentUpgradeLevel--;
-	}
-	else
-	{
-		CurrentUpgradeLevel++;
-	}
 	return true;
 }
 
@@ -118,7 +117,7 @@ struct FAttributeFloat : public FAttributeBase
 		InitialValue = GetValueFromContainer<float, FFloatProperty>();
 	}
 
-	virtual void Modify(FModiferData ModifierData) override;
+	virtual bool Modify(FModiferData ModifierData) override;
 	float InitialValue = 0.f;
 };
 
@@ -133,6 +132,6 @@ struct FAttributeInt32 : public FAttributeBase
 		InitialValue = GetValueFromContainer<int32, FIntProperty>();
 	}
 
-	virtual void Modify(FModiferData ModifierData) override;
+	virtual bool Modify(FModiferData ModifierData) override;
 	int32 InitialValue = 0.f;
 };

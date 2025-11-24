@@ -61,8 +61,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION()
-	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
 
 	UFUNCTION()
 	void LockUpgradeAlternatives();
@@ -107,9 +105,6 @@ private:
 	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
 	int32 TotalUpgradeNeededForCompletion = 3;
-	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
-	int32 CompletedUpgrades = 0;
 	
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Spawner|Events", meta=(AllowPrivateAccess=true))

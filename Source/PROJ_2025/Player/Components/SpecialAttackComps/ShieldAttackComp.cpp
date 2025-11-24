@@ -142,7 +142,7 @@ float UShieldAttackComp::GetAttackCooldown() const
 
 float UShieldAttackComp::GetDamageAmount() const
 {
-	if (AttackDamageModifier == 1.f)
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
 	{
 		return Super::GetDamageAmount();
 	}

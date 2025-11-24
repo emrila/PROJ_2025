@@ -245,6 +245,16 @@ void APlayerCharacterBase::BeginPlay()
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+		
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		
 	}
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
