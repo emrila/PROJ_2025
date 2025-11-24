@@ -26,6 +26,8 @@ public:
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
 	
 	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter) { OwnerCharacter = NewOwnerCharacter; }
+
+	APlayerCharacterBase* GetOwnerCharacter() const { return OwnerCharacter; }
 	
 	void SetDurability(const float Value) { Durability = Value; }
 
@@ -57,6 +59,9 @@ protected:
 	float DamageAmount = 20.0f;
 	
 	float Durability = 10.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float KnockbackForce = 1000.f;
 	
 	UPROPERTY()
 	APlayerCharacterBase* OwnerCharacter;

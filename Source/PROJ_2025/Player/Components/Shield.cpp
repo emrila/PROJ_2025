@@ -7,6 +7,7 @@
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "SpecialAttackComps/ShieldAttackComp.h"
 
 
 AShield::AShield()
@@ -108,9 +109,18 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 		FVector KnockDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 		KnockDir.Z = 0.3f;
 
-		const float KnockbackStrength = 1000.f;
+		KnockbackForce = 1000.f;
 
-		Enemy->LaunchCharacter(KnockDir * KnockbackStrength, true, true);
+		Enemy->LaunchCharacter(KnockDir * KnockbackForce, true, true);
+
+		// TODO: Find out why enemy is continually taking damage on overlap
+		/*if (GetOwnerCharacter())
+		{
+			if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(GetOwnerCharacter()->GetSecondAttackComponent()))
+			{
+				ShieldComp->DecreaseDurability(10.f);
+			}
+		}*/
 	}
 	
 	//Decide what happens when hit by a projectile
