@@ -66,5 +66,8 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int32 PlayersInStartDungeon;
+
+	UPROPERTY()
+	float LifeStealMultiplier = 1.f;
 	
 };
