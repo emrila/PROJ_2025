@@ -76,7 +76,9 @@ void AVotingBooth::CheckResults_Implementation()
 					GetActorRotation(),
 					SpawnInfo
 				);
-				this->Destroy();
+				OnVotingFinished.Broadcast();
+
+				//this->Destroy();
 				return;
 			}
 		}
@@ -91,8 +93,9 @@ void AVotingBooth::CheckResults_Implementation()
 			GetActorRotation(),
 			SpawnInfo
 		);
+		OnVotingFinished.Broadcast();
 
-		this->Destroy();
+		//this->Destroy();
 	}
  }
 

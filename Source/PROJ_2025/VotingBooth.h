@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "VotingBooth.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVotingFinished);
 
 USTRUCT(Blueprintable)
 struct FCandidate
@@ -25,6 +26,9 @@ struct FCandidate
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName RowName;
 	
 };
 
@@ -33,7 +37,9 @@ class PROJ_2025_API AVotingBooth : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
+
+	FOnVotingFinished OnVotingFinished;
 	// Sets default values for this actor's properties
 	AVotingBooth();
 

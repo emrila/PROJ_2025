@@ -24,7 +24,11 @@ public:
 	TArray<URoomData*> GetAllRoomData() const;
 	URoomData* GetCampRoomData() const;
 
+	URoomData* GetChoiceRoomData() const;
+
 	bool RollForCampRoom();
+
+	bool RollForChoiceRoom() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
