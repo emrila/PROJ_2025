@@ -179,7 +179,7 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 
 float UMeleeAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return AttackCooldown * AttackSpeedModifier;
 }
 
 float UMeleeAttackComp::GetDamageAmount() const
