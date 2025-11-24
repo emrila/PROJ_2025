@@ -13,6 +13,9 @@ UShadowStrikeAttackComp::UShadowStrikeAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	DamageAmount = 100.f;
+	AttackCooldown = 5.f;
+
 	// ...
 }
 
@@ -72,7 +75,7 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (bKilledTarget)
 	{
 		UE_LOG(LogTemp, Warning, TEXT(
-			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), AttackCooldown, AttackCooldown/2.f);
+			"%s Target was killed, AttackCooldown is reduced from: %f to %f."), *FString(__FUNCTION__), GetAttackCooldown(), GetAttackCooldown()/2.f);
 		if (GetWorld()->GetTimerManager().IsTimerActive(AttackCooldownTimerHandle))
 		{
 			GetWorld()->GetTimerManager().ClearTimer(AttackCooldownTimerHandle);
@@ -80,7 +83,7 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 				AttackCooldownTimerHandle,
 				this, 
 				&UShadowStrikeAttackComp::ResetAttackCooldown,
-				AttackCooldown/2.f,
+				GetAttackCooldown()/2.f,
 				false);
 		}
 		bKilledTarget = false;
@@ -129,7 +132,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 			return;
 		}
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
-		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->DamageAmount);
+		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->GetDamageAmount());
 	}, StrikeDelay, false);
 	
 	
@@ -444,7 +447,7 @@ void UShadowStrikeAttackComp::TryLockingTarget()
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
 
 	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * LockOnRange);
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * GetAttackRange());
 
 
 	FHitResult HitResult;
@@ -506,6 +509,30 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 	Server_SetLockedTarget_Implementation(nullptr);
 	DisappearLocation = FVector::ZeroVector;
 	AppearLocation = FVector::ZeroVector;
+}
+
+float UShadowStrikeAttackComp::GetAttackCooldown() const
+{
+	return Super::GetAttackCooldown() / AttackCooldown;
+}
+
+float UShadowStrikeAttackComp::GetDamageAmount() const
+{
+	if (AttackDamageModifier == 1.f)
+	{
+		return Super::GetDamageAmount();
+	}
+	return Super::GetDamageAmount() + (AttackDamageModifier * 20.f);
+}
+
+float UShadowStrikeAttackComp::GetAttackRange() const
+{
+	if (AttackDamageModifier == 1.f)
+	{
+		return LockOnRange;
+	}
+	//500.f is random atm, TBD later
+	return LockOnRange + (AttackDamageModifier * 500.f);
 }
 
 
