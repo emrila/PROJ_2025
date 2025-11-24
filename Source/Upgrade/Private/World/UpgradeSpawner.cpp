@@ -56,10 +56,6 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		}
 		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
 
-		if (!UpgradeAlternative->OnUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::OnUpgradeSelected))
-		{
-			UpgradeAlternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-		}
 		if (!UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
 		{
 			UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
@@ -144,11 +140,6 @@ void AUpgradeSpawner::BeginPlay()
 	}	
 }
 
-void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
-{	
-	CompletedUpgrades++;	
-}
-
 void AUpgradeSpawner::LockUpgradeAlternatives()
 {
 	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
@@ -170,7 +161,6 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
 	DOREPLIFETIME(AUpgradeSpawner, TotalUpgradeNeededForCompletion);
-	DOREPLIFETIME(AUpgradeSpawner, CompletedUpgrades);
 }
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
