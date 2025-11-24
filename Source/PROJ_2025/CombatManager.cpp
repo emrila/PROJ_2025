@@ -8,6 +8,7 @@
 #include "MushroomCharacter.h"
 #include "RoomLoader.h"
 #include "WizardGameInstance.h"
+#include "WizardGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -91,6 +92,11 @@ void ACombatManager::StartWave_Internal(int index)
 void ACombatManager::RegisterEnemyDeath()
 {
 	if (!HasAuthority()) return;
+
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+	}
 	
 	RemainingEnemies--;
 	if (RemainingEnemies == 0)

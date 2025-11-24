@@ -56,7 +56,7 @@ public:
 	void SpawnLoot();
 	
 	UFUNCTION()
-	void EnableExits();
+	virtual void EnableExits();
 
 private:
 

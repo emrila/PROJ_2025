@@ -45,6 +45,8 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 
 	bool CampExit = GI->RollForCampRoom();
 
+	bool ChoiceRoom = GI->RollForChoiceRoom();
+
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
@@ -62,7 +64,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -74,6 +76,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (CampExit)
 	{
 		ChosenRooms.Add(GI->GetCampRoomData());
+	}
+	if (ChoiceRoom)
+	{
+		ChosenRooms.Add(GI->GetChoiceRoomData());
 	}
 
 	if (Room.RoomData)

@@ -56,6 +56,29 @@ URoomData* UWizardGameInstance::GetCampRoomData() const
 	return Cast<URoomData>(AssetList[0].GetAsset());
 }
 
+URoomData* UWizardGameInstance::GetChoiceRoomData() const
+{
+	FAssetRegistryModule& AssetRegistryModule = 
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	FARFilter Filter;
+	Filter.ClassPaths.Add(URoomData::StaticClass()->GetClassPathName());
+	Filter.PackagePaths.Add(FName("/Game/RoomData/Choice"));
+	Filter.bRecursivePaths = true;
+
+	TArray<FAssetData> AssetList;
+	AssetRegistry.GetAssets(Filter, AssetList);
+
+	if (AssetList.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Camp RoomData assets found!"));
+		return nullptr;
+	}
+
+	return Cast<URoomData>(AssetList[0].GetAsset());
+}
+
 bool UWizardGameInstance::RollForCampRoom()
 {
 	if (ChanceForCamp == 0.f)
@@ -94,6 +117,15 @@ bool UWizardGameInstance::RollForCampRoom()
 	}
 	return false;
 	
+}
+
+bool UWizardGameInstance::RollForChoiceRoom() const
+{
+	if (RoomLoader->ClearedRooms == 3)
+	{
+		return true;
+	}
+	return false;
 }
 
 
