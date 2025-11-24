@@ -13,5 +13,11 @@ UCLASS()
 class PROJ_2025_API AParkourManager : public ARoomManagerBase
 {
 	GENERATED_BODY()
+public:
+	
+	virtual void OnRoomInitialized(const FRoomInstance& Room) override;
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	float TimerIfTimeTrial;
 	
 };
