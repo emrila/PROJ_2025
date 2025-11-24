@@ -11,12 +11,13 @@
 void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(ARoomLoader, CurrentRoom);
-	DOREPLIFETIME(ARoomLoader, PendingNextRoomData);
+	
 	DOREPLIFETIME(ARoomLoader, PastSevenRooms);
+	DOREPLIFETIME(ARoomLoader, OneTwoThreeScale);
+	DOREPLIFETIME(ARoomLoader, ClearedRooms);
+	DOREPLIFETIME(ARoomLoader, DungeonScaling);
 }
-void ARoomLoader::Multicast_AddProgressWidget_Implementation()
+void ARoomLoader::AddProgressWidget()
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (!PC || !PC->IsLocalController()) return;
@@ -33,6 +34,8 @@ void ARoomLoader::Multicast_AddProgressWidget_Implementation()
 
 void ARoomLoader::IncrementProgress(const bool CountAsClearedRoom)
 {
+	if (!HasAuthority()) return;
+	
 	if (CountAsClearedRoom)
 	{
 		ClearedRooms++;
@@ -53,25 +56,26 @@ float ARoomLoader::GetDungeonScaling() const
 
 void ARoomLoader::RegisterNextRoom(URoomData* RoomData)
 {
+	if (!HasAuthority()) return;
 	if (PastSevenRooms.Num() > 6)
 	{
 		PastSevenRooms.Empty();
 	}
-	PastSevenRooms.Add(RoomData);
-	Multicast_AddProgressWidget();
+	PastSevenRooms.Add(RoomData->RoomType);
+	AddProgressWidget();
 }
 
-TArray<URoomData*> ARoomLoader::GetPreviousRooms()
+TArray<ERoomType> ARoomLoader::GetPreviousRooms()
 {
 	return PastSevenRooms;
 }
 
 
-void ARoomLoader::LoadNextRoom_Implementation(URoomData* NextRoomData)
+void ARoomLoader::LoadNextRoom_Implementation(const FRoomInstance& NextRoomData)
 {
 	PendingNextRoomData = NextRoomData;
 	UWorld* World = GetWorld();
-	if (!World || !PendingNextRoomData) return;
+	if (!World || !PendingNextRoomData.RoomData) return;
 	if (!CurrentLoadedLevelName.IsNone())
 	{
 		FLatentActionInfo UnloadInfo;
@@ -95,27 +99,32 @@ void ARoomLoader::BeginPlay()
 	}
 }
 
+void ARoomLoader::OnRep_PastSevenRooms()
+{
+	AddProgressWidget();
+}
+
 void ARoomLoader::OnNextLevelLoaded()
 {
 	AActor* RoomManagerActor = UGameplayStatics::GetActorOfClass(GetWorld(), ARoomManagerBase::StaticClass());
 	if (ARoomManagerBase* RoomManager = Cast<ARoomManagerBase>(RoomManagerActor))
 	{
-		RoomManager->OnRoomInitialized();
+		RoomManager->OnRoomInitialized(CurrentRoom);
 	}
 }
 
 
 void ARoomLoader::OnPreviousLevelUnloaded()
 {
-	if (!PendingNextRoomData)
+	if (!PendingNextRoomData.RoomData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("PendingNextRoomData is null, skipping level load."));
 		return;
 	}
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
-	   *PendingNextRoomData->RoomLevel.ToString()));
+	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
-	FString LevelName = PendingNextRoomData->RoomLevel.GetAssetName();
+	FString LevelName = PendingNextRoomData.RoomData->RoomLevel.GetAssetName();
 
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
@@ -134,7 +143,6 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
 	CurrentLoadedLevelName = FName(LevelName);
 	CurrentRoom = PendingNextRoomData;
-	PendingNextRoomData = nullptr;
 	
 
 }

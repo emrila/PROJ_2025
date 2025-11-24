@@ -3,10 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "RoomManagerBase.h"
 #include "GameFramework/Actor.h"
 #include "RoomExit.generated.h"
 
 class URoomData;
+
 
 UCLASS()
 class PROJ_2025_API ARoomExit : public AActor
@@ -21,7 +23,7 @@ public:
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LinkedRoomData)
-	URoomData* LinkedRoomData;
+	FRoomInstance LinkedRoomInstance;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void EnableExit();

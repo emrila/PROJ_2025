@@ -4,7 +4,9 @@
 #include "LobbyGameMode.h"
 #include "WizardPlayerState.h"
 #include "OnlineSubsystemUtils.h"
+#include "WizardGameState.h"
 #include "Blueprint/UserWidget.h"
+#include "Net/UnrealNetwork.h"
 
 void ALobbyGameMode::BeginPlay()
 {
@@ -26,6 +28,12 @@ void ALobbyGameMode::ShowLobbyWidget()
 	}
 }
 
+void ALobbyGameMode::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ALobbyGameMode, PlayerCount);
+}
 
 
 void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
@@ -38,6 +46,9 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 	{
 		return;
 	}
+	AWizardGameState* GS = GetWorld()->GetGameState<AWizardGameState>();
+	GS->CurrentPlayerCount++;
+
 
 	if (GEngine)
 	{
