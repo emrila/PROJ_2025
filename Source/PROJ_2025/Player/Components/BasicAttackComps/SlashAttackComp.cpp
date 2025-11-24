@@ -19,10 +19,10 @@ void USlashAttackComp::StartAttack()
 	{
 		return;
 	}
-	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
+	/*if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
 		SetAttackCooldown(AttackAnimLength);
-	}
+	}*/
 	
 	Super::StartAttack();
 
