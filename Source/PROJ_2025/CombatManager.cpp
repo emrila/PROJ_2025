@@ -90,7 +90,7 @@ void ACombatManager::StartWave_Internal(int index)
 }
 void ACombatManager::RegisterEnemyDeath_Implementation()
 {
-	if (!HasAuthority()) return;
+	//if (!HasAuthority()) return;
 
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{

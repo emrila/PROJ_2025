@@ -44,43 +44,6 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 }
 
 
-
-bool AWizardGameState::SetHealth_Validate(float HealthAmount)
-{
-	if (HealthAmount <= 0)
-	{
-		return false;
-	}
-	return true;
-}
-
-bool AWizardGameState::SetMaxHealth_Validate(float HealthAmount)
-{
-	if (HealthAmount <= 0)
-	{
-		return false;
-	}
-	return true;
-}
-
-bool AWizardGameState::RestoreHealth_Validate(float RestoreAmount)
-{
-	if (RestoreAmount <= 0)
-	{
-		return false;
-	}
-	return true;
-}
-
-bool AWizardGameState::DamageHealth_Validate(float DamageAmount)
-{
-	if (DamageAmount <= 0)
-	{
-		return false;
-	}
-	return true;
-}
-
 void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 {
 	Health -= DamageAmount;
