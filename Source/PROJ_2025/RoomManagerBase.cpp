@@ -9,6 +9,7 @@
 #include "WizardGameInstance.h"
 #include "Chaos/ChaosPerfTest.h"
 #include "RoomExit.h"
+#include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -25,14 +26,20 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
 
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+		}
+	}
+	
 	for (URoomModifierBase* Mod : Room.ActiveModifiers)
 	{
-		UE_LOG(LogTemp, Display, TEXT("Mod"));
 		if (!Mod)
 		{
 			continue;
 		}
-		UE_LOG(LogTemp, Display, TEXT("Modpassednullcheck"));
 		Mod->OnRoomEntered(this);
 	}
 

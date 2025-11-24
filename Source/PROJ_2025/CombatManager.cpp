@@ -88,14 +88,17 @@ void ACombatManager::StartWave_Internal(int index)
 	}
 	RemainingEnemies = Sum;
 }
-
-void ACombatManager::RegisterEnemyDeath()
+//den var ju inte server (ingen anning om det fungerar nu)
+void ACombatManager::RegisterEnemyDeath_Implementation()
 {
 	if (!HasAuthority()) return;
 
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
-		GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		if (GameState->Health > 0)
+		{
+			GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		}
 	}
 	
 	RemainingEnemies--;

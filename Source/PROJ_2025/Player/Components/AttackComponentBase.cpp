@@ -35,7 +35,7 @@ void UAttackComponentBase::StartAttack()
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCooldown,
+		GetAttackCooldown(),
 		false
 		);
 }

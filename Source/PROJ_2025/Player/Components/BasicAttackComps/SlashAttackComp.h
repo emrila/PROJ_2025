@@ -33,6 +33,10 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Sweep(FVector SweepLocation);
 
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
+
 	FTimerHandle SweepTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
