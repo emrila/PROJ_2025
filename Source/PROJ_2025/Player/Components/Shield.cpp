@@ -87,11 +87,11 @@ void AShield::BeginPlay()
 void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Overlap with: %s"), *OtherActor->GetName());
 	if (!OtherActor || OtherActor == OwnerCharacter)
 	{
 		return;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Overlap with: %s"), *OtherActor->GetName());
 	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
 	{
 		//Apply damage to enemy
