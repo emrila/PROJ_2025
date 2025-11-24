@@ -75,5 +75,8 @@ protected:
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 	
 	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
-	float UpgradeMultiplier = 1.f;
+	float AttackSpeedModifier = 1.f;
+	
+	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	float AttackDamageModifier = 1.f;
 };
