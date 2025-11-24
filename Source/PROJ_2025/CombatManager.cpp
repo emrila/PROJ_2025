@@ -95,7 +95,10 @@ void ACombatManager::RegisterEnemyDeath()
 
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
-		GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		if (GameState->Health > 0)
+		{
+			GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		}
 	}
 	
 	RemainingEnemies--;
