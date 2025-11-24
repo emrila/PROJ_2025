@@ -97,11 +97,11 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
-	if (!Execute_CanInteract(this))
+	/*if (!Execute_CanInteract(this))
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Cannot interact right now!"), __FUNCTION__);
 		return;
-	}	
+	}	*/
 	
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
@@ -109,7 +109,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
 	SelectUpgrade();
 
-	if (bIsInteractor)
+	if (!bIsInteractor)
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 		return;
@@ -160,6 +160,7 @@ void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveCompo
 void AUpgradeAlternative::SetLocked(const bool bToggle)
 {
 	bLocked = bToggle;
+
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent); !bSelected)
 	{
 		UpgradeWidget->OnUpgradeSelected(bSelected);
