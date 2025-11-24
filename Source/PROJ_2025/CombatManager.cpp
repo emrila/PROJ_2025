@@ -88,8 +88,8 @@ void ACombatManager::StartWave_Internal(int index)
 	}
 	RemainingEnemies = Sum;
 }
-
-void ACombatManager::RegisterEnemyDeath()
+//den var ju inte server (ingen anning om det fungerar nu)
+void ACombatManager::RegisterEnemyDeath_Implementation()
 {
 	if (!HasAuthority()) return;
 

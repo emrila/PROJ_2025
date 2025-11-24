@@ -52,6 +52,7 @@ public:
 
 	void StartWave_Internal(int index);
 
+	UFUNCTION(Server, Reliable)
 	void RegisterEnemyDeath();
 protected:
 
