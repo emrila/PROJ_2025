@@ -30,6 +30,10 @@ protected:
 
 	virtual FVector GetProjectileSpawnLocation();
 
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
 

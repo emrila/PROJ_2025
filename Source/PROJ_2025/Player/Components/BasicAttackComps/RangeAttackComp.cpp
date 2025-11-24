@@ -7,6 +7,9 @@
 URangeAttackComp::URangeAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+
+	DamageAmountToStore = 10.f;
+	AttackCooldown = 0.5f;
 }
 
 void URangeAttackComp::StartAttack()
@@ -79,7 +82,7 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	}
 	
 	Projectile->SetOwner(OwnerCharacter);
-	Projectile->Server_SetDamageAmount(DamageAmount);
+	Projectile->Server_SetDamageAmount(GetDamageAmount());
 	
 	APlayerCharacterBase* PlayerCharacter= Cast<APlayerCharacterBase>(OwnerCharacter);
 	if (!PlayerCharacter || !PlayerCharacter->ImpactParticles)
@@ -169,5 +172,15 @@ FVector URangeAttackComp::GetProjectileSpawnLocation()
 	}
 	
 	return MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
+}
+
+float URangeAttackComp::GetAttackCooldown() const
+{
+	return Super::GetAttackCooldown() / AttackSpeedModifier;
+}
+
+float URangeAttackComp::GetDamageAmount() const
+{
+	return Super::GetDamageAmount() * AttackDamageModifier;
 }
 

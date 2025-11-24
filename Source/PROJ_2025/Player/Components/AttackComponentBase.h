@@ -61,12 +61,10 @@ protected:
 	
 	bool bCanAttack = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
 	
 	float DamageAmountToStore= 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
 	float AttackCooldown = 1.f;
 
 	FTimerHandle AttackCooldownTimerHandle;
