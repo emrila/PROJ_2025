@@ -25,14 +25,6 @@ ARoomManagerBase::ARoomManagerBase()
 void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
-
-	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
-	{
-		if (GameState->Health <= 0)
-		{
-			GameState->RestoreHealth(10.f);
-		}
-	}
 	
 	for (URoomModifierBase* Mod : Room.ActiveModifiers)
 	{
@@ -201,6 +193,13 @@ void ARoomManagerBase::SpawnLoot()
 	}else
 	{
 		EnableExits();
+	}
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+		}
 	}
 }
 
