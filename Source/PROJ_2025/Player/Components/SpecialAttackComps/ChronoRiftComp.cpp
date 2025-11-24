@@ -12,6 +12,9 @@ UChronoRiftComp::UChronoRiftComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	DamageAmount = 2.f;
+	AttackCooldown = 15.f;
+
 	// ...
 }
 
@@ -22,7 +25,7 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (bIsLockingTargetArea && bCanAttack)
 	{
 		TryLockingTargetArea();
-		DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, 0.1);
+		DrawDebugSphere(GetWorld(), TargetAreaCenter, GetAttackRadius(), 5, FColor::Yellow, false, 0.1);
 	}
 }
 
@@ -141,7 +144,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 			TargetAreaCenter = HitResult.ImpactPoint;
 		}
 		
-		//DrawDebugSphere(GetWorld(), TargetAreaCenter, TargetAreaRadius, 5, FColor::Yellow, false, AttackCooldown);
+		//DrawDebugSphere(GetWorld(), TargetAreaCenter, GetAttackRadius(), 5, FColor::Yellow, false, AttackCooldown);
 		if (!bShouldLaunch)
 		{
 			return;
@@ -156,7 +159,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 			TargetAreaCenter,
 			FQuat::Identity,
 			EnemyQueryParams,
-			FCollisionShape::MakeSphere(TargetAreaRadius),
+			FCollisionShape::MakeSphere(GetAttackRadius()),
 			Params
 			);
 		
@@ -251,6 +254,31 @@ void UChronoRiftComp::ResetAttackCooldown()
 	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
 }
 
+float UChronoRiftComp::GetChronoDuration() const
+{
+	return ChronoDuration;
+}
+
+float UChronoRiftComp::GetAttackRadius() const
+{
+	if (AttackDamageModifier == 1.f)
+	{
+		return TargetAreaRadius;
+	}
+	
+	return TargetAreaRadius + (AttackDamageModifier * 50.f);
+}
+
+float UChronoRiftComp::GetAttackCooldown() const
+{
+	return Super::GetAttackCooldown() / AttackSpeedModifier;
+}
+
+float UChronoRiftComp::GetDamageAmount() const
+{
+	return Super::GetDamageAmount() + AttackDamageModifier;
+}
+
 void UChronoRiftComp::TickDamage_Implementation()
 {
 	if (!OwnerCharacter->HasAuthority())
@@ -275,13 +303,13 @@ void UChronoRiftComp::TickDamage_Implementation()
 		{
 			UGameplayStatics::ApplyDamage(
 				Target,
-				DamageAmount,
+				GetDamageAmount(),
 				OwnerCharacter->GetController(),
 				OwnerCharacter,
 				UChronoRiftDamageType::StaticClass()
 				);
 			
-			UE_LOG(LogTemp, Warning, TEXT("%s dealt %f damage to %s"), *FString(__FUNCTION__), DamageAmount, *Target->GetName());
+			UE_LOG(LogTemp, Warning, TEXT("%s dealt %f damage to %s"), *FString(__FUNCTION__), GetDamageAmount(), *Target->GetName());
 		}
 	}
 }

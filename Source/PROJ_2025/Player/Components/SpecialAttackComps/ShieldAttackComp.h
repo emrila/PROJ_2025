@@ -29,11 +29,15 @@ public:
 	
 	virtual void SpawnShield();
 
-	virtual void DecreaseDurability(float Durability);
-
 	virtual void RecoverDurability();
 
-	virtual float GetDurability();
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
+
+	virtual float GetCurrentDurability();
+
+	virtual float GetRecoveryRate();
 
 protected:
 	virtual void BeginPlay() override;
@@ -49,6 +53,8 @@ protected:
 	FTimerHandle DurabilityTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
 
-	float CurrentDurability = 100.f;
-	float BaseDurability = 100.f;
+	float TheCurrentDurability = 0.f;
+	float BaseDurability = 200.f;
+
+	float BaseRecoveryRate = 1.f;
 };
