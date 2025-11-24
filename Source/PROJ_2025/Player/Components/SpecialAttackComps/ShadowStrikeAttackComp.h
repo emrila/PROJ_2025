@@ -55,13 +55,18 @@ protected:
 
 	virtual void ResetAttackCooldown() override;
 
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
+
+	virtual float GetAttackRange() const;
+
 	//Handle target
 	bool bHasLockedTarget = false;
 
 	UPROPERTY()
 	AActor* LockedTarget;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
 	float LockOnRange = 2000.f;
 	
 	FTimerHandle LockedTargetTickTimer;

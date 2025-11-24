@@ -32,20 +32,21 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
 
-
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void PlayerEnteredStartDungeon(bool Entered);
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void DamageHealth(float DamageAmount);
 
-	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void RestoreHealth(float RestoreAmount);
 	
-	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void SetMaxHealth(float HealthAmount);
 
-	UFUNCTION(BlueprintCallable, Server, WithValidation, Reliable)
+	UFUNCTION(BlueprintCallable, Server, Reliable)
 	void SetHealth(float HealthAmount);
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
@@ -59,5 +60,14 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	TArray<UWidget*> SelectionWidgets;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int32 CurrentPlayerCount;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int32 PlayersInStartDungeon;
+
+	UPROPERTY()
+	float LifeStealMultiplier = 1.f;
 	
 };

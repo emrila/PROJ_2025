@@ -61,12 +61,10 @@ protected:
 	
 	bool bCanAttack = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
 	
 	float DamageAmountToStore= 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
 	float AttackCooldown = 1.f;
 
 	FTimerHandle AttackCooldownTimerHandle;
@@ -75,5 +73,8 @@ protected:
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 	
 	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
-	float UpgradeMultiplier = 1.f;
+	float AttackSpeedModifier = 1.f;
+	
+	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	float AttackDamageModifier = 1.f;
 };

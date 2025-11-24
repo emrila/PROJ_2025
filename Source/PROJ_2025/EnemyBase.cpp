@@ -36,7 +36,7 @@ void AEnemyBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 
 void AEnemyBase::HandleDeath()
 {
-	if (CombatManager && CombatManager->HasAuthority())
+	if (CombatManager)
 	{
 		CombatManager->RegisterEnemyDeath();
 		UE_LOG(LogTemp, Log, TEXT("EnemyBase: Enemy died"));

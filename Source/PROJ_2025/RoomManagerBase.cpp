@@ -8,6 +8,8 @@
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
 #include "Chaos/ChaosPerfTest.h"
+#include "RoomExit.h"
+#include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -20,9 +22,18 @@ ARoomManagerBase::ARoomManagerBase()
 
 }
 
-void ARoomManagerBase::OnRoomInitialized()
+void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
+	
+	for (URoomModifierBase* Mod : Room.ActiveModifiers)
+	{
+		if (!Mod)
+		{
+			continue;
+		}
+		Mod->OnRoomEntered(this);
+	}
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
@@ -32,6 +43,8 @@ void ARoomManagerBase::OnRoomInitialized()
 	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
 
 	bool CampExit = GI->RollForCampRoom();
+
+	bool ChoiceRoom = GI->RollForChoiceRoom();
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
@@ -50,7 +63,7 @@ void ARoomManagerBase::OnRoomInitialized()
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -63,10 +76,14 @@ void ARoomManagerBase::OnRoomInitialized()
 	{
 		ChosenRooms.Add(GI->GetCampRoomData());
 	}
-
-	if (GI->RoomLoader->CurrentRoom != nullptr)
+	if (ChoiceRoom)
 	{
-		AllRooms.Remove(GI->RoomLoader->CurrentRoom);
+		ChosenRooms.Add(GI->GetChoiceRoomData());
+	}
+
+	if (Room.RoomData)
+	{
+		AllRooms.Remove(Room.RoomData);
 	}
 	if (AllRooms.Num() <= 0)
 	{
@@ -102,7 +119,30 @@ void ARoomManagerBase::OnRoomInitialized()
 		if (!RoomExits[i]) continue;
 
 		URoomData* RoomData = ChosenRooms.IsValidIndex(i) ? ChosenRooms[i] : nullptr;
-		RoomExits[i]->LinkedRoomData = RoomData;
+		FRoomInstance RoomInstance;
+		RoomInstance.RoomData = RoomData;
+		const float ChanceForModifiers = 0.05f;
+		if (FMath::FRand() <= ChanceForModifiers)
+		{
+			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
+			{
+				TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
+
+				if (Mods.Num() > 0)
+				{
+					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
+					TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
+
+					URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
+					RoomInstance.ActiveModifiers.Add(ModInstance);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
+			}
+		}
+		RoomExits[i]->LinkedRoomInstance = RoomInstance;
 
 		if (RoomData)
 		{
@@ -145,6 +185,7 @@ void ARoomManagerBase::OnRoomInitialized()
 
 void ARoomManagerBase::SpawnLoot()
 {
+	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->TriggerSpawn();
@@ -152,6 +193,13 @@ void ARoomManagerBase::SpawnLoot()
 	}else
 	{
 		EnableExits();
+	}
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+		}
 	}
 }
 

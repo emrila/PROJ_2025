@@ -8,6 +8,7 @@
 #include "MushroomCharacter.h"
 #include "RoomLoader.h"
 #include "WizardGameInstance.h"
+#include "WizardGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -42,14 +43,9 @@ void ACombatManager::StartWave_Internal(int index)
 		return;
 	};
 	UE_LOG(LogTemp, Display, TEXT("Wave: %d"), index);
-	TArray<int> EnemyCountsArray;
-	Waves[index].EnemyCounts.GenerateValueArray(EnemyCountsArray);
+
 	int Sum = 0;
-	for (const int Count : EnemyCountsArray)
-	{
-		Sum += Count;
-	}
-	RemainingEnemies = Sum;
+	
 	TMap<EEnemyType, TArray<AEnemySpawn*>> EnemyLocationsCopy = EnemyLocations;
 	
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
@@ -58,7 +54,9 @@ void ACombatManager::StartWave_Internal(int index)
 	for (const TPair<EEnemyType, int> Pair : Waves[index].EnemyCounts)
 	{
 		TArray<AEnemySpawn*> Spawns = EnemyLocationsCopy[Pair.Key];
-		const int MaxSpawns = Pair.Value * 1;
+		
+		const int MaxSpawns = FMath::RoundToInt(Pair.Value * MaxSpawnMultiplier);
+		UE_LOG(LogTemp, Display, TEXT("spawnmult: %f"), MaxSpawnMultiplier);
 		for (int i = 0; i < MaxSpawns; i++)
 		{
 			if (Spawns.Num() == 0)
@@ -81,16 +79,26 @@ void ACombatManager::StartWave_Internal(int index)
 				Enemy->Health = Enemy->Health * DungeonScaling;
 				Enemy->DamageMultiplier = DungeonScaling;
 				UE_LOG(LogTemp, Warning, TEXT("Spawned enemy with scaling %f"), DungeonScaling);
+				Sum++;
+				
 			}
 			Spawns.RemoveAt(RandomIndex);
 
 		}
 	}
+	RemainingEnemies = Sum;
 }
-
-void ACombatManager::RegisterEnemyDeath()
+void ACombatManager::RegisterEnemyDeath_Implementation()
 {
-	if (!HasAuthority()) return;
+	//if (!HasAuthority()) return;
+
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health > 0)
+		{
+			GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		}
+	}
 	
 	RemainingEnemies--;
 	if (RemainingEnemies == 0)
@@ -100,9 +108,9 @@ void ACombatManager::RegisterEnemyDeath()
 	}
 }
 
-void ACombatManager::OnRoomInitialized()
+void ACombatManager::OnRoomInitialized(const FRoomInstance& Room)
 {
-	Super::OnRoomInitialized();
+	Super::OnRoomInitialized(Room);
 	TArray<AActor*> FoundSpawns;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemySpawn::StaticClass(), FoundSpawns);
 

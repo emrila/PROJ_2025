@@ -52,10 +52,11 @@ public:
 
 	void StartWave_Internal(int index);
 
+	UFUNCTION(Server, Reliable)
 	void RegisterEnemyDeath();
 protected:
 
-	virtual void OnRoomInitialized() override;
+	virtual void OnRoomInitialized(const FRoomInstance& Room) override;
 public:	
 	
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Wave")
@@ -67,7 +68,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int WaveIndex;
 	
+	float MaxSpawnMultiplier = 1.f;
+	
 private:
 	TMap<EEnemyType, TArray<AEnemySpawn*>> EnemyLocations;
-	
 };
