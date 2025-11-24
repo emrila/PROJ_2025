@@ -8,6 +8,7 @@
 #include "MushroomCharacter.h"
 #include "RoomLoader.h"
 #include "WizardGameInstance.h"
+#include "WizardGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
@@ -87,10 +88,18 @@ void ACombatManager::StartWave_Internal(int index)
 	}
 	RemainingEnemies = Sum;
 }
-
-void ACombatManager::RegisterEnemyDeath()
+//den var ju inte server (ingen anning om det fungerar nu)
+void ACombatManager::RegisterEnemyDeath_Implementation()
 {
 	if (!HasAuthority()) return;
+
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health > 0)
+		{
+			GameState->RestoreHealth(GameState->LifeStealMultiplier - 1.f);
+		}
+	}
 	
 	RemainingEnemies--;
 	if (RemainingEnemies == 0)

@@ -9,6 +9,7 @@
 #include "WizardGameInstance.h"
 #include "Chaos/ChaosPerfTest.h"
 #include "RoomExit.h"
+#include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -25,14 +26,20 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
 
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+		}
+	}
+	
 	for (URoomModifierBase* Mod : Room.ActiveModifiers)
 	{
-		UE_LOG(LogTemp, Display, TEXT("Mod"));
 		if (!Mod)
 		{
 			continue;
 		}
-		UE_LOG(LogTemp, Display, TEXT("Modpassednullcheck"));
 		Mod->OnRoomEntered(this);
 	}
 
@@ -44,6 +51,8 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
 
 	bool CampExit = GI->RollForCampRoom();
+
+	bool ChoiceRoom = GI->RollForChoiceRoom();
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
@@ -62,7 +71,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -74,6 +83,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (CampExit)
 	{
 		ChosenRooms.Add(GI->GetCampRoomData());
+	}
+	if (ChoiceRoom)
+	{
+		ChosenRooms.Add(GI->GetChoiceRoomData());
 	}
 
 	if (Room.RoomData)
