@@ -38,7 +38,7 @@ void UMeleeAttackComp::StartAttack()
 
 	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
 	{
-		SetAttackCooldown(GetAttackCooldown());
+	//	SetAttackCooldown(GetAttackCooldown());
 	}
 	
 	Super::StartAttack();
