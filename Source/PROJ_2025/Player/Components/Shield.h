@@ -33,7 +33,8 @@ protected:
 	virtual void BeginPlay() override;
 	
 	//virtual void TickDurability();
-	
+
+	UFUNCTION()
 	virtual void OnShieldOverlap(
 		UPrimitiveComponent* OverlappedComp, 
 		AActor* OtherActor, 
@@ -49,8 +50,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* CollisionBox;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DistanceFromPlayer = 120.f;
+	float DistanceFromPlayer = 80.f;
 	
 	float VerticalOffset = 50.f;
 	
