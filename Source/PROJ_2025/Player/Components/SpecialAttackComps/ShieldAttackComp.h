@@ -6,6 +6,8 @@
 #include "ShieldAttackComp.generated.h"
 
 
+struct FInputActionInstance;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UShieldAttackComp : public UAttackComponentBase
 {
@@ -19,21 +21,34 @@ public:
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
-	//virtual void StartAttack() override;
+	virtual void StartAttack() override;
 	
-	//virtual void PerformAttack() override;
+	virtual void PerformAttack() override;
+
+	virtual void OnStartAttack(const FInputActionInstance& ActionInstance);
 	
-	virtual void Test();
+	virtual void SpawnShield();
+
+	virtual void DecreaseDurability(float Durability);
+
+	virtual void RecoverDurability();
+
+	virtual float GetDurability();
 
 protected:
 	virtual void BeginPlay() override;
 	
-	bool bIsTest = false;
+	bool bIsShieldActive = false;
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AShield> ShieldClass;
 	
 	UPROPERTY()
 	AShield* CurrentShield;
-	
+
+	FTimerHandle DurabilityTimerHandle;
+	FTimerHandle RecoveryTimerHandle;
+
+	float CurrentDurability = 100.f;
+	float BaseDurability = 100.f;
 };
