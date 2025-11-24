@@ -455,6 +455,14 @@ void APlayerCharacterBase::EndSuddenDeath()
 	SuddenDeath = false;
 }
 
+void APlayerCharacterBase::Jump()
+{
+	if (bIsAlive)
+	{
+		Super::Jump();
+	}
+}
+
 void APlayerCharacterBase::OnRep_CustomPlayerName()
 {
 	if (!PlayerNameTagWidgetComponent)
