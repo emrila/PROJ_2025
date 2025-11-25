@@ -18,7 +18,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Replicated)
 	bool Active = true;
 
-	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps);
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	// Called when the game starts or when spawned
