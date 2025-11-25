@@ -11,6 +11,39 @@
 
 
 class UWidget;
+
+USTRUCT(BlueprintType)
+struct FSessionProps
+{
+	GENERATED_BODY()
+	
+	FSessionProps()
+		: SessionName(TEXT(""))
+		, IndexNum(0)
+		, CurrentNumOfPlayers(0)
+		, MaxNumOfPlayers(0)
+	{}
+
+	explicit FSessionProps(int32 IndexNum_, FString SessionName_, int32 CurrentNumOfPlayers_, int32 MaxNumOfPlayers_)
+		: SessionName(MoveTemp(SessionName_))
+		, IndexNum(IndexNum_)
+		, CurrentNumOfPlayers(CurrentNumOfPlayers_)
+		, MaxNumOfPlayers(MaxNumOfPlayers_)
+	{}
+
+	UPROPERTY(BlueprintReadOnly)
+	FString SessionName;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 IndexNum;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 CurrentNumOfPlayers;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 MaxNumOfPlayers;
+};
+
 /**
  * 
  */
@@ -37,8 +70,34 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 	
+	
+	//LAN stuff
+	virtual void Init() override;
+	
+	virtual void InitDelay();
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Host_LanSession(FString SessionName);
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Find_LanSessions();
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Join_LanSession(int32 SessionIndex);
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	TArray<FSessionProps> GetLanSessions();
+	
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnFindSessionsComplete(bool bWasSuccessful);
+	void OnJoinSessionCompleted(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	
+	IOnlineSessionPtr SessionInterface;
+	
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	
+	TArray<FOnlineSessionSearchResult> LanSessionResults;
+	
 private:
 	float ChanceForCamp = 0.f;
-
-
 };
