@@ -32,7 +32,8 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		{
 			if (LovesMesh)
 			{
-				LovesMesh->SetActorLocation(TargetAreaCenter);
+				FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
+				LovesMesh->SetActorLocation(SpawnLocation);
 				//Set Scale
 			}
 		}
