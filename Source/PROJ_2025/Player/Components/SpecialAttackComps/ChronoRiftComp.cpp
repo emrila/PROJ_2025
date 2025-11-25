@@ -7,6 +7,7 @@
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "Player/Components/ChronoRiftZone.h"
 
 
 UChronoRiftComp::UChronoRiftComp()
@@ -95,8 +96,8 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME(UChronoRiftComp, LockedTargets);
 	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
 	DOREPLIFETIME(UChronoRiftComp, LovesMesh);
+	DOREPLIFETIME(UChronoRiftComp, CurrentChronoRiftZone);
 }
-
 
 void UChronoRiftComp::BeginPlay()
 {
@@ -308,6 +309,9 @@ void UChronoRiftComp::ResetAttackCooldown()
 	LockedTargets.Empty();
 	TargetAreaCenter = FVector::ZeroVector;
 	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+	
+	CurrentChronoRiftZone->Destroy();
+	CurrentChronoRiftZone = nullptr;
 }
 
 void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
@@ -318,13 +322,26 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 		return;
 	}
 
-	if (LockedTargets.Num() == 0)
+	/*if (LockedTargets.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
 		return;
+	}*/
+	
+	if (ChronoRiftZoneClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s Spawning ChronoRiftZone!"), *FString(__FUNCTION__));
+		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator);
+		
+		if (CurrentChronoRiftZone)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s Spawned ChronoRiftZone!"), *FString(__FUNCTION__));
+			LovesMesh->SetActorHiddenInGame(true);
+		}
 	}
 	
-	const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
+	
+	/*const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
 
 	for (AActor* Target : LockedTargets)
 	{
@@ -385,7 +402,7 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	}, ChronoDuration, false);
+	}, ChronoDuration, false);*/
 }
 
 float UChronoRiftComp::GetChronoDuration() const

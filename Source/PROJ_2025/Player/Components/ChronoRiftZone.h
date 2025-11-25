@@ -1,0 +1,97 @@
+﻿
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Actor.h"
+#include "ChronoRiftZone.generated.h"
+
+class APlayerCharacterBase;
+class UNiagaraSystem;
+class USphereComponent;
+
+UCLASS()
+class PROJ_2025_API AChronoRiftZone : public AActor
+{
+	GENERATED_BODY()
+
+public:
+	AChronoRiftZone();
+	
+	AChronoRiftZone(
+		float NewRadius,
+		float NewLifetime,
+		float NewDamageAmount
+		);
+	
+	virtual void Tick(float DeltaTime) override;
+	
+	virtual void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
+
+protected:
+	virtual void BeginPlay() override;
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_SlowEnemy(AActor* Enemy);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_SlowEnemy(AActor* Enemy);
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_ResetEnemy(AActor* Enemy);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_ResetEnemy(AActor* Enemy);
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_ResetEnemiesPreEnd();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_ResetEnemiesPreEnd();
+	
+	UFUNCTION()
+	virtual void OnOverlapBegin(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex, 
+		bool bFromSweep,
+		const FHitResult& SweepResult
+		);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_SpawnEffect(); 
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_TickDamage();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	USphereComponent* SphereComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	UStaticMeshComponent* MeshComponent;
+	
+	float Radius = 200;
+	
+	float Lifetime = 4.f;
+	
+	float DamageAmount = 2;
+	
+	float EnemyTimeDilationFactor = 0.3f;
+	
+	FTimerHandle ResetEnemiesTimerHandle;
+	FTimerHandle TickDamageTimerHandle;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UNiagaraSystem* ChronoRiftEffect;
+	
+	UPROPERTY()
+	TSet<AActor*> EnemiesToGiveDamage;
+	
+	UPROPERTY()
+	TSet<AActor*> EnemiesSLowedDown;
+	
+	UPROPERTY()
+	APlayerCharacterBase* OwnerCharacter;
+};
