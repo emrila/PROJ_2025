@@ -3,8 +3,6 @@
 
 #include "VotingBooth.h"
 
-#include "EditorMetadataOverrides.h"
-#include "NiagaraValidationRule.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
