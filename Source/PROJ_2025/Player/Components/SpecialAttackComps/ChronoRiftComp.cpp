@@ -2,6 +2,7 @@
 
 #include "ChronoRiftDamageType.h"
 #include "EnemyBase.h"
+#include "Net/UnrealNetwork.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
@@ -11,6 +12,8 @@
 UChronoRiftComp::UChronoRiftComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	
+	SetIsReplicatedByDefault(true);
 
 	DamageAmount = 2.f;
 	AttackCooldown = 15.f;
@@ -25,7 +28,21 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (bIsLockingTargetArea && bCanAttack)
 	{
 		TryLockingTargetArea();
-		DrawDebugSphere(GetWorld(), TargetAreaCenter, GetAttackRadius(), 5, FColor::Yellow, false, 0.1);
+		if (TargetAreaCenter != FVector::ZeroVector)
+		{
+			if (LovesMesh)
+			{
+				LovesMesh->SetActorLocation(TargetAreaCenter);
+				//Set Scale
+			}
+		}
+		else
+		{
+			if (LovesMesh)
+			{
+				LovesMesh->SetActorHiddenInGame(true);
+			}
+		}
 	}
 }
 
@@ -63,11 +80,20 @@ void UChronoRiftComp::StartAttack()
 	bShouldLaunch = true;
 	TryLockingTargetArea();
 
-	if (!TargetAreaCenter.IsNearlyZero())
+	if (TargetAreaCenter != FVector::ZeroVector)
 	{
 		PerformAttack();
 		Super::StartAttack();
 	}
+}
+
+void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	
+	DOREPLIFETIME(UChronoRiftComp, LockedTargets);
+	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
+	DOREPLIFETIME(UChronoRiftComp, LovesMesh);
 }
 
 
@@ -76,11 +102,36 @@ void UChronoRiftComp::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+	
+	if (ChronoRiftIndicatorClass)
+	{
+		LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
+		
+		if (LovesMesh)
+		{
+			LovesMesh->SetActorHiddenInGame(true);
+		}
+	}
 }
 
 void UChronoRiftComp::PerformAttack()
 {
-	Server_PerformLaunch_Implementation();
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	/*if (!OwnerCharacter->HasAuthority())
+	{
+		Server_PerformLaunch();
+	}
+	else
+	{
+		Server_PerformLaunch_Implementation();
+	}*/
+	
+	Multicast_PerformLaunch();
 }
 
 void UChronoRiftComp::TryLockingTargetArea()
@@ -140,7 +191,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 		}
 		else
 		{
-			Server_SetTargetAreaCenter_Implementation(HitResult.ImpactPoint);
+			Server_SetTargetAreaCenter(HitResult.ImpactPoint);
 			TargetAreaCenter = HitResult.ImpactPoint;
 		}
 		
@@ -187,7 +238,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 				}
 				else
 				{
-					Server_SetLockedEnemies_Implementation(HitActors);
+					Server_SetLockedEnemies(HitActors);
 					LockedTargets = HitActors;
 				}
 			}
@@ -241,6 +292,10 @@ void UChronoRiftComp::PrepareForLaunch()
 		return;
 	}
 	//Handle animation and spawning the circle here
+	if (LovesMesh)
+	{
+		LovesMesh->SetActorHiddenInGame(false);
+	}
 	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Chrono Rift Launch!"));
 }
 
@@ -252,6 +307,84 @@ void UChronoRiftComp::ResetAttackCooldown()
 	LockedTargets.Empty();
 	TargetAreaCenter = FVector::ZeroVector;
 	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+}
+
+void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+
+	if (LockedTargets.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
+
+	for (AActor* Target : LockedTargets)
+	{
+		if (!IsValid(Target))
+		{
+			continue;
+		}
+		
+		Target->CustomTimeDilation = AppliedDilation;
+		
+		if (APawn* Pawn = Cast<APawn>(Target))
+		{
+			if (AController* C = Pawn->GetController())
+			{
+				C->CustomTimeDilation = AppliedDilation;
+				C->ForceNetUpdate();
+			}
+		}
+		
+		Target->ForceNetUpdate();
+	}
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		ResetEnemiesTimerHandle,
+		[this]()
+		{
+			for (AActor* Target : LockedTargets)
+			{
+				if (!IsValid(Target))
+				{
+					continue;
+				}
+
+				Target->CustomTimeDilation = 1.0f;
+
+				if (APawn* Pawn = Cast<APawn>(Target))
+				{
+					if (AController* C = Pawn->GetController())
+					{
+						C->CustomTimeDilation = 1.0f;
+						C->ForceNetUpdate();
+					}
+				}
+
+				Target->ForceNetUpdate();
+			}
+		}, ChronoDuration, false);
+
+	
+	GetWorld()->GetTimerManager().SetTimer(
+		TickDamageTimerHandle,
+		this,
+		&UChronoRiftComp::TickDamage,
+		DamageTickInterval,
+		true);
+
+	FTimerHandle ClearTickDamageTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+	}, ChronoDuration, false);
 }
 
 float UChronoRiftComp::GetChronoDuration() const
@@ -281,10 +414,10 @@ float UChronoRiftComp::GetDamageAmount() const
 
 void UChronoRiftComp::TickDamage_Implementation()
 {
-	if (!OwnerCharacter->HasAuthority())
+	/*if (!OwnerCharacter->HasAuthority())
 	{
 		return;
-	}
+	}*/
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
@@ -328,68 +461,81 @@ void UChronoRiftComp::Server_SetLockedEnemies_Implementation(const TArray<AActor
 
 void UChronoRiftComp::Server_PerformLaunch_Implementation()
 {
-	if (!OwnerCharacter)
+	/*if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	
+
 	if (LockedTargets.Num() == 0)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	for (AActor* Target: LockedTargets)
+	const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
+
+	for (AActor* Target : LockedTargets)
 	{
-		if (IsValid(Target))
+		if (!IsValid(Target))
 		{
-			if (AEnemyBase* Enemy = Cast<AEnemyBase>(Target))
+			continue;
+		}
+		
+		Target->CustomTimeDilation = AppliedDilation;
+		
+		if (APawn* Pawn = Cast<APawn>(Target))
+		{
+			if (AController* C = Pawn->GetController())
 			{
-				Enemy->CustomTimeDilation = EnemyTimeDilationFactor;
-				if (Enemy->GetController())
-				{
-					Enemy->GetController()->CustomTimeDilation = EnemyTimeDilationFactor;
-				}
+				C->CustomTimeDilation = AppliedDilation;
+				C->ForceNetUpdate();
 			}
 		}
+		
+		Target->ForceNetUpdate();
 	}
 	
 	GetWorld()->GetTimerManager().SetTimer(
-		ResetEnemiesTimerHandle, 
-		[this] ()
+		ResetEnemiesTimerHandle,
+		[this]()
 		{
-			for (AActor* Target: LockedTargets)
+			for (AActor* Target : LockedTargets)
 			{
-				if (IsValid(Target))
+				if (!IsValid(Target))
 				{
-					if (AEnemyBase* Enemy = Cast<AEnemyBase>(Target))
+					continue;
+				}
+
+				Target->CustomTimeDilation = 1.0f;
+
+				if (APawn* Pawn = Cast<APawn>(Target))
+				{
+					if (AController* C = Pawn->GetController())
 					{
-						Enemy->CustomTimeDilation = 1.f;
-						if (Enemy->GetController())
-						{
-							Enemy->GetController()->CustomTimeDilation = 1.f;
-						}
+						C->CustomTimeDilation = 1.0f;
+						C->ForceNetUpdate();
 					}
 				}
+
+				Target->ForceNetUpdate();
 			}
 		}, ChronoDuration, false);
-	
+
 	
 	GetWorld()->GetTimerManager().SetTimer(
 		TickDamageTimerHandle,
-		this, 
+		this,
 		&UChronoRiftComp::TickDamage,
 		DamageTickInterval,
 		true);
-	
+
 	FTimerHandle ClearTickDamageTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	}, ChronoDuration, false);
+	}, ChronoDuration, false);*/
 }
-
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
 {
 	if (TargetCenter.IsNearlyZero())
