@@ -536,7 +536,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
 	if (!bChangedName)
 	{
-#if WITH_EDITORONLY_DATA
+/*#if WITH_EDITORONLY_DATA
 		if (bUsePlayerLoginProfile)
 		{
 			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
@@ -549,13 +549,14 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		{
 			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
-#endif
+#endif*/
 		bChangedName = true;
 	}
 	else
 	{
 		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
 	}
-	Server_SetCustomPlayerName(NewName);
+	Server_SetCustomPlayerName(NewName);	
+	CustomPlayerName = NewName;
 	OnRep_CustomPlayerName();
 }
