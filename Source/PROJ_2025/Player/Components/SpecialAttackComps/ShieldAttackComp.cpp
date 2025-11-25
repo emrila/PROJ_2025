@@ -2,6 +2,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Shield.h"
 
@@ -40,7 +41,7 @@ void UShieldAttackComp::StartAttack()
 	}
 
 	TheCurrentDurability = GetCurrentDurability();
-	Multicast_SpawnShield();
+	Server_SpawnShield();
 
 	GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
@@ -52,8 +53,7 @@ void UShieldAttackComp::StartAttack()
 			{
 				if (CurrentShield)
 				{
-					CurrentShield->Destroy();
-					CurrentShield = nullptr;
+					Server_DestroyShield();
 				}
 				bIsShieldActive = false;
 				GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
@@ -94,8 +94,21 @@ void UShieldAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance
 	StartAttack();
 }
 
+void UShieldAttackComp::Server_SpawnShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	Multicast_SpawnShield();
+}
+
 void UShieldAttackComp::Multicast_SpawnShield_Implementation()
 {
+	if (!OwnerCharacter)
+	{
+		return;
+	}
 	if (ShieldClass)
 	{
 		FVector SpawnLoc = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * 120.f;
@@ -165,8 +178,30 @@ float UShieldAttackComp::GetRecoveryRate()
 	return BaseRecoveryRate / AttackSpeedModifier;
 }
 
+void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, CurrentShield);
+}
+
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
+
+void UShieldAttackComp::Server_DestroyShield_Implementation()
+{
+	Multicast_DestroyShield();
+}
+
+void UShieldAttackComp::Multicast_DestroyShield_Implementation()
+{
+	if (CurrentShield)
+	{
+		CurrentShield->Destroy();
+		CurrentShield = nullptr;
+	}
+}
+
+

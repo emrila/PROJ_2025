@@ -33,6 +33,9 @@ public:
 	UPROPERTY(BlueprintReadOnly)
 	float DamageMultiplier = 1.f;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bIsDummy = false;
+	
 protected:
 	
 	virtual void HandleDeath();

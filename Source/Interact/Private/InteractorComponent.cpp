@@ -64,7 +64,7 @@ void UInteractorComponent::OnActorBeginOverlap([[maybe_unused]] AActor* Overlapp
 	if (InteractUtil::IsInteractable(OtherActor))
 	{
 		SetTargetInteractable(OtherActor);
-		INTERACT_DISPLAY( TEXT("%hs: Found Actor interactable: %s"), __FUNCTION__, *GetNameSafe(OtherActor));
+		//INTERACT_DISPLAY( TEXT("%hs: Found Actor interactable: %s"), __FUNCTION__, *GetNameSafe(OtherActor));
 	}
 }
 
@@ -189,6 +189,10 @@ void UInteractorComponent::Server_SetInteracting_Implementation(const bool bInIn
 
 void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInteractable> InTargetInteractable)
 {
+	if (TargetInteractable == InTargetInteractable)
+	{		
+		return;
+	}
 	TargetInteractable = InTargetInteractable;
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
 }

@@ -200,6 +200,11 @@ void ARoomManagerBase::SpawnLoot()
 		{
 			GameState->RestoreHealth(10.f);
 		}
+		
+		if (LootSpawnLocation)
+		{
+			LootSpawnLocation->SetTotalUpgradeNeededForCompletion(GameState->CurrentPlayerCount);
+		}
 	}
 }
 
