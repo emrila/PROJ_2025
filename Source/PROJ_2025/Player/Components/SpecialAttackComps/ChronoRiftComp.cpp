@@ -271,7 +271,7 @@ float UChronoRiftComp::GetAttackRadius() const
 
 float UChronoRiftComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
 
 float UChronoRiftComp::GetDamageAmount() const
@@ -402,6 +402,3 @@ void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& T
 	TargetAreaCenter = TargetCenter;
 	UE_LOG(LogTemp, Warning, TEXT("%s TargetCenter is set to %s"), *FString(__FUNCTION__), *TargetAreaCenter.ToString());
 }
-
-
-

@@ -513,7 +513,7 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 
 float UShadowStrikeAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackCooldown;
+	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
 }
 
 float UShadowStrikeAttackComp::GetDamageAmount() const
@@ -534,12 +534,3 @@ float UShadowStrikeAttackComp::GetAttackRange() const
 	//500.f is random atm, TBD later
 	return LockOnRange + (AttackDamageModifier * 500.f);
 }
-
-
-
-
-
-
-
-
-

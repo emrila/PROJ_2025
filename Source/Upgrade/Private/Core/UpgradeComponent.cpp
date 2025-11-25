@@ -80,8 +80,12 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
-		const int32 Level = NewAttributeRaw->CurrentUpgradeLevel+1;		
-		NewAttributeRaw->Modify(UpgradeData->GetModifier(Level));
+		
+		if (NewAttributeRaw->Modify(UpgradeData->GetModifier(NewAttributeRaw->CurrentUpgradeLevel)))
+		{
+			const int32 Level = NewAttributeRaw->CurrentUpgradeLevel+1;		
+			NewAttributeRaw->CurrentUpgradeLevel = Level;
+		}
 		
 		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s to level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 	});
@@ -99,9 +103,12 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached min downgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
 		}
+		
 		const int32 Level = NewAttributeRaw->CurrentUpgradeLevel-1;		
-
-		NewAttributeRaw->Modify({ UpgradeData->GetModifier(Level).Multiplier, true});
+		if (NewAttributeRaw->Modify(UpgradeData->GetModifier(Level)))
+		{
+			NewAttributeRaw->CurrentUpgradeLevel = Level;
+		}
 	
 	});
 

@@ -65,6 +65,7 @@ void AUpgradeAlternative::SelectUpgrade()
 {
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
+		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 		UpgradeWidget->OnUpgradeSelected(bSelected);
 	}
 	if (bSelected && !bLocked)
@@ -96,10 +97,19 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
-	bSelected = true;
-	SelectUpgrade();
+	/*if (!Execute_CanInteract(this))
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Cannot interact right now!"), __FUNCTION__);
+		return;
+	}	*/
 	
-	if (!Interactor || !Interactor->Implements<IInteractor::UClassType>())
+	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
+
+	bSelected = true;
+	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
+	SelectUpgrade();
+
+	if (!bIsInteractor)
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 		return;
@@ -128,25 +138,42 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && !bFocus && !bSelected && !bLocked)
 	{
-		bFocus = true;
-		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-		{
-			UpgradeWidget->OnUpgradeHasFocus(bFocus);
-		}
+		SetFocus(true);
 	}
 }
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,[[maybe_unused]] int32 OtherBodyIndex)
 {	
-	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && Execute_CanInteract(this))
 	{
-		bFocus = false;
+		SetFocus(false);
+		/*bFocus = false;
 		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 		{
 			UpgradeWidget->OnUpgradeHasFocus(bFocus);
-		}
+		}*/
+	}
+}
+
+void AUpgradeAlternative::SetLocked(const bool bToggle)
+{
+	bLocked = bToggle;
+
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent); !bSelected)
+	{
+		UpgradeWidget->OnUpgradeSelected(bSelected);
+		SetFocus(false);
+	}	
+}
+
+void AUpgradeAlternative::SetFocus(const bool bToggle)
+{
+	bFocus = bToggle;
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+	{
+		UpgradeWidget->OnUpgradeHasFocus(bFocus);
 	}
 }
 
@@ -155,8 +182,7 @@ void AUpgradeAlternative::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if (const ULocalPlayer* PlayerController = GetWorld()->GetFirstLocalPlayerFromController())
 	{
-		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->
-		                                                 GetCameraLocation();
+		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
 		SetActorRotation(FMath::RInterpTo(GetActorRotation(), LookAtRotation, DeltaTime, InterpSpeed));
 	}

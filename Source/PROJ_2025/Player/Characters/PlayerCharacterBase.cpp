@@ -245,6 +245,16 @@ void APlayerCharacterBase::BeginPlay()
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+		
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		
 	}
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
@@ -453,6 +463,14 @@ void APlayerCharacterBase::StartSuddenDeath()
 void APlayerCharacterBase::EndSuddenDeath()
 {
 	SuddenDeath = false;
+}
+
+void APlayerCharacterBase::Jump()
+{
+	if (bIsAlive)
+	{
+		Super::Jump();
+	}
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()

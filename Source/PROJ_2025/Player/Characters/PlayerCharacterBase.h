@@ -78,7 +78,7 @@ public:
 	UFUNCTION()
 	void EndSuddenDeath();
 
-	
+	virtual void Jump() override;
 
 protected:
 	//Handle override parent functions
