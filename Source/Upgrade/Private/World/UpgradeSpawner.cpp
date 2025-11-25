@@ -198,7 +198,7 @@ void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
 	{
 		return;
 	}
-	TriggerSpawn();
+	//TriggerSpawn(); 
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
 	{
 		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
