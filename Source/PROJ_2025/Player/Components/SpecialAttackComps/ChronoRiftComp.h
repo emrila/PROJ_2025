@@ -24,6 +24,8 @@ public:
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
 	virtual void StartAttack() override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -45,6 +47,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Server_PerformLaunch();
 	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_PerformLaunch();
+	
 	UFUNCTION(Server, Reliable)
 	virtual void TickDamage();
 	
@@ -62,12 +67,12 @@ protected:
 
 	virtual float GetDamageAmount() const override;
 	
+	UPROPERTY(Replicated)
 	FVector TargetAreaCenter;
 	
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Replicated)
 	TArray<AActor*> LockedTargets;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TargetAreaRadius = 1000.f;
 	
 	bool bIsLockingTargetArea = false;
@@ -77,10 +82,8 @@ protected:
 	//Not changed by the upgrade system
 	float LockOnRange = 3000.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ChronoDuration = 4.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EnemyTimeDilationFactor = 0.3f;
 	
 	//Not changed by the upgrade system

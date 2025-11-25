@@ -3,7 +3,9 @@
 
 #include "MushroomCharacter.h"
 
+#include "Engine/DamageEvents.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Components/SpecialAttackComps/ChronoRiftDamageType.h"
 
 AMushroomCharacter::AMushroomCharacter()
 {
@@ -31,6 +33,11 @@ void AMushroomCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActo
 	{
 		Super::HandleHit(DamageEvent, DamageCauser);
 		ControllerNullCheck->StopMovement();
+		
+		if (DamageEvent.DamageTypeClass == UChronoRiftDamageType::StaticClass())
+		{
+			return;
+		}
 		if (DamageCauser)
 		{
 			LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
