@@ -38,7 +38,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TArray<FJumpDirection> JumpDirections;
 
-
+	UFUNCTION(BlueprintCallable)
 	void StartAttackCooldown();
 	
 
