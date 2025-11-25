@@ -27,7 +27,8 @@ public:
 
 	virtual void OnStartAttack(const FInputActionInstance& ActionInstance);
 	
-	virtual void SpawnShield();
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_SpawnShield();
 
 	virtual void RecoverDurability();
 

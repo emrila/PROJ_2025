@@ -40,7 +40,7 @@ void UShieldAttackComp::StartAttack()
 	}
 
 	TheCurrentDurability = GetCurrentDurability();
-	SpawnShield();
+	Multicast_SpawnShield();
 
 	GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
@@ -94,7 +94,7 @@ void UShieldAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance
 	StartAttack();
 }
 
-void UShieldAttackComp::SpawnShield()
+void UShieldAttackComp::Multicast_SpawnShield_Implementation()
 {
 	if (ShieldClass)
 	{
