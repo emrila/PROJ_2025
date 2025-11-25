@@ -28,7 +28,21 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	if (bIsLockingTargetArea && bCanAttack)
 	{
 		TryLockingTargetArea();
-		DrawDebugSphere(GetWorld(), TargetAreaCenter, GetAttackRadius(), 5, FColor::Yellow, false, 0.1);
+		if (TargetAreaCenter != FVector::ZeroVector)
+		{
+			if (LovesMesh)
+			{
+				LovesMesh->SetActorLocation(TargetAreaCenter);
+				//Set Scale
+			}
+		}
+		else
+		{
+			if (LovesMesh)
+			{
+				LovesMesh->SetActorHiddenInGame(true);
+			}
+		}
 	}
 }
 
@@ -66,7 +80,7 @@ void UChronoRiftComp::StartAttack()
 	bShouldLaunch = true;
 	TryLockingTargetArea();
 
-	if (!TargetAreaCenter.IsNearlyZero())
+	if (TargetAreaCenter != FVector::ZeroVector)
 	{
 		PerformAttack();
 		Super::StartAttack();
@@ -79,6 +93,7 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	
 	DOREPLIFETIME(UChronoRiftComp, LockedTargets);
 	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
+	DOREPLIFETIME(UChronoRiftComp, LovesMesh);
 }
 
 
@@ -87,6 +102,16 @@ void UChronoRiftComp::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
+	
+	if (ChronoRiftIndicatorClass)
+	{
+		LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
+		
+		if (LovesMesh)
+		{
+			LovesMesh->SetActorHiddenInGame(true);
+		}
+	}
 }
 
 void UChronoRiftComp::PerformAttack()
@@ -267,6 +292,10 @@ void UChronoRiftComp::PrepareForLaunch()
 		return;
 	}
 	//Handle animation and spawning the circle here
+	if (LovesMesh)
+	{
+		LovesMesh->SetActorHiddenInGame(false);
+	}
 	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Chrono Rift Launch!"));
 }
 

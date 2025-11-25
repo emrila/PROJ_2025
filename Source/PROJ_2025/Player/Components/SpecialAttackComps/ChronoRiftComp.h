@@ -68,19 +68,25 @@ protected:
 	virtual float GetDamageAmount() const override;
 	
 	UPROPERTY(Replicated)
+	AActor* LovesMesh;
+	
+	UPROPERTY(editAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> ChronoRiftIndicatorClass;
+	
+	UPROPERTY(Replicated)
 	FVector TargetAreaCenter;
 	
 	UPROPERTY(VisibleAnywhere, Replicated)
 	TArray<AActor*> LockedTargets;
 	
-	float TargetAreaRadius = 1000.f;
+	float TargetAreaRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
 	
 	bool bShouldLaunch = false;
 
 	//Not changed by the upgrade system
-	float LockOnRange = 3000.f;
+	float LockOnRange = 300000.f;
 	
 	float ChronoDuration = 4.f;
 	
