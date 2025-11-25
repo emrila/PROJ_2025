@@ -48,8 +48,7 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);	
-	
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -67,6 +66,7 @@ void AUpgradeAlternative::SelectUpgrade()
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 		UpgradeWidget->OnUpgradeSelected(bSelected);
+		UpgradeWidget->OnUpgradeHasFocus(true);
 	}
 	if (bSelected && !bLocked)
 	{
@@ -138,7 +138,7 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor) && !bFocus && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && /*!bFocus && */!bSelected && !bLocked)
 	{
 		SetFocus(true);
 	}
