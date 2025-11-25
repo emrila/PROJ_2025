@@ -137,7 +137,7 @@ void UShieldAttackComp::RecoverDurability()
 
 float UShieldAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
 
 float UShieldAttackComp::GetDamageAmount() const
@@ -170,4 +170,3 @@ void UShieldAttackComp::BeginPlay()
 	Super::BeginPlay();
 	
 }
-

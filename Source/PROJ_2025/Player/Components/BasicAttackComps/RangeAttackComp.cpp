@@ -176,11 +176,10 @@ FVector URangeAttackComp::GetProjectileSpawnLocation()
 
 float URangeAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
 
 float URangeAttackComp::GetDamageAmount() const
 {
 	return Super::GetDamageAmount() * AttackDamageModifier;
 }
-

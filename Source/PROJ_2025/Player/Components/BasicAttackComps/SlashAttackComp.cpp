@@ -121,7 +121,7 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 
 float USlashAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
 
 float USlashAttackComp::GetDamageAmount() const
@@ -278,6 +278,3 @@ void USlashAttackComp::Multicast_PlayAttackAnim_Implementation()
 		OwnerCharacter->PlayAnimMontage(AttackMontage, 2);
 	}
 }
-
-
-
