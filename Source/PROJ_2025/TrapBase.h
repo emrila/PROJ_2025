@@ -14,7 +14,7 @@ class PROJ_2025_API ATrapBase : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ATrapBase();
-
+	
 	UPROPERTY(BlueprintReadWrite, Replicated)
 	bool Active = true;
 
@@ -26,7 +26,7 @@ protected:
 
 public:	
 
-	UFUNCTION(Server, Reliable, BlueprintCallable)
+	UFUNCTION(NetMulticast, Reliable, BlueprintCallable)
 	void DisableTrap();
 
 };

@@ -10,11 +10,13 @@ ATrapBase::ATrapBase()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 }
 
 void ATrapBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps)
 {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ATrapBase, Active);
 }
 
@@ -27,6 +29,6 @@ void ATrapBase::BeginPlay()
 
 void ATrapBase::DisableTrap_Implementation()
 {
-	Active = true;
+	Active = false;
 }
 
