@@ -53,6 +53,14 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetLockedEnemies(const TArray<AActor*>& Enemies);
+
+	virtual float GetChronoDuration() const;
+
+	virtual float GetAttackRadius() const;
+
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
 	
 	FVector TargetAreaCenter;
 	
@@ -65,17 +73,17 @@ protected:
 	bool bIsLockingTargetArea = false;
 	
 	bool bShouldLaunch = false;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+
+	//Not changed by the upgrade system
 	float LockOnRange = 3000.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ChronoDuration = 5.f;
+	float ChronoDuration = 4.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EnemyTimeDilationFactor = 0.3f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	//Not changed by the upgrade system
 	float DamageTickInterval = 1.f;
 	
 	FTimerHandle ResetEnemiesTimerHandle;

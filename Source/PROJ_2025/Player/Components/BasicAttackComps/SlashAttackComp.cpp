@@ -9,8 +9,9 @@
 
 USlashAttackComp::USlashAttackComp()
 {
-
 	PrimaryComponentTick.bCanEverTick = true;
+	DamageAmount = 15.f;
+	AttackCooldown = 0.25f;
 }
 
 void USlashAttackComp::StartAttack()
@@ -19,10 +20,10 @@ void USlashAttackComp::StartAttack()
 	{
 		return;
 	}
-	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
+	/*if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
 		SetAttackCooldown(AttackAnimLength);
-	}
+	}*/
 	
 	Super::StartAttack();
 
@@ -116,6 +117,16 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 		return;
 	}
 	UE_LOG(LogTemp, Warning, TEXT("%s, Unable to cast OwnerCharacter to APlayerCharacterBase"), *FString(__FUNCTION__));
+}
+
+float USlashAttackComp::GetAttackCooldown() const
+{
+	return Super::GetAttackCooldown() / AttackSpeedModifier;
+}
+
+float USlashAttackComp::GetDamageAmount() const
+{
+	return Super::GetDamageAmount() * AttackDamageModifier;
 }
 
 void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
