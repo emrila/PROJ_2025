@@ -60,7 +60,7 @@ void UInteractorComponent::OnActorBeginOverlap([[maybe_unused]] AActor* Overlapp
 	{
 		return;
 	}
-	ClearInteractable();
+	//ClearInteractable();
 	if (InteractUtil::IsInteractable(OtherActor))
 	{
 		SetTargetInteractable(OtherActor);
