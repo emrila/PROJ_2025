@@ -303,7 +303,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 				UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC,DamageVignetteWidget);
 				DamageVignette->AddToViewport();
 			}
-			Multicast_HitFeedback();
+			Server_HitFeedback();
 			IFrame = true;
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
@@ -487,6 +487,15 @@ void APlayerCharacterBase::Jump()
 	{
 		Super::Jump();
 	}
+}
+
+void APlayerCharacterBase::Server_HitFeedback_Implementation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Multicast_HitFeedback();
 }
 
 void APlayerCharacterBase::Multicast_HitFeedback_Implementation()
