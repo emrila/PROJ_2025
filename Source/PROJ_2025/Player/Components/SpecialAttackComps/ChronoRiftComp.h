@@ -46,13 +46,10 @@ protected:
 	virtual void ResetAttackCooldown() override;
 	
 	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch();
+	virtual void Server_PerformLaunch(); 
 	
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_PerformLaunch();
-	
-	UFUNCTION(Server, Reliable)
-	virtual void TickDamage();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
@@ -95,9 +92,6 @@ protected:
 	
 	//Not changed by the upgrade system
 	float DamageTickInterval = 1.f;
-	
-	FTimerHandle ResetEnemiesTimerHandle;
-	FTimerHandle TickDamageTimerHandle;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;

@@ -123,17 +123,7 @@ void UChronoRiftComp::PerformAttack()
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	
-	/*if (!OwnerCharacter->HasAuthority())
-	{
-		Server_PerformLaunch();
-	}
-	else
-	{
-		Server_PerformLaunch_Implementation();
-	}*/
-	
-	Multicast_PerformLaunch();
+	Server_PerformLaunch();
 }
 
 void UChronoRiftComp::TryLockingTargetArea()
@@ -308,10 +298,19 @@ void UChronoRiftComp::ResetAttackCooldown()
 	bIsLockingTargetArea = false;
 	LockedTargets.Empty();
 	TargetAreaCenter = FVector::ZeroVector;
-	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
 	
-	CurrentChronoRiftZone->Destroy();
-	CurrentChronoRiftZone = nullptr;
+	//CurrentChronoRiftZone->Destroy();
+	//CurrentChronoRiftZone = nullptr;
+}
+
+void UChronoRiftComp::Server_PerformLaunch_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+
+	Multicast_PerformLaunch();
 }
 
 void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
@@ -321,12 +320,6 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-
-	/*if (LockedTargets.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
-		return;
-	}*/
 	
 	if (ChronoRiftZoneClass)
 	{
@@ -335,74 +328,17 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 		
 		if (CurrentChronoRiftZone)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s Spawned ChronoRiftZone!"), *FString(__FUNCTION__));
+			CurrentChronoRiftZone->SetOwnerCharacter(OwnerCharacter);
+			CurrentChronoRiftZone->SetInitialValues(
+				GetAttackRadius(),
+				GetChronoDuration(),
+				GetDamageAmount()
+				);
+			/*UE_LOG(LogTemp, Warning, TEXT("Radius: %f, Lifetime: %f, DamageAmount: %f"),
+				GetAttackRadius(), GetChronoDuration(), GetDamageAmount());*/
 			LovesMesh->SetActorHiddenInGame(true);
 		}
 	}
-	
-	
-	/*const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
-
-	for (AActor* Target : LockedTargets)
-	{
-		if (!IsValid(Target))
-		{
-			continue;
-		}
-		
-		Target->CustomTimeDilation = AppliedDilation;
-		
-		if (APawn* Pawn = Cast<APawn>(Target))
-		{
-			if (AController* C = Pawn->GetController())
-			{
-				C->CustomTimeDilation = AppliedDilation;
-				C->ForceNetUpdate();
-			}
-		}
-		
-		Target->ForceNetUpdate();
-	}
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		ResetEnemiesTimerHandle,
-		[this]()
-		{
-			for (AActor* Target : LockedTargets)
-			{
-				if (!IsValid(Target))
-				{
-					continue;
-				}
-
-				Target->CustomTimeDilation = 1.0f;
-
-				if (APawn* Pawn = Cast<APawn>(Target))
-				{
-					if (AController* C = Pawn->GetController())
-					{
-						C->CustomTimeDilation = 1.0f;
-						C->ForceNetUpdate();
-					}
-				}
-
-				Target->ForceNetUpdate();
-			}
-		}, ChronoDuration, false);
-
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		TickDamageTimerHandle,
-		this,
-		&UChronoRiftComp::TickDamage,
-		DamageTickInterval,
-		true);
-
-	FTimerHandle ClearTickDamageTimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
-	{
-		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	}, ChronoDuration, false);*/
 }
 
 float UChronoRiftComp::GetChronoDuration() const
@@ -427,42 +363,11 @@ float UChronoRiftComp::GetAttackCooldown() const
 
 float UChronoRiftComp::GetDamageAmount() const
 {
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
+	{
+		return Super::GetDamageAmount();
+	}
 	return Super::GetDamageAmount() + AttackDamageModifier;
-}
-
-void UChronoRiftComp::TickDamage_Implementation()
-{
-	/*if (!OwnerCharacter->HasAuthority())
-	{
-		return;
-	}*/
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-	
-	if (LockedTargets.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
-		return;
-	}
-	
-	for (AActor* Target: LockedTargets)
-	{
-		if (IsValid(Target))
-		{
-			UGameplayStatics::ApplyDamage(
-				Target,
-				GetDamageAmount(),
-				OwnerCharacter->GetController(),
-				OwnerCharacter,
-				UChronoRiftDamageType::StaticClass()
-				);
-			
-			UE_LOG(LogTemp, Warning, TEXT("%s dealt %f damage to %s"), *FString(__FUNCTION__), GetDamageAmount(), *Target->GetName());
-		}
-	}
 }
 
 void UChronoRiftComp::Server_SetLockedEnemies_Implementation(const TArray<AActor*>& Enemies)
@@ -477,83 +382,6 @@ void UChronoRiftComp::Server_SetLockedEnemies_Implementation(const TArray<AActor
 	LockedTargets = Enemies;
 }
 
-void UChronoRiftComp::Server_PerformLaunch_Implementation()
-{
-	/*if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-
-	if (LockedTargets.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s No Locked Targets to launch!"), *FString(__FUNCTION__));
-		return;
-	}
-	
-	const float AppliedDilation = FMath::Clamp(EnemyTimeDilationFactor, 0.01f, 1.0f);
-
-	for (AActor* Target : LockedTargets)
-	{
-		if (!IsValid(Target))
-		{
-			continue;
-		}
-		
-		Target->CustomTimeDilation = AppliedDilation;
-		
-		if (APawn* Pawn = Cast<APawn>(Target))
-		{
-			if (AController* C = Pawn->GetController())
-			{
-				C->CustomTimeDilation = AppliedDilation;
-				C->ForceNetUpdate();
-			}
-		}
-		
-		Target->ForceNetUpdate();
-	}
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		ResetEnemiesTimerHandle,
-		[this]()
-		{
-			for (AActor* Target : LockedTargets)
-			{
-				if (!IsValid(Target))
-				{
-					continue;
-				}
-
-				Target->CustomTimeDilation = 1.0f;
-
-				if (APawn* Pawn = Cast<APawn>(Target))
-				{
-					if (AController* C = Pawn->GetController())
-					{
-						C->CustomTimeDilation = 1.0f;
-						C->ForceNetUpdate();
-					}
-				}
-
-				Target->ForceNetUpdate();
-			}
-		}, ChronoDuration, false);
-
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		TickDamageTimerHandle,
-		this,
-		&UChronoRiftComp::TickDamage,
-		DamageTickInterval,
-		true);
-
-	FTimerHandle ClearTickDamageTimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(ClearTickDamageTimerHandle, [this]()
-	{
-		GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	}, ChronoDuration, false);*/
-}
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
 {
 	if (TargetCenter.IsNearlyZero())
