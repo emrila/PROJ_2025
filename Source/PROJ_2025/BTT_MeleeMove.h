@@ -44,4 +44,7 @@ class PROJ_2025_API UBTT_MeleeMove : public UBTTask_MoveTo
 
 	UPROPERTY(EditAnywhere, Category = "AttackRange")
 	float TimeOutTimer = 4.f;
+
+	UPROPERTY(EditAnywhere, Category = "AttackRange")
+	float Range = 175.f;
 };

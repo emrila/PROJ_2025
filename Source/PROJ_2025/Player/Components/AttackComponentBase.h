@@ -52,6 +52,7 @@ protected:
 
 	virtual void PerformAttack() {}
 
+	//UFUNCTION(Server, Reliable)
 	virtual void ResetAttackCooldown();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
