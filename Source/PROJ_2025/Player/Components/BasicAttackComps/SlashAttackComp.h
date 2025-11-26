@@ -15,7 +15,7 @@ public:
 
 	virtual void StartAttack() override;
 	
-	virtual void StartAttack(const float NewDamageAmount) override;
+	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -44,6 +44,4 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AttackRadius = 50.f;
-	
-	bool bWasUsedByShadowStrike = false;
 };
