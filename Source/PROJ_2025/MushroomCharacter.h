@@ -18,6 +18,9 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Multicast_Jump(float Angle, FRotator RotationToPlayer, float JumpStrength, float ForwardStrength);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RotateSpeed;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	bool AttackIsOnCooldown = false;
@@ -36,6 +39,9 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
 	bool MeleeRun = false;
+	
+	UFUNCTION(BlueprintCallable)
+	void StartSmoothRotationTo(FRotator TargetRotation, float Speed);
 
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
@@ -46,4 +52,13 @@ public:
 
 	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FTimerHandle RotationTimerHandle;
+	
+private:
+	
+	void UpdateSmoothRotation();
+
+	FRotator DesiredRotation;
+	float RotationSpeed;
 };
