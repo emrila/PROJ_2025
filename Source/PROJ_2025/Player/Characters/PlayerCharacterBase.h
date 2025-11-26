@@ -91,7 +91,8 @@ public:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HitFeedback();
 	
-
+	UFUNCTION(Client, Reliable)
+	void Client_ShowDamageVignette();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> DamageVignetteWidget;
