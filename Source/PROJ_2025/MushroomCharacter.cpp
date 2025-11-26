@@ -5,7 +5,7 @@
 
 #include "Engine/DamageEvents.h"
 #include "Net/UnrealNetwork.h"
-#include "Player/Components/SpecialAttackComps/ChronoRiftDamageType.h"
+#include "Player/Components/Items/ChronoRiftDamageType.h"
 
 AMushroomCharacter::AMushroomCharacter()
 {

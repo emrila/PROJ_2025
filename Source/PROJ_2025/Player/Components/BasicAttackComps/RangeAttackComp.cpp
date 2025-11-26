@@ -1,5 +1,5 @@
 ﻿#include "RangeAttackComp.h"
-#include "../MageProjectile.h"
+#include "../Items/MageProjectile.h"
 #include "GameFramework/Character.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -111,67 +111,33 @@ FTransform URangeAttackComp::GetProjectileTransform()
 	
 	//FVector SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
 	//FRotator SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
-	const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
+	/*const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
 	const FVector OwnerForwardVector = OwnerCharacter->GetActorForwardVector();
 	const FVector OwnerCharacterRightVector = OwnerCharacter->GetActorRightVector();
-	FVector SpawnLocation = (OwnerLocation + OwnerCharacterRightVector * 80) + OwnerForwardVector ;
-	FRotator SpawnRotation = GetProjectileSpawnRotation();
+
+	FVector SpawnLocation;
+	FRotator SpawnRotation = GetProjectileSpawnRotation();*/
+	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
+		return FTransform::Identity;
+	}
+
+	APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
+
+	if (!CameraManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
+		return FTransform::Identity;
+	}
+
+	FVector CameraLocation = CameraManager->GetCameraLocation() + (CameraManager->GetActorForwardVector() * ProjectileOffsetDistanceInFront);
+	FRotator CameraRotation = CameraManager->GetCameraRotation();
 	
-	return FTransform(SpawnRotation, SpawnLocation);
-}
-
-FRotator URangeAttackComp::GetProjectileSpawnRotation()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, OwnerCharacter is NULL"));
-		return FRotator::ZeroRotator;
-	}
-
-	APlayerController* PlayerController = OwnerCharacter->GetLocalViewingPlayerController();
-
-	if (!PlayerController)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, PlayerController is NULL"));
-		return FRotator::ZeroRotator;
-	}
-
-	int32 ViewPortX, ViewPortY;
-
-	PlayerController->GetViewportSize(ViewPortX, ViewPortY);
-
-	FVector2D ScreenCenter(ViewPortX / 2, ViewPortY / 2);
-
-	FVector WorldLocation, WorldDirection;
-
-	if (PlayerController->DeprojectScreenPositionToWorld(
-		ScreenCenter.X, ScreenCenter.Y, WorldLocation, WorldDirection))
-	{
-		return WorldDirection.Rotation();
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("AMageAttackComp::GetProjectileSpawnRotation, Unable to get screen center rotation"));
-
-	return FRotator::ZeroRotator;
-}
-
-FVector URangeAttackComp::GetProjectileSpawnLocation()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnLocation, OwnerCharacter is NULL!"));
-		return FVector::ZeroVector;
-	}
 	
-	const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
-
-	if (!MeshComp || !MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
-	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnLocation, MeshComp is NULL or Socket does not exist!"));
-		return FVector::ZeroVector;
-	}
-	
-	return MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
+	return FTransform(CameraRotation, CameraLocation);
 }
 
 float URangeAttackComp::GetAttackCooldown() const
