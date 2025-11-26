@@ -56,6 +56,8 @@ public:
 
 	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
 	
+	virtual void EndIsAttacking() { bIsAttacking = false; }
+	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
 		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
@@ -195,6 +197,9 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
