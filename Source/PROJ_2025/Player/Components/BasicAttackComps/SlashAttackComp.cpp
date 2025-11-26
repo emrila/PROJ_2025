@@ -49,7 +49,7 @@ void USlashAttackComp::StartAttack(const float NewDamageAmount)
 	}
 	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
 	{
-		SetAttackCooldown(AttackAnimLength);
+	//	SetAttackCooldown(AttackAnimLength);
 	}
 	
 	Super::StartAttack(NewDamageAmount);

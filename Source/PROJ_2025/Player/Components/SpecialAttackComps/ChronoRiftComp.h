@@ -6,6 +6,7 @@
 #include "ChronoRiftComp.generated.h"
 
 
+class AChronoRiftZone;
 class UChronoRiftDamageType;
 class AEnemyBase;
 struct FInputActionInstance;
@@ -97,4 +98,10 @@ protected:
 	
 	FTimerHandle ResetEnemiesTimerHandle;
 	FTimerHandle TickDamageTimerHandle;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
+	
+	UPROPERTY(Replicated)
+	AChronoRiftZone* CurrentChronoRiftZone;
 };

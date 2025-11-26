@@ -49,6 +49,12 @@ public:
 	{
 		NumberOfSpawnAlternatives = InNumberOfSpawnAlternatives;
 	}
+	
+	UFUNCTION(BlueprintCallable, Category="Upgrade Spawner")
+	void SetTotalUpgradeNeededForCompletion(const int32 InTotalUpgradeNeededForCompletion)
+	{
+		TotalUpgradeNeededForCompletion = InTotalUpgradeNeededForCompletion;
+	}
 
 	UFUNCTION(Server, Reliable)
 	void Server_Spawn();	

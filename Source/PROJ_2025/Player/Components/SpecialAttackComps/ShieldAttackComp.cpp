@@ -105,6 +105,10 @@ void UShieldAttackComp::Server_SpawnShield_Implementation()
 
 void UShieldAttackComp::Multicast_SpawnShield_Implementation()
 {
+	if (!OwnerCharacter)
+	{
+		return;
+	}
 	if (ShieldClass)
 	{
 		FVector SpawnLoc = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * 120.f;
