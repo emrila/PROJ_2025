@@ -234,13 +234,7 @@ void UMeleeAttackComp::Sweep_Implementation(FVector SweepLocation)
 				UDamageType::StaticClass()
 				);
 			UE_LOG(LogTemp, Log, TEXT("%s hit for %f damage"), *Actor->GetName(), GetDamageAmount());
-			DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
 		}
-	}
-	
-	if (UniqueHitActors.Num() == 0)
-	{
-		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 	}
 }
 

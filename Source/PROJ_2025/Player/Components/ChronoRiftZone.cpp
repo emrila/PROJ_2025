@@ -1,12 +1,12 @@
 ﻿#include "ChronoRiftZone.h"
 
 #include "EnemyBase.h"
-#include "EngineAnalytics.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "SpecialAttackComps/ChronoRiftDamageType.h"
 
 AChronoRiftZone::AChronoRiftZone()
 {
@@ -25,8 +25,6 @@ AChronoRiftZone::AChronoRiftZone()
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SphereComponent->SetupAttachment(RootComponent);
 	SphereComponent->SetSphereRadius(Radius);
-	
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
 	
 	SphereComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	SphereComponent->SetCollisionObjectType(ECC_WorldDynamic);
@@ -55,9 +53,12 @@ void AChronoRiftZone::SetInitialValues(const float NewRadius, const float NewLif
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("SetInitialValues: OwnerCharacter is not set"));
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is not set"), *FString(__FUNCTION__));
 	}
 	Radius = NewRadius;
+
+	SphereComponent->SetSphereRadius(Radius);
+	
 	Lifetime = NewLifetime;
 	DamageAmount = NewDamageAmount;
 	bIsInitialValuesSet = true;
@@ -76,12 +77,14 @@ void AChronoRiftZone::BeginPlay()
 	Super::BeginPlay();
 	
 	EnemiesToGiveDamage.Empty();
+	EnemiesSLowedDown.Empty();
+
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
 	
 	GetWorld()->GetTimerManager().SetTimer(TickDamageTimerHandle, this, &AChronoRiftZone::Server_TickDamage, 1.f, true);
 	
 	Multicast_SpawnEffect();
-
-	DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(), SphereComponent->GetScaledSphereRadius(), 16, FColor::Red, false, 16.f);
 
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -236,26 +239,43 @@ void AChronoRiftZone::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor
 	}
 }
 
+void AChronoRiftZone::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	EnemiesToGiveDamage.Remove(OtherActor);
+}
+
 void AChronoRiftZone::Server_TickDamage()
 {
-	TArray<AActor*> OverlappedEnemies;
-	SphereComponent->GetOverlappingActors(OverlappedEnemies);
-	
-	
-	for (AActor* Enemy : OverlappedEnemies)
+	if (bIsFirstTick)
+	{
+		TArray<AActor*> OverlappedEnemies;
+		SphereComponent->GetOverlappingActors(OverlappedEnemies);
+
+		for (AActor* TheEnemy : OverlappedEnemies)
+		{
+			if (TheEnemy->IsA(AEnemyBase::StaticClass()))
+			{
+				EnemiesToGiveDamage.Add(TheEnemy);
+				EnemiesSLowedDown.Add(TheEnemy);
+				Server_SlowEnemy(TheEnemy);
+				Server_ResetEnemy(TheEnemy);
+			}
+		}
+
+		bIsFirstTick = false;
+		DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(), SphereComponent->GetScaledSphereRadius(), 16, FColor::Red, false, Lifetime);
+	}
+	for (AActor* Enemy : EnemiesToGiveDamage)
 	{
 		if (IsValid(Enemy))
 		{
-			if (Enemy->IsA(APlayerCharacterBase::StaticClass()))
-			{
-				continue;
-			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
 			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
 			this, 
-			UDamageType::StaticClass()
+			UChronoRiftDamageType::StaticClass()
 			);
 		}
 	}
