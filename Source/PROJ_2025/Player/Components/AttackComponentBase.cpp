@@ -25,17 +25,18 @@ void UAttackComponentBase::StartAttack()
 	}
 
 	bCanAttack = false;
-	
-	
+
+
+	const float CurrentCoolDownTime = GetAttackCooldown();
 	if (OnCooldownTimerStarted.IsBound())
 	{
-		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		GetAttackCooldown(),
+		CurrentCoolDownTime,
 		false
 		);
 }
@@ -58,16 +59,17 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 
 	bCanAttack = false;
 
+	const float CurrentCoolDownTime = GetAttackCooldown();
 	if (OnCooldownTimerStarted.IsBound())
 	{
-		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCooldown,
+		CurrentCoolDownTime,
 		false
 		);
 }
@@ -116,7 +118,6 @@ void UAttackComponentBase::BeginPlay()
 void UAttackComponentBase::ResetAttackCooldown()
 {
 	bCanAttack = true;
-	
 	if (DamageAmountToStore > 0.f)
 	{
 		DamageAmount = DamageAmountToStore;

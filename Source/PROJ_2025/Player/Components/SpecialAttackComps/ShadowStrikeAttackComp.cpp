@@ -300,8 +300,12 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 	{
 		return;
 	}
-
-	if (LockedTarget->IsA(AGolem::StaticClass()))
+	
+	if (Cast<AEnemyBase>(LockedTarget)->bIsDummy)
+	{
+		DistanceToTarget -= OffsetDistanceBehindTarget/2.f;
+	}
+	else if (LockedTarget->IsA(AGolem::StaticClass()))
 	{
 		DistanceToTarget -= (OffsetDistanceBehindTarget + 100.f);
 	}
