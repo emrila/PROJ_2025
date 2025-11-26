@@ -31,6 +31,10 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void MakeInitialSphereSweep();
+
+	virtual void DestroySelf();
 	
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
@@ -40,11 +44,11 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_SlowEnemy(AActor* Enemy);
 	
-	UFUNCTION(Server, Reliable)
+	/*UFUNCTION(Server, Reliable)
 	virtual void Server_ResetEnemy(AActor* Enemy);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_ResetEnemy(AActor* Enemy);
+	virtual void Multicast_ResetEnemy(AActor* Enemy);*/
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_ResetEnemiesPreEnd();
@@ -76,14 +80,10 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_SpawnEffect();  
 	
-	//UFUNCTION(Server, Reliable)
-	virtual void Server_TickDamage();
+	virtual void TickDamage();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* SphereComponent;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	UStaticMeshComponent* MeshComponent;
 	
 	float Radius = 200;
 	
@@ -107,8 +107,6 @@ protected:
 	
 	UPROPERTY()
 	ACharacter* OwnerCharacter;
-
-	bool bIsInitialValuesSet = false;
 
 	bool bIsFirstTick = true;
 };

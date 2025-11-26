@@ -53,9 +53,8 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SetLockedEnemies(const TArray<AActor*>& Enemies);
+
+	virtual void SetIndicatorHidden(bool bIsHidden);
 
 	virtual float GetChronoDuration() const;
 
@@ -74,28 +73,22 @@ protected:
 	UPROPERTY(Replicated)
 	FVector TargetAreaCenter;
 	
-	UPROPERTY(VisibleAnywhere, Replicated)
-	TArray<AActor*> LockedTargets;
-	
 	float TargetAreaRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
-	
-	bool bShouldLaunch = false;
 
 	//Not changed by the upgrade system
-	float LockOnRange = 300000.f;
+	float LockOnRange = 30000.f;
 	
 	float ChronoDuration = 4.f;
 	
 	float EnemyTimeDilationFactor = 0.3f;
-	
-	//Not changed by the upgrade system
-	float DamageTickInterval = 1.f;
+
+	UPROPERTY(Replicated)
+	AChronoRiftZone* CurrentChronoRiftZone;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
 	
-	UPROPERTY(Replicated)
-	AChronoRiftZone* CurrentChronoRiftZone;
+	FVector InitialIndicatorScale;
 };

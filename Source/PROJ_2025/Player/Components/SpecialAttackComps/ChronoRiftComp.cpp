@@ -1,11 +1,8 @@
 ﻿#include "ChronoRiftComp.h"
 
-#include "../Items/ChronoRiftDamageType.h"
-#include "EnemyBase.h"
 #include "Net/UnrealNetwork.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
-#include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/ChronoRiftZone.h"
 
@@ -17,7 +14,8 @@ UChronoRiftComp::UChronoRiftComp()
 	SetIsReplicatedByDefault(true);
 
 	DamageAmount = 2.f;
-	AttackCooldown = 15.f;
+	AttackCooldown = 3.f;
+	ChronoDuration = 100.f;
 
 	// ...
 }
@@ -35,14 +33,6 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			{
 				FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
 				LovesMesh->SetActorLocation(SpawnLocation);
-				//Set Scale
-			}
-		}
-		else
-		{
-			if (LovesMesh)
-			{
-				LovesMesh->SetActorHiddenInGame(true);
 			}
 		}
 	}
@@ -79,7 +69,8 @@ void UChronoRiftComp::StartAttack()
 		return;
 	}
 
-	bShouldLaunch = true;
+	SetIndicatorHidden(true);
+	
 	TryLockingTargetArea();
 
 	if (TargetAreaCenter != FVector::ZeroVector)
@@ -93,7 +84,6 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(UChronoRiftComp, LockedTargets);
 	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
 	DOREPLIFETIME(UChronoRiftComp, LovesMesh);
 	DOREPLIFETIME(UChronoRiftComp, CurrentChronoRiftZone);
@@ -102,8 +92,6 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 void UChronoRiftComp::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
 	
 	if (ChronoRiftIndicatorClass)
 	{
@@ -111,7 +99,12 @@ void UChronoRiftComp::BeginPlay()
 		
 		if (LovesMesh)
 		{
-			LovesMesh->SetActorHiddenInGame(true);
+			InitialIndicatorScale = LovesMesh->GetActorScale3D();
+			if (OwnerCharacter && OwnerCharacter->HasAuthority())
+			{
+				SetIndicatorHidden(true);
+			}
+			
 		}
 	}
 }
@@ -157,11 +150,6 @@ void UChronoRiftComp::TryLockingTargetArea()
 	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * LockOnRange);
 	
 	FHitResult HitResult;
-	
-	TArray<FHitResult> HitResults;
-	
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(OwnerCharacter);
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
@@ -171,8 +159,7 @@ void UChronoRiftComp::TryLockingTargetArea()
 		HitResult, 
 		TraceStart, 
 		TraceEnd, 
-		ObjectQueryParams, 
-		Params
+		ObjectQueryParams
 		);
 	
 	if (bHit && HitResult.GetActor())
@@ -186,58 +173,8 @@ void UChronoRiftComp::TryLockingTargetArea()
 			Server_SetTargetAreaCenter(HitResult.ImpactPoint);
 			TargetAreaCenter = HitResult.ImpactPoint;
 		}
-		
-		//DrawDebugSphere(GetWorld(), TargetAreaCenter, GetAttackRadius(), 5, FColor::Yellow, false, AttackCooldown);
-		if (!bShouldLaunch)
-		{
-			return;
-		}
-		
-		//Sphere sweep to find enemies in radius
-		FCollisionObjectQueryParams EnemyQueryParams;
-		EnemyQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-		const bool bEnemiesHit = GetWorld()->SweepMultiByObjectType(
-			HitResults,
-			TargetAreaCenter,
-			TargetAreaCenter,
-			FQuat::Identity,
-			EnemyQueryParams,
-			FCollisionShape::MakeSphere(GetAttackRadius()),
-			Params
-			);
-		
-		if (bEnemiesHit)
-		{
-			TArray<AActor*> HitActors;
-			
-			for (const FHitResult& Hit : HitResults)
-			{
-				if (Hit.GetActor() && !HitActors.Contains(Hit.GetActor()))
-				{
-					if (Hit.GetActor()->IsA(APlayerCharacterBase::StaticClass()))
-					{
-						continue;
-					}
-					HitActors.Add(Hit.GetActor());
-				}
-			}
-			
-			if (HitActors.Num() > 0)
-			{
-				if (OwnerCharacter->HasAuthority())
-				{
-					LockedTargets = HitActors;
-				}
-				else
-				{
-					Server_SetLockedEnemies(HitActors);
-					LockedTargets = HitActors;
-				}
-			}
-		}
-		return;
 	}
-	TargetAreaCenter = FVector::ZeroVector;
+	
 }
 
 void UChronoRiftComp::OnStartLockingTargetArea(const FInputActionInstance& InputActionInstance)
@@ -246,6 +183,12 @@ void UChronoRiftComp::OnStartLockingTargetArea(const FInputActionInstance& Input
 	{
 		return;
 	}
+
+	if (!bCanAttack)
+	{
+		return;
+	}
+	
 	bIsLockingTargetArea = true;
 	PrepareForLaunch();
 }
@@ -279,28 +222,19 @@ void UChronoRiftComp::OnStartLockingCanceled(const FInputActionInstance& InputAc
 
 void UChronoRiftComp::PrepareForLaunch()
 {
-	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter || !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
 		return;
 	}
 	//Handle animation and spawning the circle here
-	if (LovesMesh)
-	{
-		LovesMesh->SetActorHiddenInGame(false);
-	}
-	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Chrono Rift Launch!"));
+	SetIndicatorHidden(false);
 }
 
 void UChronoRiftComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
-	bShouldLaunch = false;
 	bIsLockingTargetArea = false;
-	LockedTargets.Empty();
 	TargetAreaCenter = FVector::ZeroVector;
-	
-	//CurrentChronoRiftZone->Destroy();
-	//CurrentChronoRiftZone = nullptr;
 }
 
 void UChronoRiftComp::Server_PerformLaunch_Implementation()
@@ -323,7 +257,6 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 	
 	if (ChronoRiftZoneClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s Spawning ChronoRiftZone!"), *FString(__FUNCTION__));
 		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator);
 		
 		if (CurrentChronoRiftZone)
@@ -334,9 +267,38 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 				GetChronoDuration(),
 				GetDamageAmount()
 				);
-			/*UE_LOG(LogTemp, Warning, TEXT("Radius: %f, Lifetime: %f, DamageAmount: %f"),
-				GetAttackRadius(), GetChronoDuration(), GetDamageAmount());*/
-			LovesMesh->SetActorHiddenInGame(true);
+		}
+	}
+}
+
+void UChronoRiftComp::SetIndicatorHidden(bool bIsHidden)
+{
+	if (!LovesMesh)
+	{
+		return;
+	}
+	LovesMesh->SetActorHiddenInGame(bIsHidden);
+	
+	if (!bIsHidden)
+	{
+		FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
+		LovesMesh->SetActorLocation(SpawnLocation);
+		
+		const float DesiredDiameter = GetAttackRadius() * 2.0f;
+
+		if (UStaticMeshComponent* MeshComp = LovesMesh->FindComponentByClass<UStaticMeshComponent>())
+		{
+			const float CurrentWorldDiameterXY = FMath::Max(MeshComp->Bounds.BoxExtent.X, MeshComp->Bounds.BoxExtent.Y) * 2.0f;
+
+			if (CurrentWorldDiameterXY > KINDA_SMALL_NUMBER)
+			{
+				const float ScaleFactor = DesiredDiameter / CurrentWorldDiameterXY;
+				const FVector NewScale = MeshComp->GetComponentScale() * ScaleFactor;
+				MeshComp->SetWorldScale3D(NewScale);
+
+				// Keep Z scale small so plane stays flat
+				MeshComp->SetWorldScale3D(FVector(NewScale.X, NewScale.Y, 1.0f));
+			}
 		}
 	}
 }
@@ -370,18 +332,6 @@ float UChronoRiftComp::GetDamageAmount() const
 	return Super::GetDamageAmount() + AttackDamageModifier;
 }
 
-void UChronoRiftComp::Server_SetLockedEnemies_Implementation(const TArray<AActor*>& Enemies)
-{
-	if (Enemies.Num() == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ChronoRiftComp, Server_SetLockaedEnemies, Enemies array is empty!"));
-		LockedTargets.Empty();
-		return;
-	}
-	
-	LockedTargets = Enemies;
-}
-
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
 {
 	if (TargetCenter.IsNearlyZero())
@@ -392,5 +342,4 @@ void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& T
 	}
 	
 	TargetAreaCenter = TargetCenter;
-	UE_LOG(LogTemp, Warning, TEXT("%s TargetCenter is set to %s"), *FString(__FUNCTION__), *TargetAreaCenter.ToString());
 }
