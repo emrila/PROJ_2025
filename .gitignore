@@ -77,6 +77,7 @@ DerivedDataCache/*
 #---- FMOD Specific ----#
 # Whitelist
 !Plugins/FMOD*/Binaries/*
+!Plugins/FMOD*/**/*.lib
 
 # Remove Desktop and/or Mobile lines if files are needed from these directories 
 # !FMOD*/Desktop/**/*.dll
