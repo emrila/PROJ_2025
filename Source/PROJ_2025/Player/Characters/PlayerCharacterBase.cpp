@@ -301,7 +301,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Damage widget"));
 				UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC,DamageVignetteWidget);
-				DamageVignette->AddToViewport();
+				//DamageVignette->AddToViewport();
 			}
 			Server_HitFeedback();
 			IFrame = true;
