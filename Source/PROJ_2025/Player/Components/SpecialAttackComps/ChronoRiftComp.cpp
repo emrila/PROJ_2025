@@ -1,13 +1,13 @@
 ﻿#include "ChronoRiftComp.h"
 
-#include "ChronoRiftDamageType.h"
+#include "../Items/ChronoRiftDamageType.h"
 #include "EnemyBase.h"
 #include "Net/UnrealNetwork.h"
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
-#include "Player/Components/ChronoRiftZone.h"
+#include "Player/Components/Items/ChronoRiftZone.h"
 
 
 UChronoRiftComp::UChronoRiftComp()

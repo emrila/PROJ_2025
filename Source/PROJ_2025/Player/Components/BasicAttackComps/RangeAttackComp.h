@@ -26,10 +26,6 @@ protected:
 
 	virtual FTransform GetProjectileTransform();
 
-	virtual FRotator GetProjectileSpawnRotation();
-
-	virtual FVector GetProjectileSpawnLocation();
-
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
@@ -38,8 +34,5 @@ protected:
 	TSubclassOf<AMageProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName ProjectileSpawnSocketName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector SpawnLocationOffset;
+	float ProjectileOffsetDistanceInFront = 100.f;
 };

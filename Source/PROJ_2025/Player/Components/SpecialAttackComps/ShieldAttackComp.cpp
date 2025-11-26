@@ -4,7 +4,7 @@
 #include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
-#include "Player/Components/Shield.h"
+#include "Player/Components/Items/Shield.h"
 
 
 UShieldAttackComp::UShieldAttackComp()

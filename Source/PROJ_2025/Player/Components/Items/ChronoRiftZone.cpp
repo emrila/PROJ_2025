@@ -6,7 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
-#include "SpecialAttackComps/ChronoRiftDamageType.h"
+#include "ChronoRiftDamageType.h"
 
 AChronoRiftZone::AChronoRiftZone()
 {
