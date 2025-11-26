@@ -3,6 +3,9 @@
 
 #include "EnemyBase.h"
 
+#include "AIController.h"
+#include "BrainComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
 AEnemyBase::AEnemyBase()
@@ -31,18 +34,68 @@ void AEnemyBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AEnemyBase, Health);
+	DOREPLIFETIME(AEnemyBase, HasDied);
 }
 
 
+void AEnemyBase::FinishDeath()
+{
+	SpawnDeathEffect();
+	Destroy();
+}
+
 void AEnemyBase::HandleDeath()
 {
-	if (CombatManager)
+	if (CombatManager && !HasDied)
 	{
 		CombatManager->RegisterEnemyDeath();
 		UE_LOG(LogTemp, Log, TEXT("EnemyBase: Enemy died"));
+		HasDied = true;
+	}else
+	{
+		UE_LOG(LogTemp, Error, TEXT("COMBATMANAGER IS NULL"));
 	}
+	if (DeathMontage )
+	{	
+		if (AController* ControllerNullCheck = GetController())
+		{
+			AAIController* AICon = Cast<AAIController>(ControllerNullCheck);
+			if (AICon)
+			{
+				AICon->BrainComponent->StopLogic("Enemy died");
+			}
+			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+			float PlayRate = 3.f;
+			float Duration = AnimInst->Montage_Play(DeathMontage, PlayRate);
+			if (Duration <= 0.f)
+			{
+				SpawnDeathEffect();
+				Destroy();
+				return;
+			}
+			FTimerHandle DeathTimerHandle;
 
+			GetWorld()->GetTimerManager().SetTimer(
+				DeathTimerHandle,
+				this,
+				&AEnemyBase::FinishDeath,
+				(Duration/PlayRate) - 0.4f,
+				false
+			);
+			return;
+		}
+		return;
+	}
+	SpawnDeathEffect();
 	Destroy();
+}
+
+void AEnemyBase::SpawnDeathEffect_Implementation()
+{
+	if (DeathEffect)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DeathEffect, GetActorLocation());
+	}
 }
 
 void AEnemyBase::HandleHit_Implementation(struct FDamageEvent const& DamageEvent, AActor* DamageCauser)

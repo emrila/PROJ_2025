@@ -132,7 +132,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 			return;
 		}
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
-		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->GetDamageAmount());
+		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->GetDamageAmount(), 1.f);
 	}, StrikeDelay, false);
 	
 	
@@ -207,7 +207,7 @@ void UShadowStrikeAttackComp::PrepareForAttack()
 		return;
 	}
 	//TODO: Handle before attack animation here
-	UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Shadow Strike Attack!"));
+	//UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Shadow Strike Attack!"));
 }
 
 void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Target)
@@ -522,7 +522,7 @@ float UShadowStrikeAttackComp::GetAttackCooldown() const
 
 float UShadowStrikeAttackComp::GetDamageAmount() const
 {
-	if (AttackDamageModifier == 1.f)
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
 	{
 		return Super::GetDamageAmount();
 	}

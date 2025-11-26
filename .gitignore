@@ -73,3 +73,27 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+#---- FMOD Specific ----#
+# Whitelist
+!Plugins/FMOD*/Binaries/*
+
+# Remove Desktop and/or Mobile lines if files are needed from these directories 
+# !FMOD*/Desktop/**/*.dll
+# !FMOD*/Desktop/**/*.lib
+# !FMOD*/Mobile/**/*.dll
+# !FMOD*/Mobile/**/*.lib
+
+# Exclude generated files
+FMOD*/**/*.user
+FMOD*/**/*.cache
+FMOD*/**/*.unsaved
+
+# When opening UE, the FMOD plugin should automatically load the FMOD Studio bank files and generate assets on disk.
+FMOD*/Banks/*
+FMOD*/Buses/*
+FMOD*/Events/*
+FMOD*/PrivateIntegrationData/*
+FMOD*/Reverbs/*
+FMOD*/Snapshots/*
+

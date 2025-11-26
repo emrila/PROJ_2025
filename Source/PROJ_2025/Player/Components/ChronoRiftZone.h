@@ -5,7 +5,7 @@
 #include "GameFramework/Actor.h"
 #include "ChronoRiftZone.generated.h"
 
-class APlayerCharacterBase;
+class ACharacter;
 class UNiagaraSystem;
 class USphereComponent;
 
@@ -17,15 +17,17 @@ class PROJ_2025_API AChronoRiftZone : public AActor
 public:
 	AChronoRiftZone();
 	
-	AChronoRiftZone(
-		float NewRadius,
-		float NewLifetime,
-		float NewDamageAmount
-		);
-	
 	virtual void Tick(float DeltaTime) override;
 	
-	virtual void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
+	virtual void SetOwnerCharacter(ACharacter* NewOwnerCharacter);
+
+	virtual void SetInitialValues(
+		const float NewRadius,
+		const float NewLifetime,
+		const float NewDamageAmount
+		);
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -59,11 +61,22 @@ protected:
 		bool bFromSweep,
 		const FHitResult& SweepResult
 		);
+
+	UFUNCTION()
+	virtual void OnOverlapEnd(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex
+		);
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_SpawnEffect();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnEffect(); 
+	virtual void Multicast_SpawnEffect();  
 	
-	UFUNCTION(Server, Reliable)
+	//UFUNCTION(Server, Reliable)
 	virtual void Server_TickDamage();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
@@ -83,7 +96,7 @@ protected:
 	FTimerHandle ResetEnemiesTimerHandle;
 	FTimerHandle TickDamageTimerHandle;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UNiagaraSystem* ChronoRiftEffect;
 	
 	UPROPERTY()
@@ -93,5 +106,9 @@ protected:
 	TSet<AActor*> EnemiesSLowedDown;
 	
 	UPROPERTY()
-	APlayerCharacterBase* OwnerCharacter;
+	ACharacter* OwnerCharacter;
+
+	bool bIsInitialValuesSet = false;
+
+	bool bIsFirstTick = true;
 };
