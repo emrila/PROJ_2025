@@ -42,6 +42,7 @@ void AMushroomCharacter::StartSmoothRotationTo(FRotator TargetRotation, float Sp
 		true
 	);
 }
+
 void AMushroomCharacter::UpdateSmoothRotation()
 {
 	FRotator Current = GetActorRotation();

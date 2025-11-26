@@ -85,10 +85,14 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
+	UFUNCTION(Server, Reliable)
+	void Server_HitFeedback();
+
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HitFeedback();
 	
-
+	UFUNCTION(Client, Reliable)
+	void Client_ShowDamageVignette();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> DamageVignetteWidget;
