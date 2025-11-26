@@ -85,6 +85,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
+	UFUNCTION(Server, Reliable)
+	void Server_HitFeedback();
+
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HitFeedback();
 	
