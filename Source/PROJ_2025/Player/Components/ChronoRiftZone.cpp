@@ -19,7 +19,7 @@ AChronoRiftZone::AChronoRiftZone()
 	MeshComponent->SetIsReplicated(true);
 	
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	//MeshComponent->SetHiddenInGame(true);
+	MeshComponent->SetHiddenInGame(true);
 	
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
 	SphereComponent->SetupAttachment(RootComponent);
