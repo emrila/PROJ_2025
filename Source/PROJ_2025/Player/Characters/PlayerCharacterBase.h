@@ -56,6 +56,8 @@ public:
 
 	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
 	
+	virtual void EndIsAttacking() { bIsAttacking = false; }
+	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
 		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
@@ -79,6 +81,17 @@ public:
 	void EndSuddenDeath();
 
 	virtual void Jump() override;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void HitFeedback();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HitFeedback();
+	
+
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> DamageVignetteWidget;
 
 protected:
 	//Handle override parent functions
@@ -196,6 +209,9 @@ protected:
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
+	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName RightHandSocket = TEXT("HandGrip_R");
@@ -225,6 +241,8 @@ private:
 
 	UPROPERTY(Replicated)
 	bool SuddenDeath;
+
+	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

@@ -297,6 +297,13 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
+			if (APlayerController* PC = Cast<APlayerController>(GetController()))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Damage widget"));
+				UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC,DamageVignetteWidget);
+				DamageVignette->AddToViewport();
+			}
+			Multicast_HitFeedback();
 			IFrame = true;
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
@@ -382,7 +389,16 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 	}
 	if (bIsAlive)
 	{
+		bIsAttacking = true;
 		GetFirstAttackComponent()->StartAttack();
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		this,
+		&APlayerCharacterBase::EndIsAttacking,
+		0.1f,
+		false
+		);
 	}
 
 	
@@ -471,6 +487,11 @@ void APlayerCharacterBase::Jump()
 	{
 		Super::Jump();
 	}
+}
+
+void APlayerCharacterBase::Multicast_HitFeedback_Implementation()
+{
+	HitFeedback();
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()
