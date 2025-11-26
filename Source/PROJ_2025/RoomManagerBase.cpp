@@ -37,14 +37,21 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
-
-	TArray<URoomData*> AllRooms = GI->GetAllRoomData();
-
-	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
-
-	bool CampExit = GI->RollForCampRoom();
+	TArray<URoomData*> AllRooms;
+	if (Room.RoomData->RoomType != ERoomType::Parkour)
+	{
+		AllRooms = GI->NormalMapPool;
+	}else
+	{
+		AllRooms = GI->CombatOnly;
+	}
 
 	bool ChoiceRoom = GI->RollForChoiceRoom();
+	bool CampExit = false;
+	if (!ChoiceRoom)
+	{
+		CampExit = GI->RollForCampRoom();
+	}
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
@@ -81,7 +88,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		ChosenRooms.Add(GI->GetChoiceRoomData());
 	}
 
-	if (Room.RoomData)
+	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
 	{
 		AllRooms.Remove(Room.RoomData);
 	}
