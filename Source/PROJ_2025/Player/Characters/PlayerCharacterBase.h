@@ -80,6 +80,17 @@ public:
 
 	virtual void Jump() override;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void HitFeedback();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HitFeedback();
+	
+
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> DamageVignetteWidget;
+
 protected:
 	//Handle override parent functions
 	virtual void BeginPlay() override;
@@ -225,6 +236,8 @@ private:
 
 	UPROPERTY(Replicated)
 	bool SuddenDeath;
+
+	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA
