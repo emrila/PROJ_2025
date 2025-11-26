@@ -208,6 +208,12 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassDescription;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	bool bIsAttacking = false;
