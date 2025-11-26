@@ -29,6 +29,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Stats")
 	float Health;
+
+	UPROPERTY(Replicated)
+	bool HasDied;
 	
 	UPROPERTY(BlueprintReadOnly)
 	float DamageMultiplier = 1.f;
