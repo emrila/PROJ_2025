@@ -203,6 +203,12 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_CustomPlayerName, VisibleAnywhere)
 	FString CustomPlayerName = TEXT("Player");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassDescription;
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
