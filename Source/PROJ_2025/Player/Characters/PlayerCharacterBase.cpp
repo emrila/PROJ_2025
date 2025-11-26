@@ -237,6 +237,18 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 	InterpolateCamera(ToTargetLocation, LerpDuration);
 }
 
+void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !DamageVignetteWidget) return;
+
+	UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC, DamageVignetteWidget);
+	if (DamageVignette)
+	{
+		DamageVignette->AddToViewport();
+	}
+}
+
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -297,17 +309,12 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
-			if (APlayerController* PC = Cast<APlayerController>(GetController()))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Damage widget"));
-				UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC,DamageVignetteWidget);
-				DamageVignette->AddToViewport();
-			}
-			Server_HitFeedback();
+			Client_ShowDamageVignette(); // send to owning client
 			IFrame = true;
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 		}
+		Server_HitFeedback();
 		return NewDamageAmount;
 		
 	}

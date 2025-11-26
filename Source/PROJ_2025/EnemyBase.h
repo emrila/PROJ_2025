@@ -29,19 +29,32 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Stats")
 	float Health;
+
+	UPROPERTY(Replicated)
+	bool HasDied;
 	
 	UPROPERTY(BlueprintReadOnly)
 	float DamageMultiplier = 1.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bIsDummy = false;
+
 	
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UNiagaraSystem* DeathEffect;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Animations")
+	UAnimMontage* DeathMontage;
+
+	UFUNCTION()
+	void FinishDeath();
 	
 	virtual void HandleDeath();
 
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void HandleHit(struct FDamageEvent const& DamageEvent, AActor* DamageCauser);
-	
 
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void SpawnDeathEffect();
 };

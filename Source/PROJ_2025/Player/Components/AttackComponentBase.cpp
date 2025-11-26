@@ -41,7 +41,7 @@ void UAttackComponentBase::StartAttack()
 		);
 }
 
-void UAttackComponentBase::StartAttack(const float NewDamageAmount)
+void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
 	if (!bCanAttack)
 	{
@@ -56,6 +56,9 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 	
 	DamageAmountToStore = DamageAmount;
 	DamageAmount = NewDamageAmount;
+
+	AttackCooldownToStore = AttackCooldown;
+	AttackCooldown = NewAttackCooldown;
 
 	bCanAttack = false;
 
@@ -93,7 +96,7 @@ void UAttackComponentBase::Server_SpawnEffect_Implementation(const FVector& Effe
 	
 	if (!Effect)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
+		//UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
 	if (!OwnerCharacter->HasAuthority() || EffectSpawnLocation.IsNearlyZero())
@@ -122,6 +125,12 @@ void UAttackComponentBase::ResetAttackCooldown()
 	{
 		DamageAmount = DamageAmountToStore;
 		DamageAmountToStore = 0.f;
+	}
+
+	if (AttackCooldownToStore > 0.f)
+	{
+		AttackCooldown = AttackCooldownToStore;
+		AttackCooldownToStore = 0.f;
 	}
 }
 

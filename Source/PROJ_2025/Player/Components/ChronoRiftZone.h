@@ -62,11 +62,19 @@ protected:
 		const FHitResult& SweepResult
 		);
 
+	UFUNCTION()
+	virtual void OnOverlapEnd(
+		UPrimitiveComponent* OverlappedComp,
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex
+		);
+
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnEffect();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnEffect(); 
+	virtual void Multicast_SpawnEffect();  
 	
 	//UFUNCTION(Server, Reliable)
 	virtual void Server_TickDamage();
@@ -101,4 +109,6 @@ protected:
 	ACharacter* OwnerCharacter;
 
 	bool bIsInitialValuesSet = false;
+
+	bool bIsFirstTick = true;
 };

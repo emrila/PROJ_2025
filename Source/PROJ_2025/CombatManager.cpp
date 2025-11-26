@@ -101,6 +101,7 @@ void ACombatManager::RegisterEnemyDeath_Implementation()
 	}
 	
 	RemainingEnemies--;
+	UE_LOG(LogTemp, Error, TEXT("REMAING ENEMIES %d"), RemainingEnemies);
 	if (RemainingEnemies == 0)
 	{
 		WaveIndex++;
