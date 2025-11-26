@@ -37,29 +37,25 @@ void USlashAttackComp::StartAttack()
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
-	bWasUsedByShadowStrike = false;
 	PerformAttack();
 }
 
-void USlashAttackComp::StartAttack(const float NewDamageAmount)
+void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
 	if (!bCanAttack)
 	{
 		return;
 	}
-	if (const float AttackAnimLength = AttackMontage ? AttackMontage->GetPlayLength() : 0.f; AttackAnimLength > 0.0f)
-	{
-	//	SetAttackCooldown(AttackAnimLength);
-	}
 	
-	Super::StartAttack(NewDamageAmount);
+	UE_LOG(LogTemp, Warning, TEXT("Calling Super StartAttack(float), DamageAmount is %f"), GetDamageAmount());
+	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
+	UE_LOG(LogTemp, Warning, TEXT("Called Super StartAttack(float), DamageAmount is %f"), GetDamageAmount());
 
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
-	bWasUsedByShadowStrike = true;
 	PerformAttack();
 }
 
@@ -157,63 +153,6 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		QueryParams
 		);
 	
-	/*const bool bWasHit = GetWorld()->SweepSingleByObjectType(
-		HitResult,
-		SweepLocation,
-		SweepLocation,
-		FQuat::Identity,
-		ObjectQueryParams,
-		FCollisionShape::MakeSphere(AttackRadius),
-		QueryParams
-		);*/
-
-	/*if (bWasHit)
-	{
-		AActor* HitActor = nullptr;
-		if (HitResult.GetActor() && HitResult.GetActor()->IsA(AEnemyBase::StaticClass()))
-		{
-			HitActor = HitResult.GetActor();
-		}
-		
-		if (HitActor)
-		{
-			SpawnParticles(Cast<APlayerCharacterBase>(GetOwner()), HitResult);
-			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *HitActor->GetName(), DamageAmount);
-
-			DrawDebugSphere(GetWorld(), HitActor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
-			UGameplayStatics::ApplyDamage(
-				HitActor,
-				DamageAmount,
-				OwnerCharacter->GetController(),
-				OwnerCharacter,
-				UDamageType::StaticClass()
-				);
-			
-			if (bWasUsedByShadowStrike)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("%s informing ShadowStrikeAttackComp about kill status."), *FString(__FUNCTION__));
-				FTimerHandle OtherAttackCompTimer;
-				GetWorld()->GetTimerManager().SetTimer(
-					OtherAttackCompTimer,
-					[this, HitActor]()
-					{
-						const bool bIsDead = !(IsValid(HitActor));
-						if (bIsDead)
-						{
-							UE_LOG(LogTemp, Warning, TEXT("Target was killed"));
-						}
-				if (UShadowStrikeAttackComp* OtherAttackComponent = OwnerCharacter->FindComponentByClass<UShadowStrikeAttackComp>())
-				{
-					OtherAttackComponent->SetKilledTarget(bIsDead);
-				}
-					}, 0.5f, false);
-			}
-			return;
-		}
-		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
-		return;
-	}*/
-	//DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 	if (bHit)
 	{
 		TArray<AActor*> HitActors;
@@ -237,20 +176,14 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 			}
 			UGameplayStatics::ApplyDamage(
 				Actor,
-				DamageAmount,
+				GetDamageAmount(),
 				OwnerCharacter->GetController(),
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
 
-			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), DamageAmount);
-
-			//DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
+			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), GetDamageAmount());
 		}
-	}
-	else
-	{
-		//DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 	}
 }
 

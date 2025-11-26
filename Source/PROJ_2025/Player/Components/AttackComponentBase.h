@@ -22,7 +22,7 @@ public:
 	
 	virtual void StartAttack();
 	
-	virtual void StartAttack(const float NewDamageAmount);
+	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown);
 
 	virtual bool GetCanAttack() const { return bCanAttack; }
 
@@ -67,6 +67,8 @@ protected:
 	float DamageAmountToStore= 0.f;
 	
 	float AttackCooldown = 1.f;
+
+	float AttackCooldownToStore = 0.f;
 
 	FTimerHandle AttackCooldownTimerHandle;
 
