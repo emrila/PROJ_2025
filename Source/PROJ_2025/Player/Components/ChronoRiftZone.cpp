@@ -6,6 +6,7 @@
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
 AChronoRiftZone::AChronoRiftZone()
 {
@@ -245,6 +246,10 @@ void AChronoRiftZone::Server_TickDamage()
 	{
 		if (IsValid(Enemy))
 		{
+			if (Enemy->IsA(APlayerCharacterBase::StaticClass()))
+			{
+				continue;
+			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
