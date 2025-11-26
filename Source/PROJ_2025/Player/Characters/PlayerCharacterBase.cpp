@@ -389,7 +389,16 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 	}
 	if (bIsAlive)
 	{
+		bIsAttacking = true;
 		GetFirstAttackComponent()->StartAttack();
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		this,
+		&APlayerCharacterBase::EndIsAttacking,
+		0.1f,
+		false
+		);
 	}
 
 	
