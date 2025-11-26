@@ -51,7 +51,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 	
 	HealthPercent = Health/MaxHealth;
-
+	UE_LOG(LogTemp, Error, TEXT("Damage Taken"));
 	OnRep_Health();
 
 	if (HealthPercent <= 0)
