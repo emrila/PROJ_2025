@@ -3,6 +3,7 @@
 
 #include "World/UpgradeSpawner.h"
 
+#include "Interactor.h"
 #include "Core/UpgradeComponent.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
@@ -18,8 +19,11 @@ AUpgradeSpawner::AUpgradeSpawner()
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 	
+	MeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshComponent"));
+	MeshComponent->SetupAttachment(RootComponent);
+	
 	SpawnSplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SpawnSplineComponent"));
-	SpawnSplineComponent->SetupAttachment(RootComponent);
+	SpawnSplineComponent->SetupAttachment(RootComponent);	
 	
 	bReplicates = true;
 
@@ -52,10 +56,6 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		}
 		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
 
-		if (!UpgradeAlternative->OnUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::OnUpgradeSelected))
-		{
-			UpgradeAlternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-		}
 		if (!UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
 		{
 			UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
@@ -78,9 +78,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		return;
 	}
 	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
-	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp
-															? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives)
-															: TArray<FUpgradeDisplayData>();	
+	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives) : TArray<FUpgradeDisplayData>();	
 
 	const float SplineLength = SpawnSplineComponent->GetSplineLength();
    	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
@@ -89,12 +87,12 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	
 	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
 	{
-		const float Distance = SegmentLength * i;
+		const float Distance = SegmentLength * (i+1);
 		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
+		SpawnParams.Owner = this;		
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 		AUpgradeAlternative* SpawnedAlternative = GetWorld()->SpawnActor<AUpgradeAlternative>(AlternativeClass, Location, Rotation, SpawnParams);
@@ -139,13 +137,7 @@ void AUpgradeSpawner::BeginPlay()
 	if (bSpawnOnBeginPlay) 
 	{
 		TriggerSpawn();
-	}
-	
-}
-
-void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
-{	
-	CompletedUpgrades++;	
+	}	
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
@@ -154,8 +146,7 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 	{
 		if (UpgradeAlternativePair.Alternative)
 		{
-			//TODO: Lock function (handle the edge case -> non-selected alternative stuck on hover effect			
-			UpgradeAlternativePair.Alternative->bLocked = true;				 
+			UpgradeAlternativePair.Alternative->SetLocked(true);	 
 			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
 		}		
 	}
@@ -170,7 +161,6 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
 	DOREPLIFETIME(AUpgradeSpawner, TotalUpgradeNeededForCompletion);
-	DOREPLIFETIME(AUpgradeSpawner, CompletedUpgrades);
 }
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
@@ -200,4 +190,23 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 			SetActorTickEnabled(false);
 		}
 	}
+}
+
+void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
+{
+	if (!Execute_CanInteract(this))
+	{
+		return;
+	}
+	TriggerSpawn();
+	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
+	{
+		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+	}
+		
+}
+
+bool AUpgradeSpawner::CanInteract_Implementation()
+{
+	return UpgradeAlternativePairs.IsEmpty();
 }

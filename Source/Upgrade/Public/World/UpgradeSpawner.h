@@ -28,7 +28,7 @@ struct FUpgradeAlternativePair
 };
 
 UCLASS()
-class UPGRADE_API AUpgradeSpawner : public AActor
+class UPGRADE_API AUpgradeSpawner : public AActor, public IInteractable
 {
 	GENERATED_BODY()
 
@@ -61,8 +61,6 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	UFUNCTION()
-	void OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade);
 
 	UFUNCTION()
 	void LockUpgradeAlternatives();
@@ -71,6 +69,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USceneComponent> SceneComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UStaticMeshComponent> MeshComponent; 
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
@@ -94,16 +95,16 @@ private:
 
 public:
 	virtual void Tick(float DeltaSeconds) override;
+	
+	virtual void OnInteract_Implementation(UObject* Interactor = nullptr) override;
+	virtual bool CanInteract_Implementation() override;
 
 private:
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))
 	bool bSpawnOnBeginPlay = true;
 	
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
 	int32 TotalUpgradeNeededForCompletion = 3;
-	
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner", meta=(AllowPrivateAccess=true))
-	int32 CompletedUpgrades = 0;
 	
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Spawner|Events", meta=(AllowPrivateAccess=true))

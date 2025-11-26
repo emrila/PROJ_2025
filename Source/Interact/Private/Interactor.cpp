@@ -24,3 +24,8 @@ int32 IInteractor::GetOwnerID_Implementation() const
 {
 	return -1;
 }
+
+FName IInteractor::GetOwnerName_Implementation() const
+{
+	return NAME_None;
+}

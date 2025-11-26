@@ -2,6 +2,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Shield.h"
 
@@ -40,7 +41,7 @@ void UShieldAttackComp::StartAttack()
 	}
 
 	TheCurrentDurability = GetCurrentDurability();
-	SpawnShield();
+	Server_SpawnShield();
 
 	GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
@@ -52,8 +53,7 @@ void UShieldAttackComp::StartAttack()
 			{
 				if (CurrentShield)
 				{
-					CurrentShield->Destroy();
-					CurrentShield = nullptr;
+					Server_DestroyShield();
 				}
 				bIsShieldActive = false;
 				GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
@@ -94,7 +94,16 @@ void UShieldAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance
 	StartAttack();
 }
 
-void UShieldAttackComp::SpawnShield()
+void UShieldAttackComp::Server_SpawnShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	Multicast_SpawnShield();
+}
+
+void UShieldAttackComp::Multicast_SpawnShield_Implementation()
 {
 	if (ShieldClass)
 	{
@@ -137,12 +146,12 @@ void UShieldAttackComp::RecoverDurability()
 
 float UShieldAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackSpeedModifier;
+	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
 
 float UShieldAttackComp::GetDamageAmount() const
 {
-	if (AttackDamageModifier == 1.f)
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
 	{
 		return Super::GetDamageAmount();
 	}
@@ -165,9 +174,30 @@ float UShieldAttackComp::GetRecoveryRate()
 	return BaseRecoveryRate / AttackSpeedModifier;
 }
 
+void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, CurrentShield);
+}
+
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
+
+void UShieldAttackComp::Server_DestroyShield_Implementation()
+{
+	Multicast_DestroyShield();
+}
+
+void UShieldAttackComp::Multicast_DestroyShield_Implementation()
+{
+	if (CurrentShield)
+	{
+		CurrentShield->Destroy();
+		CurrentShield = nullptr;
+	}
+}
+
 

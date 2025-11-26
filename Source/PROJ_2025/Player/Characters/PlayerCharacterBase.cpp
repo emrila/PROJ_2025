@@ -245,6 +245,16 @@ void APlayerCharacterBase::BeginPlay()
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+		
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		
 	}
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
@@ -455,6 +465,14 @@ void APlayerCharacterBase::EndSuddenDeath()
 	SuddenDeath = false;
 }
 
+void APlayerCharacterBase::Jump()
+{
+	if (bIsAlive)
+	{
+		Super::Jump();
+	}
+}
+
 void APlayerCharacterBase::OnRep_CustomPlayerName()
 {
 	if (!PlayerNameTagWidgetComponent)
@@ -518,7 +536,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
 	if (!bChangedName)
 	{
-#if WITH_EDITORONLY_DATA
+/*#if WITH_EDITORONLY_DATA
 		if (bUsePlayerLoginProfile)
 		{
 			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
@@ -531,13 +549,14 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		{
 			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
-#endif
+#endif*/
 		bChangedName = true;
 	}
 	else
 	{
 		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
 	}
-	Server_SetCustomPlayerName(NewName);
+	Server_SetCustomPlayerName(NewName);	
+	CustomPlayerName = NewName;
 	OnRep_CustomPlayerName();
 }

@@ -300,8 +300,12 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 	{
 		return;
 	}
-
-	if (LockedTarget->IsA(AGolem::StaticClass()))
+	
+	if (Cast<AEnemyBase>(LockedTarget)->bIsDummy)
+	{
+		DistanceToTarget -= OffsetDistanceBehindTarget/2.f;
+	}
+	else if (LockedTarget->IsA(AGolem::StaticClass()))
 	{
 		DistanceToTarget -= (OffsetDistanceBehindTarget + 100.f);
 	}
@@ -513,7 +517,7 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 
 float UShadowStrikeAttackComp::GetAttackCooldown() const
 {
-	return Super::GetAttackCooldown() / AttackCooldown;
+	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
 }
 
 float UShadowStrikeAttackComp::GetDamageAmount() const
@@ -534,12 +538,3 @@ float UShadowStrikeAttackComp::GetAttackRange() const
 	//500.f is random atm, TBD later
 	return LockOnRange + (AttackDamageModifier * 500.f);
 }
-
-
-
-
-
-
-
-
-

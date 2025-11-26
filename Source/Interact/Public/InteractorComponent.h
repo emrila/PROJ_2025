@@ -26,6 +26,12 @@ public:
 	UInteractorComponent();
 
 protected:
+	UFUNCTION()
+	void OnActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
+	UFUNCTION()
+	void OnActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -102,6 +108,7 @@ public:
 		return InteractionDistance;
 	}
 
+	virtual FName GetOwnerName_Implementation() const override;
 
 
 #if WITH_EDITORONLY_DATA

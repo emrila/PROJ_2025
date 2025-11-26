@@ -16,7 +16,10 @@ namespace InteractUtil
 			FVector Start;
 			FRotator ViewRot;
 			Owner->GetActorEyesViewPoint(Start, ViewRot);
+			Start = Owner->GetActorLocation();
+
 			const FVector End = Start + ViewRot.Vector() * InteractionDistance;
+
 			const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable		
 			return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
 		};
@@ -33,6 +36,12 @@ namespace InteractUtil
 		
 		return Sphere();
 	}
+
+	bool IsInteractable(UObject* Object)
+	{
+		return Object && Object->Implements<UInteractable>() && IInteractable::Execute_CanInteract(Object);
+	};
+
 }
 
 UInteractorComponent::UInteractorComponent()
@@ -45,17 +54,42 @@ UInteractorComponent::UInteractorComponent()
 	bInteracting = false;
 }
 
+void UInteractorComponent::OnActorBeginOverlap([[maybe_unused]] AActor* OverlappedActor, AActor* OtherActor)
+{
+	if (!OtherActor || OtherActor == GetOwner() || !OtherActor->Implements<UInteractable>() || !TargetInteractable.GetObject())
+	{
+		return;
+	}
+	//ClearInteractable();
+	if (InteractUtil::IsInteractable(OtherActor))
+	{
+		SetTargetInteractable(OtherActor);
+		//INTERACT_DISPLAY( TEXT("%hs: Found Actor interactable: %s"), __FUNCTION__, *GetNameSafe(OtherActor));
+	}
+}
+
+void UInteractorComponent::OnActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+}
+
 void UInteractorComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
 	Server_SetInteracting(false);
 	SetTargetInteractable(nullptr);
-	if (const AController* InstController = GetOwner()->GetInstigatorController())	{
+	if (const AController* InstController = GetOwner()->GetInstigatorController())
+	{
 		const TObjectPtr<APawn> Pawn = InstController->GetPawn();
-		SetComponentTickEnabled(Pawn->IsLocallyControlled());
-		INTERACT_DISPLAY( TEXT("InteractorComponent tick enabled: %s"), Pawn->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
+		if (Pawn)
+		{
+			SetComponentTickEnabled(Pawn->IsLocallyControlled());
+			INTERACT_DISPLAY(TEXT("InteractorComponent tick enabled: %s"), Pawn->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
+		}
 	}
+
+	GetOwner()->OnActorBeginOverlap.AddDynamic(this, &UInteractorComponent::OnActorBeginOverlap);
+	GetOwner()->OnActorEndOverlap.AddDynamic(this, &UInteractorComponent::OnActorEndOverlap);
 }
 
 void UInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -67,10 +101,6 @@ void UInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType, F
 
 void UInteractorComponent::TraceForInteractable()
 {
-	auto IsInteractable = [this] (UObject* Object) -> bool{
-		return Object && Object->Implements<UInteractable>() && Execute_CanInteract(Object);
-	};
-
 	if (bInteracting)
 	{
 		INTERACT_WARNING( TEXT("Currently interacting, will not trace for interactable"));
@@ -82,8 +112,8 @@ void UInteractorComponent::TraceForInteractable()
 	{
 		return;
 	}
-	FHitResult Hit;
 
+	FHitResult Hit;
 	if (!InteractUtil::Trace(Owner, InteractionRadius, InteractionDistance, Hit
 	#if WITH_EDITORONLY_DATA
 		, DebugType
@@ -92,12 +122,12 @@ void UInteractorComponent::TraceForInteractable()
 	{
 		return;
 	}
-	if (IsInteractable(Hit.GetActor()))
+	if (InteractUtil::IsInteractable(Hit.GetActor()))
 	{
 		SetTargetInteractable(Hit.GetActor());
 		INTERACT_DISPLAY( TEXT("Found Actor interactable: %s"), *GetNameSafe(Hit.GetActor()));
 	}
-	else if (IsInteractable(Hit.GetComponent()))
+	else if (InteractUtil::IsInteractable(Hit.GetComponent()))
 	{
 		SetTargetInteractable(Hit.GetComponent());
 		INTERACT_DISPLAY( TEXT("Found Component interactable: %s"), *GetNameSafe(Hit.GetComponent()));
@@ -159,8 +189,17 @@ void UInteractorComponent::Server_SetInteracting_Implementation(const bool bInIn
 
 void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInteractable> InTargetInteractable)
 {
+	if (TargetInteractable == InTargetInteractable)
+	{		
+		return;
+	}
 	TargetInteractable = InTargetInteractable;
 	INTERACT_DISPLAY( TEXT("Setting target interactable to: %s"), *GetNameSafe(TargetInteractable.GetObject()));
+}
+
+FName UInteractorComponent::GetOwnerName_Implementation() const
+{
+	return GetOwner() ? GetOwner()->GetClass()->GetFName() : NAME_None;
 }
 
 int32 UInteractorComponent::GetOwnerID_Implementation() const
@@ -170,7 +209,7 @@ int32 UInteractorComponent::GetOwnerID_Implementation() const
 
 void UInteractorComponent::OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData)
 {
-	INTERACT_DISPLAY(TEXT("😭😭😭😭😭😭😭😭😭😭😭😭OnSuperFinishedInteraction"));
+	INTERACT_DISPLAY(TEXT("😭😭OnSuperFinishedInteraction"));
 	OnFinishedInteraction.Broadcast( InteractionData);
 }
 
