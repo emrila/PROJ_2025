@@ -46,16 +46,7 @@ public:
 	virtual void HandleCameraDetachment();
 	
 	virtual void HandleCameraReattachment();
-	
-	//Handle Damage
-	virtual void StartIFrame() { IFrame = true;}
-	
-	virtual void ResetIFrame() { IFrame = false;}
 
-	virtual bool IsAlive() const { return bIsAlive; }
-
-	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
-	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
 		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
@@ -67,6 +58,15 @@ public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	
+	//Handle Damage
+	virtual void StartIFrame() { IFrame = true;}
+	
+	virtual void ResetIFrame() { IFrame = false;}
+
+	virtual bool IsAlive() const { return bIsAlive; }
+
+	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
 
 	//TODO: This may be moved to the belonging attack component
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Particles")
