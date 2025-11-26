@@ -54,6 +54,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FTimerHandle RotationTimerHandle;
+
 	
 private:
 	
