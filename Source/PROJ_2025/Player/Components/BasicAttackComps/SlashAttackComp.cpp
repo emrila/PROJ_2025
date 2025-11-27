@@ -181,8 +181,9 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
-
-			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), GetDamageAmount());
+			/*DrawDebugSphere(GetWorld(), Actor->GetActorLocation(),
+		AttackRadius, 32, FColor::Purple, false, 5.f);
+			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), GetDamageAmount());*/
 		}
 	}
 }

@@ -224,10 +224,10 @@ protected:
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
-	FName RightHandSocket = TEXT("HandGrip_R");
+	FName RightHandSocket = TEXT("R_HandSocket");
 
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
-	FName LeftHandSocket = TEXT("HandGrip_L");
+	FName LeftHandSocket = TEXT("L_HandSocket");
 	
 	//TODO: Remove unused functions 
 	UFUNCTION(Server, Reliable)

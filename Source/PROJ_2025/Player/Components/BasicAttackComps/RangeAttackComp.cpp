@@ -67,11 +67,15 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	{
 		return;
 	}
-	
+
+	Multicast_SpawnProjectile(SpawnTransform);
+}
+
+void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform SpawnTransform)
+{
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
-
 	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
 		ProjectileClass, SpawnTransform, SpawnParameters);
 	

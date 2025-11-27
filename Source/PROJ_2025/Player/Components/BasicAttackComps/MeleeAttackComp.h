@@ -52,7 +52,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "First Attack Comp Animations")
 	TArray<UAnimMontage*> AttackAnims;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Radius")
-	float AttackRadius = 50.f;
+	
+	float AttackRadius = 200.f;
 };

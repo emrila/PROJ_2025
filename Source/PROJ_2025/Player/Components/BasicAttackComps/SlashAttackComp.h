@@ -41,7 +41,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackRadius = 50.f;
+	
+	float AttackRadius = 100.f;
 };
