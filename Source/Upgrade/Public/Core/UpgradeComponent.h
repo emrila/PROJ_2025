@@ -34,6 +34,9 @@ public:
 	UFUNCTION()
 	void OnUpgradeReceived(FInstancedStruct InstancedStruct);
 	
+	UFUNCTION()
+	void OnProcessUpgradeQueue();
+	
 	UFUNCTION(BlueprintCallable)
 	TArray<FUpgradeDisplayData> GetRandomUpgrades(const int32 NumberOfUpgrades);
 	
@@ -53,13 +56,14 @@ private:
 	bool bHasAppliedUpgrade = false;
 	
 	TArray<TUniquePtr<FAttributeData>> RegisteredAttributes;
-
 	TMap<FName, TArray<FAttributeData*>> AttributesByRow;
-
 	TMap<uint64, FAttributeData*> AttributesByKey;
-
 	TMap<FName, TArray<FAttributeData*>> AttributesByCategory;
 
+	TQueue<FUpgradeData> PendingUpgrades;
+	
+	
+	
 protected:
 	void ClearAttributes(const FString& String);
 	

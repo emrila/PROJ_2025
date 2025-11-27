@@ -12,9 +12,8 @@ USTRUCT(BlueprintType)
 struct FModiferData
 {
 	GENERATED_BODY()
+	
 	FModiferData() = default;
-
-	//FModiferData(const float InMultiplier, const bool bInRemoveModifier) : Multiplier(InMultiplier), bRemoveModifier(bInRemoveModifier)	{}
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Should the initial value be added to or multiplied by the Multiplier"))
 	bool bUseAddition = false;	
@@ -27,12 +26,7 @@ struct FModiferData
 	template <typename T>
 	T ApplyModifier(const T& BaseValue) const
 	{
-		return bUseAddition ? BaseValue + Multiplier : BaseValue * Multiplier;
-		/*if (bRemoveModifier)
-		{
-			return BaseValue /*- BaseValue #1#* Multiplier;
-		}
-		return BaseValue /*+ BaseValue #1#* Multiplier;*/
+		return bUseAddition ? BaseValue + Multiplier : BaseValue * Multiplier;		
 	}	
 };
 
