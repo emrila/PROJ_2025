@@ -84,6 +84,11 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	Projectile->SetOwner(OwnerCharacter);
 	Projectile->Server_SetDamageAmount(GetDamageAmount());
 	
+	if (AttackAnimation)
+	{
+		OwnerCharacter->PlayAnimMontage(AttackAnimation);
+	}
+	
 	APlayerCharacterBase* PlayerCharacter= Cast<APlayerCharacterBase>(OwnerCharacter);
 	if (!PlayerCharacter || !PlayerCharacter->ImpactParticles)
 	{
