@@ -5,6 +5,7 @@
 #include "Golem.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -238,6 +239,7 @@ void UShadowStrikeAttackComp::HandlePreAttackState()
 		return;
 	}
 	
+	//Set is falling to false to avoid camera issues
 	PlayerCharacter->HandleCameraDetachment();
 }
 
@@ -258,6 +260,10 @@ void UShadowStrikeAttackComp::HandlePostAttackState()
 	}
 	
 	LockedTarget = nullptr;
+	if (PlayerCharacter->GetCharacterMovement())
+	{
+		PlayerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
 	PlayerCharacter->HandleCameraReattachment();
 }
 
