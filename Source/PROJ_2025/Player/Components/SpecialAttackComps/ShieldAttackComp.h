@@ -23,9 +23,13 @@ public:
 	
 	virtual void StartAttack() override;
 	
+	void TempStartAttack();
+	
 	virtual void PerformAttack() override;
 
 	virtual void OnStartAttack(const FInputActionInstance& ActionInstance);
+	
+	virtual void OnCancelAttack();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnShield();
@@ -44,6 +48,8 @@ public:
 	virtual float GetRecoveryRate();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	void TempSetDurability(float NewDurability);
 
 protected:
 	virtual void BeginPlay() override;

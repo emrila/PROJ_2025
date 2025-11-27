@@ -35,9 +35,14 @@ void UShieldAttackComp::StartAttack()
 	{
 		return;
 	}
-	if (!bCanAttack || bIsShieldActive)
+	if (!bCanAttack)
 	{
 		return;
+	}
+	
+	if (bIsShieldActive)
+	{
+		//Deactivate Shield
 	}
 
 	TheCurrentDurability = GetCurrentDurability();
@@ -71,6 +76,14 @@ void UShieldAttackComp::StartAttack()
 	
 }
 
+void UShieldAttackComp::TempStartAttack()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+}
+
 void UShieldAttackComp::PerformAttack()
 {
 	Super::PerformAttack();
@@ -92,6 +105,14 @@ void UShieldAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance
 		return;
 	}
 	StartAttack();
+}
+
+void UShieldAttackComp::OnCancelAttack()
+{
+	if (CurrentShield)
+	{
+		CurrentShield->DeactivateShield();
+	}
 }
 
 void UShieldAttackComp::Server_SpawnShield_Implementation()
