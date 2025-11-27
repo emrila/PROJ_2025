@@ -235,6 +235,11 @@ void ARoomManagerBase::EnableExits()
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
+	if (LootSpawnLocation)
+	{
+		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
+	}
+	
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
