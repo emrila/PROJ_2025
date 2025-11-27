@@ -9,6 +9,7 @@
 UAttackComponentBase::UAttackComponentBase()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 }
 
 void UAttackComponentBase::StartAttack()

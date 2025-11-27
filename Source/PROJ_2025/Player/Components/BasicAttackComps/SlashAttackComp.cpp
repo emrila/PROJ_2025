@@ -47,15 +47,33 @@ void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewA
 		return;
 	}
 	
-	UE_LOG(LogTemp, Warning, TEXT("Calling Super StartAttack(float), DamageAmount is %f"), GetDamageAmount());
-	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
-	UE_LOG(LogTemp, Warning, TEXT("Called Super StartAttack(float), DamageAmount is %f"), GetDamageAmount());
-
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
+
+	if (!OwnerCharacter->HasAuthority())
+	{
+		Server_StartAttack(NewDamageAmount, NewAttackCooldown);
+		return;
+	}
+	
+	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
+	
+	PerformAttack();
+}
+
+void USlashAttackComp::Server_StartAttack_Implementation(const float NewDamageAmount, float NewAttackCooldown)
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
+
+	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
+	
 	PerformAttack();
 }
 
@@ -181,9 +199,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
-			/*DrawDebugSphere(GetWorld(), Actor->GetActorLocation(),
-		AttackRadius, 32, FColor::Purple, false, 5.f);
-			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), GetDamageAmount());*/
+			UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *OwnerCharacter->GetName(), *Actor->GetName(), GetDamageAmount());
 		}
 	}
 }
