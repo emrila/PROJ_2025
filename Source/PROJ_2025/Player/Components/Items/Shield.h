@@ -24,17 +24,21 @@ public:
 	virtual void DeactivateShield();
 	
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
+
+	void SetDurability(const float Value) { Durability = Value; }
+
+	void SetRecoveryRate(const float Value) { RecoveryRate = Value; }
 	
-	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter) { OwnerCharacter = NewOwnerCharacter; }
+	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
 
 	APlayerCharacterBase* GetOwnerCharacter() const { return OwnerCharacter; }
-	
-	void SetDurability(const float Value) { Durability = Value; }
 
 protected:
 	virtual void BeginPlay() override;
-	
-	//virtual void TickDurability();
+
+	virtual void TickDurability();
+
+	virtual void TickRecovery();
 
 	UFUNCTION()
 	virtual void OnShieldOverlap(
@@ -45,6 +49,8 @@ protected:
 		bool bFromSweep, 
 		const FHitResult& SweepResult
 		);
+
+	virtual void ResetIFrame();
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* ShieldMesh;
@@ -60,6 +66,8 @@ protected:
 	
 	float Durability = 10.f;
 
+	float RecoveryRate = 1.f; //durability per second
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float KnockbackForce = 1000.f;
 	
@@ -68,6 +76,8 @@ protected:
 	
 	FTimerHandle DurabilityTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
-	
-	bool bCanBeActivated = true;
+
+	bool IFrame = false;
+
+	bool bShouldCheckPlayerAlive = true;
 };
