@@ -377,7 +377,7 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
-	if (!bShouldUseLookInput)
+	if (!bShouldUseLookInput || !bIsAlive)
 	{
 		return;
 	}
