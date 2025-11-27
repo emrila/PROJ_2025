@@ -51,6 +51,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 	
 	HealthPercent = Health/MaxHealth;
+	
 	UE_LOG(LogTemp, Error, TEXT("Damage Taken"));
 	OnRep_Health();
 
@@ -64,7 +65,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 			}
 		}
 	}
-	
+	ForceNetUpdate();
 }
 
 void AWizardGameState::SetHealth_Implementation(float HealthAmount)
@@ -99,6 +100,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 			}
 		}
 	}
+	ForceNetUpdate();
 }
 
 void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
@@ -125,6 +127,7 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 			}
 		}
 	}
+	ForceNetUpdate();
 }
 
 void AWizardGameState::SetMaxHealth_Implementation(float HealthAmount)
@@ -135,4 +138,5 @@ void AWizardGameState::SetMaxHealth_Implementation(float HealthAmount)
 	HealthPercent = Health/MaxHealth;
 
 	OnRep_Health();
+	ForceNetUpdate();
 }
