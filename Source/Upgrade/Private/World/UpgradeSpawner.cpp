@@ -38,8 +38,8 @@ void AUpgradeSpawner::TriggerSpawn()
 {
 	if (HasAuthority())
 	{
-		Server_Spawn();		
-		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);	
+		Server_Spawn();
+		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
 	}
 	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
 }
@@ -78,13 +78,13 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		return;
 	}
 	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
-	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives) : TArray<FUpgradeDisplayData>();	
+	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives) : TArray<FUpgradeDisplayData>();
 
 	const float SplineLength = SpawnSplineComponent->GetSplineLength();
    	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
-	
+
 	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs; //Waiting to trigger OnRep on clients after all alternatives are spawned
-	
+
 	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
 	{
 		const float Distance = SegmentLength * (i+1);
@@ -92,7 +92,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;		
+		SpawnParams.Owner = this;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 		AUpgradeAlternative* SpawnedAlternative = GetWorld()->SpawnActor<AUpgradeAlternative>(AlternativeClass, Location, Rotation, SpawnParams);
@@ -102,14 +102,14 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		}
 
 		SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
-		
+
 		if (!LocalUpgradeDataArray.IsValidIndex(i)) //Shouldn't be needed... But just in case
 		{
 			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, i, LocalUpgradeDataArray.Num());
 			break;
 		}
 		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i]); //Waiting to trigger OnRep on clients after all alternatives are spawned
-		SpawnedAlternative->Index = i;		
+		SpawnedAlternative->Index = i;
 		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, i);
 	}
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
@@ -119,12 +119,12 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 void AUpgradeSpawner::PostLoad()
 {
 	Super::PostLoad();
-    
+
 	if (UpgradeDataArray.IsEmpty() && !PlayerUpgradeDisplayEntry.UpgradeDataArray.IsEmpty())
 	{
 		UpgradeDataArray = PlayerUpgradeDisplayEntry.UpgradeDataArray;
 		UPGRADE_DISPLAY(TEXT("%hs: Migrated data to UpgradeDataArray"), __FUNCTION__);
-		
+
 		// MarkPackageDirty();
 	}
 }
@@ -133,11 +133,11 @@ void AUpgradeSpawner::PostLoad()
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (bSpawnOnBeginPlay) 
+
+	if (bSpawnOnBeginPlay)
 	{
 		TriggerSpawn();
-	}	
+	}
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
@@ -146,9 +146,9 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 	{
 		if (UpgradeAlternativePair.Alternative)
 		{
-			UpgradeAlternativePair.Alternative->SetLocked(true);	 
+			UpgradeAlternativePair.Alternative->SetLocked(true);
 			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
-		}		
+		}
 	}
 }
 
@@ -208,5 +208,5 @@ void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
 
 bool AUpgradeSpawner::CanInteract_Implementation()
 {
-	return UpgradeAlternativePairs.IsEmpty();
+	return false; //UpgradeAlternativePairs.IsEmpty();
 }

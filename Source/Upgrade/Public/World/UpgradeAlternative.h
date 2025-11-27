@@ -42,7 +42,8 @@ protected:
 	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	void SetLocked(bool bToggle);
-	void SetFocus(bool bToggle);	
+	void SetFocus(bool bToggle);
+
 	void SetSelected(bool bToggle);
 	
 private:	
@@ -74,7 +75,7 @@ protected:
 	bool bLocked = false;
 	
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bLocalSelected = false; 
+	bool bLocalSelected = false;
 
 	UPROPERTY(ReplicatedUsing=OnRep_Selected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	bool bSelected = false;	
