@@ -79,19 +79,16 @@ void AChronoRiftZone::BeginPlay()
 			Server_SpawnEffect();
 			SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
 			SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
+			DestroySelf();
 		},
 		0.5f,
 		false
 	);
-	DestroySelf();
 }
 
 void AChronoRiftZone::MakeInitialSphereSweep()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Radius: %f, Lifetime: %f, Damage: %f"), Radius, Lifetime, DamageAmount);
-	SphereComponent->SetSphereRadius(Radius);
-	/*FVector SphereLocation = SphereComponent->GetComponentLocation() - FVector(0.f, 0.f, -Radius);
-	SphereComponent->SetWorldLocation(SphereLocation);*/
+	//SphereComponent->SetSphereRadius(Radius);
 	DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(),
 		SphereComponent->GetScaledSphereRadius(), 32, FColor::Purple, false, Lifetime);
 	TArray<AActor*> OverlappedActors;
@@ -103,7 +100,6 @@ void AChronoRiftZone::MakeInitialSphereSweep()
 		{
 			EnemiesToGiveDamage.Add(TheActor);
 			Server_SlowEnemy(TheActor);
-			//Server_ResetEnemy(TheActor);
 		}
 	}
 }
@@ -301,5 +297,8 @@ void AChronoRiftZone::Multicast_SpawnEffect_Implementation()
 	}
 	
 	//Set Scale and Duration here before spawning
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, GetActorLocation());
+	
+	float OffsetZ = SphereComponent->GetScaledSphereRadius();
+	const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 5.f);
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
 }

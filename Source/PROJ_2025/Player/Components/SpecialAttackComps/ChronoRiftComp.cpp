@@ -14,8 +14,7 @@ UChronoRiftComp::UChronoRiftComp()
 	SetIsReplicatedByDefault(true);
 
 	DamageAmount = 2.f;
-	AttackCooldown = 3.f;
-	ChronoDuration = 100.f;
+	AttackCooldown = 15.f;
 
 	// ...
 }
