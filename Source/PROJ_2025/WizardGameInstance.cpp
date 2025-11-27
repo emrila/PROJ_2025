@@ -173,7 +173,7 @@ void UWizardGameInstance::Host_LanSession(FString SessionName)
 	SessionSettings->NumPublicConnections = 3;
 	SessionSettings->bShouldAdvertise = true;
 	SessionSettings->bAllowJoinInProgress = true;
-	SessionSettings->bAllowJoinViaPresence = true;
+	SessionSettings->bAllowJoinViaPresence = false;
 	SessionSettings->bUsesPresence = false;
 	SessionSettings->bUseLobbiesIfAvailable = false;
 	
@@ -215,7 +215,32 @@ void UWizardGameInstance::Join_LanSession(int32 SessionIndex)
 		return;
 	}
 	
-	SessionInterface->JoinSession(0, NAME_GameSession, SessionSearch->SearchResults[SessionIndex]);
+	const FOnlineSessionSearchResult& Result = SessionSearch->SearchResults[SessionIndex];
+	
+	if (!Result.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Selected session result is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	int32 MaxPlayers = Result.Session.SessionSettings.NumPublicConnections;
+	int32 OpenSlots = Result.Session.NumOpenPublicConnections;
+
+	if (MaxPlayers <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Session has invalid MaxPlayers (%d)."), *FString(__FUNCTION__), MaxPlayers);
+		return;
+	}
+
+	if (OpenSlots <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Session is full (OpenSlots=%d, MaxPlayers=%d)."), *FString(__FUNCTION__), OpenSlots, MaxPlayers);
+		return;
+	}
+	
+	ULocalPlayer* Player = GetFirstGamePlayer();
+	int32 LocalUserNum = Player ? Player->GetControllerId() : 0;
+	SessionInterface->JoinSession(LocalUserNum, NAME_GameSession, Result);
 }
 
 TArray<FSessionProps> UWizardGameInstance::GetLanSessions()
@@ -307,15 +332,15 @@ void UWizardGameInstance::OnJoinSessionCompleted(FName SessionName, EOnJoinSessi
 		return;
 	}
 	
-	ULocalPlayer* Player = GetFirstGamePlayer();
-	if (!Player)
+	if (SessionInterface.IsValid())
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s: Failed to get Player!"), *FString(__FUNCTION__));
-		return;
+		ULocalPlayer* Player = GetFirstGamePlayer();
+		if (Player)
+		{
+			TSharedPtr<const FUniqueNetId> UserID = Player->GetPreferredUniqueNetId().GetUniqueNetId();
+			SessionInterface->RegisterPlayer(SessionName, *UserID, false);
+		}
 	}
-	
-	TSharedPtr<const FUniqueNetId> UserID = Player->GetPreferredUniqueNetId().GetUniqueNetId();
-	SessionInterface->RegisterPlayer(SessionName, *UserID, false);
 
 	if (FString ConnectString; SessionInterface->GetResolvedConnectString(SessionName, ConnectString))
 	{
