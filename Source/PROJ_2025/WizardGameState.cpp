@@ -3,7 +3,9 @@
 
 #include "WizardGameState.h"
 
+#include "RoomLoader.h"
 #include "VectorUtil.h"
+#include "WizardGameInstance.h"
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerState.h"
 #include "Net/UnrealNetwork.h"
@@ -53,9 +55,9 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	HealthPercent = Health/MaxHealth;
 	
 	UE_LOG(LogTemp, Error, TEXT("Damage Taken"));
-	OnRep_Health();
+	
 
-	if (HealthPercent <= 0)
+	if (HealthPercent <= 0 && Cast<UWizardGameInstance>(GetGameInstance())->RoomLoader->CurrentRoom.RoomData->RoomType != ERoomType::Parkour)
 	{
 		for (APlayerState* Player : PlayerArray)
 		{
@@ -65,6 +67,16 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 			}
 		}
 	}
+	else if (HealthPercent <= 0){
+		for (APlayerState* Player : PlayerArray)
+		{
+			if (Player->GetPawn())
+			{
+				Cast<APlayerCharacterBase>(Player->GetPawn())->SetIsAlive(false);
+			}
+		}
+	}
+	OnRep_Health();
 	ForceNetUpdate();
 }
 
@@ -73,8 +85,6 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(HealthAmount,static_cast<float>(0),MaxHealth);
 
 	HealthPercent = Health/MaxHealth;
-
-	OnRep_Health();
 
 	if (HealthPercent > 0)
 	{
@@ -100,6 +110,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 			}
 		}
 	}
+	OnRep_Health();
 	ForceNetUpdate();
 }
 
@@ -111,8 +122,6 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 
 	HealthPercent = Health/MaxHealth;
 
-	OnRep_Health();
-
 	if (HealthPercent > 0)
 	{
 		for (APlayerState* Player : PlayerArray)
@@ -127,6 +136,7 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 			}
 		}
 	}
+	OnRep_Health();
 	ForceNetUpdate();
 }
 
