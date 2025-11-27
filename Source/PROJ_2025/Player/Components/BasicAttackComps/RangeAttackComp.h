@@ -35,4 +35,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProjectileOffsetDistanceInFront = 100.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* AttackAnimation;
 };

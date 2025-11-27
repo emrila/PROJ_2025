@@ -88,9 +88,9 @@ void AChronoRiftZone::BeginPlay()
 
 void AChronoRiftZone::MakeInitialSphereSweep()
 {
-	//SphereComponent->SetSphereRadius(Radius);
-	DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(),
-		SphereComponent->GetScaledSphereRadius(), 32, FColor::Purple, false, Lifetime);
+	SphereComponent->SetSphereRadius(Radius);
+	/*DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(),
+		SphereComponent->GetScaledSphereRadius(), 32, FColor::Purple, false, Lifetime);*/
 	TArray<AActor*> OverlappedActors;
 	SphereComponent->GetOverlappingActors(OverlappedActors);
 
@@ -162,54 +162,6 @@ void AChronoRiftZone::Multicast_SlowEnemy_Implementation(AActor* Enemy)
 	Enemy->ForceNetUpdate();
 	EnemiesSLowedDown.Add(Enemy);
 }
-
-/*void AChronoRiftZone::Server_ResetEnemy_Implementation(AActor* Enemy)
-{
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-	
-	if (!Enemy)
-	{
-		return;
-	}
-	
-	Multicast_ResetEnemy(Enemy);
-}
-
-void AChronoRiftZone::Multicast_ResetEnemy_Implementation(AActor* Enemy)
-{
-	if (!IsValid(Enemy))
-	{
-		return;
-	}
-	
-	FTimerHandle TimerHandle;
-	
-	GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		[this, Enemy]()
-		{
-			if (Enemy->CustomTimeDilation == 1.f)
-			{
-				return;
-			}
-			Enemy->CustomTimeDilation = 1.f;
-			if (APawn* Pawn = Cast<APawn>(Enemy))
-			{
-				if (AController* C = Pawn->GetController())
-				{
-					C->CustomTimeDilation = 1.f;
-					C->ForceNetUpdate();
-				}
-			}
-			Enemy->ForceNetUpdate();
-		},
-		Lifetime,
-		false
-	);
-}*/
 
 void AChronoRiftZone::Server_ResetEnemiesPreEnd_Implementation()
 {
@@ -296,9 +248,12 @@ void AChronoRiftZone::Multicast_SpawnEffect_Implementation()
 		return;
 	}
 	
+	if (!SphereComponent)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, SphereComponent is NULL!"), *FString(__FUNCTION__));
+		return;
+	}
 	//Set Scale and Duration here before spawning
-	
-	float OffsetZ = SphereComponent->GetScaledSphereRadius();
-	const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, 5.f);
+	const FVector SpawnLocation = GetActorLocation();
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
 }
