@@ -13,6 +13,7 @@
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
 
@@ -25,7 +26,20 @@ ARoomManagerBase::ARoomManagerBase()
 void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
+
 	
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
+		}
+		for (APlayerState* Player : GameState->PlayerArray)
+		{
+			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
+		}
+	}
 	for (URoomModifierBase* Mod : Room.ActiveModifiers)
 	{
 		if (!Mod)
@@ -206,6 +220,7 @@ void ARoomManagerBase::SpawnLoot()
 		if (GameState->Health <= 0)
 		{
 			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
 		}
 		
 		if (LootSpawnLocation)
