@@ -46,6 +46,7 @@ void ACombatManager::StartWave_Internal(int index)
 			{
 				for (APlayerState* Player : GameState->PlayerArray)
 				{
+					UE_LOG(LogTemp, Display, TEXT("iframe given to player"));
 					Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->StartIFrame();
 				}
 			}
