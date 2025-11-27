@@ -54,23 +54,6 @@ UInteractorComponent::UInteractorComponent()
 	bInteracting = false;
 }
 
-void UInteractorComponent::OnActorBeginOverlap([[maybe_unused]] AActor* OverlappedActor, AActor* OtherActor)
-{
-	if (!OtherActor || OtherActor == GetOwner() || !OtherActor->Implements<UInteractable>() || !TargetInteractable.GetObject())
-	{
-		return;
-	}
-	//ClearInteractable();
-	if (InteractUtil::IsInteractable(OtherActor))
-	{
-		SetTargetInteractable(OtherActor);
-		//INTERACT_DISPLAY( TEXT("%hs: Found Actor interactable: %s"), __FUNCTION__, *GetNameSafe(OtherActor));
-	}
-}
-
-void UInteractorComponent::OnActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
-{
-}
 
 void UInteractorComponent::BeginPlay()
 {
@@ -89,14 +72,12 @@ void UInteractorComponent::BeginPlay()
 	}
 
 	GetOwner()->OnActorBeginOverlap.AddDynamic(this, &UInteractorComponent::OnActorBeginOverlap);
-	GetOwner()->OnActorEndOverlap.AddDynamic(this, &UInteractorComponent::OnActorEndOverlap);
 }
 
 void UInteractorComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	TraceForInteractable();
-
 }
 
 void UInteractorComponent::TraceForInteractable()
@@ -131,6 +112,20 @@ void UInteractorComponent::TraceForInteractable()
 	{
 		SetTargetInteractable(Hit.GetComponent());
 		INTERACT_DISPLAY( TEXT("Found Component interactable: %s"), *GetNameSafe(Hit.GetComponent()));
+	}
+}
+
+void UInteractorComponent::OnActorBeginOverlap([[maybe_unused]] AActor* OverlappedActor, AActor* OtherActor)
+{
+	if (!OtherActor || OtherActor == GetOwner() || !OtherActor->Implements<UInteractable>() || TargetInteractable.GetObject())
+	{
+		return;
+	}
+	//ClearInteractable();
+	if (InteractUtil::IsInteractable(OtherActor))
+	{
+		SetTargetInteractable(OtherActor);
+		//INTERACT_DISPLAY( TEXT("%hs: Found Actor interactable: %s"), __FUNCTION__, *GetNameSafe(OtherActor));
 	}
 }
 
@@ -190,7 +185,7 @@ void UInteractorComponent::Server_SetInteracting_Implementation(const bool bInIn
 void UInteractorComponent::SetTargetInteractable(const TScriptInterface<IInteractable> InTargetInteractable)
 {
 	if (TargetInteractable == InTargetInteractable)
-	{		
+	{
 		return;
 	}
 	TargetInteractable = InTargetInteractable;
@@ -203,24 +198,25 @@ FName UInteractorComponent::GetOwnerName_Implementation() const
 }
 
 int32 UInteractorComponent::GetOwnerID_Implementation() const
-{	
+{
 	return OwnerID;
 }
 
 void UInteractorComponent::OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData)
 {
-	INTERACT_DISPLAY(TEXT("😭😭OnSuperFinishedInteraction"));
+	INTERACT_HI_FROM(__FUNCTION__);
 	OnFinishedInteraction.Broadcast( InteractionData);
 }
 
 void UInteractorComponent::OnFinishedInteraction_Implementation(const UObject* Interactable)
 {
-	INTERACT_DISPLAY( TEXT("Finished interaction interactable"));
+	INTERACT_HI_FROM(__FUNCTION__);
+
 	ClearInteractable();
 }
 
 void UInteractorComponent::Server_SetOwnerID_Implementation(const int32 InOwnerID)
 {
 	OwnerID = InOwnerID;
-	INTERACT_DISPLAY( TEXT("Setting owner id to %d"), OwnerID);
+	INTERACT_DISPLAY(TEXT("Setting owner id to %d"), OwnerID);
 }

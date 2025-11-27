@@ -15,6 +15,7 @@ void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 	DOREPLIFETIME(ARoomLoader, RoomLoaderState);
 	DOREPLIFETIME(ARoomLoader, ClearedRooms);
 	DOREPLIFETIME(ARoomLoader, DungeonScaling);
+	DOREPLIFETIME(ARoomLoader, CurrentRoom);
 }
 void ARoomLoader::AddProgressWidget()
 {

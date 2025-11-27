@@ -28,7 +28,7 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(BlueprintReadWrite, Category = "Rooms")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Rooms")
 	FRoomInstance CurrentRoom;
 
 

@@ -93,7 +93,7 @@ void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform
 	Projectile->SetOwner(OwnerCharacter);
 	Projectile->Server_SetDamageAmount(GetDamageAmount());
 	
-	if (AttackAnimation)
+	if (AttackAnimation && OwnerCharacter)
 	{
 		OwnerCharacter->PlayAnimMontage(AttackAnimation);
 	}
