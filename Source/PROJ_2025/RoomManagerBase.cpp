@@ -33,6 +33,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		if (GameState->Health <= 0)
 		{
 			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
 		}
 		for (APlayerState* Player : GameState->PlayerArray)
 		{
@@ -219,6 +220,7 @@ void ARoomManagerBase::SpawnLoot()
 		if (GameState->Health <= 0)
 		{
 			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
 		}
 		
 		if (LootSpawnLocation)
