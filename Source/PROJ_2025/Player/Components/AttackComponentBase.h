@@ -25,7 +25,7 @@ public:
 	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown);
 
 	virtual bool GetCanAttack() const { return bCanAttack; }
-
+	
 	virtual bool SetCanAttack(const bool bNewCanAttack) { bCanAttack = bNewCanAttack; return bCanAttack; }
 
 	virtual void SetDamageAmount(const float Value) { DamageAmount = Value; }

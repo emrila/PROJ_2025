@@ -17,6 +17,9 @@ public:
 	
 	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
 
+	UFUNCTION(Server, Reliable)
+	virtual void Server_StartAttack(const float NewDamageAmount, float NewAttackCooldown);
+
 protected:
 	virtual void BeginPlay() override;
 

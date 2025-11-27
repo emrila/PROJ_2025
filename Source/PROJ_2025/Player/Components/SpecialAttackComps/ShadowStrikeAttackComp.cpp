@@ -16,7 +16,6 @@ UShadowStrikeAttackComp::UShadowStrikeAttackComp()
 
 	DamageAmount = 100.f;
 	AttackCooldown = 5.f;
-
 	// ...
 }
 
@@ -220,7 +219,6 @@ void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Targ
 		return;
 	}
 	LockedTarget = Target;
-	UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to %s."), *FString(__FUNCTION__), *LockedTarget->GetName());
 }
 
 void UShadowStrikeAttackComp::HandlePreAttackState()
@@ -361,7 +359,6 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	
 	if (!LockedTarget)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s LockedTarget is Null."), *FString(__FUNCTION__));
 		return;
 	}
 	
