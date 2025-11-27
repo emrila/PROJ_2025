@@ -50,7 +50,7 @@ UInteractorComponent::UInteractorComponent()
 	PrimaryComponentTick.TickInterval = 0.2f;
 
 	InteractionRadius = 40.f;
-	InteractionDistance = 1000.f;
+	InteractionDistance = 200.f;
 	bInteracting = false;
 }
 
