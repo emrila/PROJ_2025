@@ -23,42 +23,38 @@ public:
 	
 	virtual void StartAttack() override;
 	
-	void TempStartAttack();
-	
-	virtual void PerformAttack() override;
-
-	virtual void OnStartAttack(const FInputActionInstance& ActionInstance);
-	
-	virtual void OnCancelAttack();
-	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnShield();
 	
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_SpawnShield();
 
-	virtual void RecoverDurability();
-
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
 
-	virtual float GetCurrentDurability();
+	virtual float GetDurability();
 
 	virtual float GetRecoveryRate();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	void TempSetDurability(float NewDurability);
+	UFUNCTION(Server, Reliable)
+	virtual void Server_ActivateShield();
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_ActivateShield();
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_DeactivateShield();
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_DeactivateShield();
+
+	virtual void StartAttackCooldown();
 
 protected:
 	virtual void BeginPlay() override;
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_DestroyShield();
-	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_DestroyShield();
 	
 	bool bIsShieldActive = false;
 	

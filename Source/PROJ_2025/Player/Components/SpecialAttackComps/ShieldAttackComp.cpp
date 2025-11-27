@@ -13,6 +13,8 @@ UShieldAttackComp::UShieldAttackComp()
 
 	DamageAmount = 10.f;
 	AttackCooldown = 20.f;
+	BaseDurability = 200.f;
+	BaseRecoveryRate = 1.f;
 }
 
 void UShieldAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -25,7 +27,7 @@ void UShieldAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInp
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UShieldAttackComp::OnStartAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UShieldAttackComp::StartAttack);
 	}
 }
 
@@ -40,88 +42,44 @@ void UShieldAttackComp::StartAttack()
 		return;
 	}
 	
-	if (bIsShieldActive)
+	if (!bIsShieldActive)
 	{
-		//Deactivate Shield
-	}
-
-	TheCurrentDurability = GetCurrentDurability();
-	Server_SpawnShield();
-
-	GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
-
-	GetWorld()->GetTimerManager().SetTimer(
-		DurabilityTimerHandle,
-		[this]()
-		{
-			if (TheCurrentDurability <= 0.f)
-			{
-				if (CurrentShield)
-				{
-					Server_DestroyShield();
-				}
-				bIsShieldActive = false;
-				GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
-				GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle, this, &UShieldAttackComp::RecoverDurability, GetRecoveryRate(), true);
-				Super::StartAttack();
-			}
-			else
-			{
-				TheCurrentDurability -= 10.f;
-			}
-		},
-		1.f,
-		true
-		);
-	
-}
-
-void UShieldAttackComp::TempStartAttack()
-{
-	if (!OwnerCharacter)
-	{
+		Server_ActivateShield();
 		return;
 	}
-}
 
-void UShieldAttackComp::PerformAttack()
-{
-	Super::PerformAttack();
-}
-
-void UShieldAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
-{
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-	if (!bCanAttack)
-	{
-		return;
-	}
-	
-	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
-	{
-		return;
-	}
-	StartAttack();
-}
-
-void UShieldAttackComp::OnCancelAttack()
-{
-	if (CurrentShield)
-	{
-		CurrentShield->DeactivateShield();
-	}
+	Server_DeactivateShield();
 }
 
 void UShieldAttackComp::Server_SpawnShield_Implementation()
 {
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !ShieldClass)
 	{
 		return;
 	}
-	Multicast_SpawnShield();
+
+	FVector SpawnLoc = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * 120.f;
+	FRotator SpawnRot = OwnerCharacter->GetActorRotation();
+
+	FActorSpawnParameters Params;
+	Params.Owner = OwnerCharacter;
+	Params.Instigator = OwnerCharacter->GetInstigator();
+
+	// Spawn on server; the spawned actor must replicate (see AShield constructor)
+	AShield* Shield = GetWorld()->SpawnActor<AShield>(ShieldClass, SpawnLoc, SpawnRot, Params);
+	if (Shield)
+	{
+		// set server-side owner/initial values and store authoritative pointer
+		Shield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
+		// Ensure actor is set to replicate (extra safety)
+		Shield->SetReplicates(true);
+		Shield->SetReplicateMovement(true);
+
+		CurrentShield = Shield;
+
+		// default to deactivated state on spawn (server authoritative)
+		Shield->DeactivateShield();
+	}
 }
 
 void UShieldAttackComp::Multicast_SpawnShield_Implementation()
@@ -142,31 +100,16 @@ void UShieldAttackComp::Multicast_SpawnShield_Implementation()
 		if (Shield)
 		{
 			Shield->SetDamageAmount(GetDamageAmount());
+			Shield->SetDurability(GetDurability());
+			Shield->SetRecoveryRate(GetRecoveryRate());
+			bIsShieldActive = true;
+			if (APlayerCharacterBase* PlayerCharacterBase = Cast<APlayerCharacterBase>(OwnerCharacter); Shield)
+			{
+				Shield->SetOwnerCharacter(PlayerCharacterBase);
+				CurrentShield = Shield;
+			}
 		}
-		if (APlayerCharacterBase* PlayerCharacterBase = Cast<APlayerCharacterBase>(OwnerCharacter); Shield)
-		{
-			Shield->SetOwnerCharacter(PlayerCharacterBase);
-		}
-			
-
-		CurrentShield = Shield;
-		bIsShieldActive = true;
 	}
-}
-
-void UShieldAttackComp::RecoverDurability()
-{
-	if (TheCurrentDurability >= GetCurrentDurability())
-	{
-		TheCurrentDurability = 0.f;
-		if (GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
-		{
-			GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
-		}
-		return;
-	}
-	
-	TheCurrentDurability += 10.f;
 }
 
 float UShieldAttackComp::GetAttackCooldown() const
@@ -184,7 +127,7 @@ float UShieldAttackComp::GetDamageAmount() const
 	return Super::GetDamageAmount() + (AttackDamageModifier * 5.f);
 }
 
-float UShieldAttackComp::GetCurrentDurability()
+float UShieldAttackComp::GetDurability()
 {
 	if (AttackDamageModifier ==1.f)
 	{
@@ -196,7 +139,7 @@ float UShieldAttackComp::GetCurrentDurability()
 
 float UShieldAttackComp::GetRecoveryRate()
 {
-	return BaseRecoveryRate / AttackSpeedModifier;
+	return BaseRecoveryRate * AttackSpeedModifier;
 }
 
 void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -205,23 +148,68 @@ void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	DOREPLIFETIME(ThisClass, CurrentShield);
 }
 
+void UShieldAttackComp::Server_ActivateShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	Multicast_ActivateShield();
+}
+
+void UShieldAttackComp::Multicast_ActivateShield_Implementation()
+{
+	if (!OwnerCharacter || !CurrentShield)
+	{
+		return;
+	}
+
+	bIsShieldActive = true;
+	
+	CurrentShield->SetDamageAmount(GetDamageAmount());
+	CurrentShield->SetDurability(GetDurability());
+	CurrentShield->SetRecoveryRate(GetRecoveryRate());
+	CurrentShield->ActivateShield();
+}
+
+void UShieldAttackComp::Server_DeactivateShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	Multicast_DeactivateShield();
+}
+
+void UShieldAttackComp::Multicast_DeactivateShield_Implementation()
+{
+	if (!OwnerCharacter || !CurrentShield)
+	{
+		return;
+	}
+	CurrentShield->DeactivateShield();
+	bIsShieldActive = false;
+}
+
+void UShieldAttackComp::StartAttackCooldown()
+{
+	if (!OwnerCharacter || !bCanAttack)
+	{
+		return;
+	}
+
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
+}
+
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	
-}
+	Server_SpawnShield();
 
-void UShieldAttackComp::Server_DestroyShield_Implementation()
-{
-	Multicast_DestroyShield();
-}
-
-void UShieldAttackComp::Multicast_DestroyShield_Implementation()
-{
 	if (CurrentShield)
 	{
-		CurrentShield->Destroy();
-		CurrentShield = nullptr;
+		Server_DeactivateShield();
 	}
 }
 

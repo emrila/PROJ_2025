@@ -184,6 +184,7 @@ void APlayerCharacterBase::HandleCameraDetachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
+	IFrame = true;
 	
 	bUseControllerRotationYaw = false;
 	bShouldUseLookInput = false;
@@ -191,8 +192,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	
 	FollowCamera->bUsePawnControlRotation = false;
 	
-	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
-	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	/*FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();*/
 	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
@@ -210,6 +211,8 @@ void APlayerCharacterBase::HandleCameraReattachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 	
 	bUseControllerRotationYaw = true;
 	bShouldUseLookInput = true;
@@ -272,6 +275,13 @@ void APlayerCharacterBase::BeginPlay()
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
+
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this] ()
+	{
+		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+		FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	},  0.3f, false);
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
