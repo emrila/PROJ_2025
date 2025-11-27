@@ -86,8 +86,6 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 
 	HealthPercent = Health/MaxHealth;
 
-	OnRep_Health();
-
 	if (HealthPercent > 0)
 	{
 		for (APlayerState* Player : PlayerArray)
@@ -112,6 +110,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 			}
 		}
 	}
+	OnRep_Health();
 	ForceNetUpdate();
 }
 
@@ -122,8 +121,6 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 	Health = UE::Geometry::VectorUtil::Clamp(Health, static_cast<float>(0) , MaxHealth);
 
 	HealthPercent = Health/MaxHealth;
-
-	OnRep_Health();
 
 	if (HealthPercent > 0)
 	{
@@ -139,6 +136,7 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 			}
 		}
 	}
+	OnRep_Health();
 	ForceNetUpdate();
 }
 
