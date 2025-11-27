@@ -48,7 +48,7 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -85,8 +85,8 @@ bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 
 void AUpgradeAlternative::OnRep_Selected()
 {
-	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
-	SetSelected(bSelected);
+	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));	
+	SelectUpgrade();
 }
 
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
@@ -96,41 +96,35 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
 		return;
 	}
-
+	
+	/*if (!Execute_CanInteract(this))
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Cannot interact right now!"), __FUNCTION__);
+		return;
+	}	*/
+	
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
-	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
-
-	UpgradeDisplayData.UpgradeFlag = UpgradeDisplayData.UpgradeFlag == EUpgradeFlags::None
-									? EUpgradeFlags::Pending
-									: EUpgradeFlags::None;
+	bSelected = true;
+	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
+	SelectUpgrade();
 
 	if (!bIsInteractor)
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 		return;
 	}
-
-	const bool bInnerSelected = UpgradeDisplayData.UpgradeFlag != EUpgradeFlags::None;
-	/*if (UpgradeDisplayData.UpgradeFlag == EUpgradeFlags::None)
-	{
-		SetSelected(false);
-		UPGRADE_DISPLAY(TEXT("%hs: Upgrade already selected or locked! Notifying interactor of finished interaction."), __FUNCTION__);
-		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
-		return;
-	}*/
-
-	SetSelected(bInnerSelected);
-	//UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
+	
+	UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
 	IInteractor::Execute_OnFinishedInteraction(Interactor, this);
 		
 	const FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDisplayData);
 	IInteractor::Execute_OnSuperFinishedInteraction(Interactor, InstancedStruct);
+	//Destroy(); 
 }
 
 bool AUpgradeAlternative::CanInteract_Implementation()
 {
-	//UPGRADE_DISPLAY(TEXT("%hs: HasAuthority: %s, bFocus: %s, bSelected: %s, bLocked: %s"), __FUNCTION__, HasAuthority() ? TEXT("true") : TEXT("false"), bFocus ? TEXT("true") : TEXT("false"), bSelected ? TEXT("true") : TEXT("false"), bLocked ? TEXT("true") : TEXT("false"));
 	return bFocus && !bSelected && !bLocked;
 }
 
@@ -144,30 +138,30 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor)/* && !bSelected && !bLocked*/)
+	if (IsTargetLocalPlayer(OtherActor) && /*!bFocus && */!bSelected && !bLocked)
 	{
-		UPGRADE_HI_FROM(__FUNCTION__);
 		SetFocus(true);
 	}
 }
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,[[maybe_unused]] int32 OtherBodyIndex)
 {	
-	if (IsTargetLocalPlayer(OtherActor) && !bSelected)
+	if (IsTargetLocalPlayer(OtherActor) && Execute_CanInteract(this))
 	{
-		UPGRADE_HI_FROM(__FUNCTION__);
-		SetFocus(false);		
+		SetFocus(false);
+		/*bFocus = false;
+		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+		{
+			UpgradeWidget->OnUpgradeHasFocus(bFocus);
+		}*/
 	}
 }
 
 void AUpgradeAlternative::SetLocked(const bool bToggle)
 {
 	bLocked = bToggle;
-	if (bSelected)
-	{
-		return;
-	}
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent); !bSelected)
 	{
 		UpgradeWidget->OnUpgradeSelected(bSelected);
 		SetFocus(false);
@@ -180,22 +174,6 @@ void AUpgradeAlternative::SetFocus(const bool bToggle)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnUpgradeHasFocus(bFocus);
-	}
-}
-
-void AUpgradeAlternative::SetSelected(const bool bToggle)
-{
-	bSelected = bToggle;
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: Updating widget for selection state: %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));
-		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
-		UpgradeWidget->OnUpgradeSelected(bSelected);
-		UpgradeWidget->OnUpgradeHasFocus(bSelected);
-	}
-	if (bSelected && !bLocked)
-	{
-		OnUpgrade.Broadcast(UpgradeDisplayData);
 	}
 }
 
