@@ -2,6 +2,7 @@
 
 #include "Net/UnrealNetwork.h"
 #include "EnhancedInputComponent.h"
+#include "Golem.h"
 #include "GameFramework/Character.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/ChronoRiftZone.h"
@@ -149,7 +150,6 @@ void UChronoRiftComp::TryLockingTargetArea()
 	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * LockOnRange);
 	
 	FHitResult HitResult;
-
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 	
@@ -163,6 +163,19 @@ void UChronoRiftComp::TryLockingTargetArea()
 	
 	if (bHit && HitResult.GetActor())
 	{
+		if (HitResult.GetActor()->IsA(AGolem::StaticClass()))
+		{
+			if (OwnerCharacter->HasAuthority())
+			{
+				TargetAreaCenter = FVector::ZeroVector;
+			}
+			else
+			{
+				Server_SetTargetAreaCenter(FVector::ZeroVector);
+				TargetAreaCenter = FVector::ZeroVector;
+			}
+			return;
+		}
 		if (OwnerCharacter->HasAuthority())
 		{
 			TargetAreaCenter = HitResult.ImpactPoint;
@@ -335,8 +348,8 @@ void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& T
 {
 	if (TargetCenter.IsNearlyZero())
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s TargetCenter is Zero."), *FString(__FUNCTION__));
-		TargetAreaCenter = TargetCenter;
+		//UE_LOG(LogTemp, Error, TEXT("%s TargetCenter is Zero."), *FString(__FUNCTION__));
+		TargetAreaCenter = FVector::ZeroVector;
 		return;
 	}
 	
