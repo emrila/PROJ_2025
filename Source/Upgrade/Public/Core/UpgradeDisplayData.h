@@ -6,6 +6,15 @@
 #include "Core/AttributeData.h"
 #include "UpgradeDisplayData.generated.h"
 
+UENUM()
+namespace EUpgradeFlags
+{	
+	enum Type :  uint8
+	{
+		None, Pending, Add, Remove
+	};
+}
+
 USTRUCT(BlueprintType)
 struct FUpgradeDisplayData
 {
@@ -25,6 +34,9 @@ struct FUpgradeDisplayData
 	
 	UPROPERTY(BlueprintReadWrite)
 	FName TargetName = NAME_None;
+	
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<EUpgradeFlags::Type> UpgradeFlag = EUpgradeFlags::None;	
 	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
