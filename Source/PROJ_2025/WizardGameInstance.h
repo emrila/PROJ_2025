@@ -69,7 +69,19 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
-	
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	URoomData* CampRoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	URoomData* ChoiceRoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> NormalMapPool;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> CombatOnly;
 	
 	//LAN stuff
 	virtual void Init() override;

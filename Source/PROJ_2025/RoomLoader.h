@@ -7,6 +7,17 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+USTRUCT(BlueprintType)
+struct FRoomLoaderState
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Progress")
+	int OneTwoThreeScaleState = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Progress")
+	TArray<ERoomType> PastSevenRooms;
+};
 
 UCLASS()
 class PROJ_2025_API ARoomLoader : public AActor
@@ -44,12 +55,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	TArray<ERoomType> GetPreviousRooms();
 	
+	UPROPERTY(BlueprintReadWrite, ReplicatedUsing=OnRep_RoomLoaderState)
+	FRoomLoaderState RoomLoaderState;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Scaling")
 	float IncrementPerScale = 0.2f;
-	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Scaling")
-	int OneTwoThreeScale = 0;
 	
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int ClearedRooms = 0;
@@ -59,11 +69,10 @@ private:
 	UPROPERTY(Replicated)
 	float DungeonScaling = 1.f;
 	
-	UPROPERTY(ReplicatedUsing=OnRep_PastSevenRooms)
-	TArray<ERoomType> PastSevenRooms;
-
+	int OneTwoThreeScale = 0;
+	
 	UFUNCTION()
-	void OnRep_PastSevenRooms();
+	void OnRep_RoomLoaderState();
 	
 	UPROPERTY()
 	FRoomInstance PendingNextRoomData;

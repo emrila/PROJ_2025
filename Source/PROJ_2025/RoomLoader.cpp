@@ -12,8 +12,7 @@ void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
-	DOREPLIFETIME(ARoomLoader, PastSevenRooms);
-	DOREPLIFETIME(ARoomLoader, OneTwoThreeScale);
+	DOREPLIFETIME(ARoomLoader, RoomLoaderState);
 	DOREPLIFETIME(ARoomLoader, ClearedRooms);
 	DOREPLIFETIME(ARoomLoader, DungeonScaling);
 }
@@ -24,7 +23,7 @@ void ARoomLoader::AddProgressWidget()
 
 	if (ProgressWidgetClass)
 	{
-		UUserWidget* Widget = CreateWidget(PC, ProgressWidgetClass);
+		UUserWidget* Widget = (CreateWidget(PC, ProgressWidgetClass));
 		if (Widget)
 		{
 			Widget->AddToViewport();
@@ -46,7 +45,6 @@ void ARoomLoader::IncrementProgress(const bool CountAsClearedRoom)
 		OneTwoThreeScale = 0;
 		DungeonScaling += IncrementPerScale;
 	}
-	
 }
 
 float ARoomLoader::GetDungeonScaling() const
@@ -57,17 +55,22 @@ float ARoomLoader::GetDungeonScaling() const
 void ARoomLoader::RegisterNextRoom(URoomData* RoomData)
 {
 	if (!HasAuthority()) return;
-	if (PastSevenRooms.Num() > 6)
+	FRoomLoaderState NewState = RoomLoaderState;
+	
+	if (RoomLoaderState.PastSevenRooms.Num() > 6)
 	{
-		PastSevenRooms.Empty();
+		NewState.PastSevenRooms.Empty();
 	}
-	PastSevenRooms.Add(RoomData->RoomType);
+	
+	NewState.PastSevenRooms.Add(RoomData->RoomType);
+	NewState.OneTwoThreeScaleState = OneTwoThreeScale;
+	RoomLoaderState = NewState;
 	AddProgressWidget();
 }
 
 TArray<ERoomType> ARoomLoader::GetPreviousRooms()
 {
-	return PastSevenRooms;
+	return RoomLoaderState.PastSevenRooms;
 }
 
 
@@ -99,7 +102,7 @@ void ARoomLoader::BeginPlay()
 	}
 }
 
-void ARoomLoader::OnRep_PastSevenRooms()
+void ARoomLoader::OnRep_RoomLoaderState()
 {
 	AddProgressWidget();
 }
