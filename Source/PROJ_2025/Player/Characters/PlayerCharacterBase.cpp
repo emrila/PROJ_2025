@@ -291,6 +291,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
+	DOREPLIFETIME(APlayerCharacterBase, IFrame);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
