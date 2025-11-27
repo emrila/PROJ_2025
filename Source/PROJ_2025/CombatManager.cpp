@@ -42,9 +42,12 @@ void ACombatManager::StartWave_Internal(int index)
 	{
 		if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 		{
-			for (APlayerState* Player : GameState->PlayerArray)
+			if (index != 0)
 			{
-				Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->StartIFrame();
+				for (APlayerState* Player : GameState->PlayerArray)
+				{
+					Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->StartIFrame();
+				}
 			}
 		}
 		SpawnLoot();
