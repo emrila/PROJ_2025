@@ -3,6 +3,7 @@
 
 #include "MushroomCharacter.h"
 
+#include "TrapBase.h"
 #include "Engine/DamageEvents.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/Items/ChronoRiftDamageType.h"
@@ -71,7 +72,10 @@ void AMushroomCharacter::HandleHit(struct FDamageEvent const& DamageEvent, AActo
 		}
 		if (DamageCauser)
 		{
-			LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
+			if (!DamageCauser->IsA(ATrapBase::StaticClass()))
+			{
+				LaunchCharacter(DamageCauser->GetActorForwardVector() * 1555, false, false);
+			}
 		}else
 		{
 			LaunchCharacter((FVector(0.f, 0.f, 1.f) * 655) , false, false);

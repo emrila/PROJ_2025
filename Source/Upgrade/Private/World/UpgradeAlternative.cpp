@@ -105,9 +105,11 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
-	bSelected = true;
-	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
-	SelectUpgrade();
+	//bSelected = true;
+	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
+	
+	const bool bCond = UpgradeDisplayData.UpgradeFlag == EUpgradeFlags::None;
+	UpgradeDisplayData.UpgradeFlag = bCond ? EUpgradeFlags::Pending : EUpgradeFlags::None;
 
 	if (!bIsInteractor)
 	{
@@ -115,6 +117,17 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
+	if (UpgradeDisplayData.UpgradeFlag == EUpgradeFlags::None)
+	{	
+		SetSelected(false);
+		UPGRADE_DISPLAY(TEXT("%hs: Upgrade already selected or locked! Notifying interactor of finished interaction."), __FUNCTION__);
+		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
+		return;				
+	} 
+	
+	//bSelected = true;
+	//SelectUpgrade();	
+	SetSelected(true);
 	UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
 	IInteractor::Execute_OnFinishedInteraction(Interactor, this);
 		
@@ -138,7 +151,7 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor) && /*!bFocus && */!bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && !bSelected && !bLocked)
 	{
 		SetFocus(true);
 	}
@@ -148,12 +161,7 @@ void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveCompo
 {	
 	if (IsTargetLocalPlayer(OtherActor) && Execute_CanInteract(this))
 	{
-		SetFocus(false);
-		/*bFocus = false;
-		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-		{
-			UpgradeWidget->OnUpgradeHasFocus(bFocus);
-		}*/
+		SetFocus(false);		
 	}
 }
 
@@ -174,6 +182,21 @@ void AUpgradeAlternative::SetFocus(const bool bToggle)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnUpgradeHasFocus(bFocus);
+	}
+}
+
+void AUpgradeAlternative::SetSelected(const bool bToggle)
+{
+	bSelected = bToggle;
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+	{
+		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
+		UpgradeWidget->OnUpgradeSelected(bSelected);
+		UpgradeWidget->OnUpgradeHasFocus(true);
+	}
+	if (bSelected && !bLocked)
+	{
+		OnUpgrade.Broadcast(UpgradeDisplayData);
 	}
 }
 

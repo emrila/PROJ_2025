@@ -139,7 +139,7 @@ void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
 	bHasAppliedUpgrade = true;
 }
 
-void UUpgradeComponent::DowngradeByRow(FName RowName) const
+void UUpgradeComponent::DowngradeByRow(const FName RowName) const
 {
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
@@ -155,17 +155,34 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	}
 	const FString StructCPPName = InstancedStruct.GetScriptStruct()->GetStructCPPName();
 	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
-	const FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
+	const FUpgradeData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeData>();
 	if (!UpgradeDataPtr)
 	{
 		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);
 		return;
 	}
 	
-	const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;
+	const FUpgradeData& UpgradeData = *UpgradeDataPtr;
+	if (UpgradeData.UpgradeFlag == EUpgradeFlags::Pending)
+	{
+		PendingUpgrades.Enqueue(UpgradeData);
+	}	
+	//UpgradeByRow(UpgradeData.RowName);
 	
-	UpgradeByRow(UpgradeData.RowName);
+}
+
+void UUpgradeComponent::OnProcessUpgradeQueue()
+{
+	if (PendingUpgrades.IsEmpty())
+	{
+		return;
+	}
 	
+	FUpgradeData UpgradeData;
+	while (PendingUpgrades.Dequeue(UpgradeData))
+	{
+		UpgradeByRow(UpgradeData.RowName);
+	}	
 }
 
 TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 NumberOfUpgrades)
