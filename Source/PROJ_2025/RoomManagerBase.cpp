@@ -27,8 +27,13 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
 
+	
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+		}
 		for (APlayerState* Player : GameState->PlayerArray)
 		{
 			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
@@ -211,10 +216,6 @@ void ARoomManagerBase::SpawnLoot()
 	}
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
-		for (APlayerState* Player : GameState->PlayerArray)
-		{
-			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->StartIFrame();
-		}
 		if (GameState->Health <= 0)
 		{
 			GameState->RestoreHealth(10.f);
