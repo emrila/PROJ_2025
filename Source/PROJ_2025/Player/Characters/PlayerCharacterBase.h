@@ -111,6 +111,7 @@ protected:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
 	
 	//Handle take damage
+	UPROPERTY(Replicated)
 	bool IFrame = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")

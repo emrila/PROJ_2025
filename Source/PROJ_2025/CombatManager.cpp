@@ -11,6 +11,7 @@
 #include "WizardGameState.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
 void ACombatManager::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -39,6 +40,17 @@ void ACombatManager::StartWave_Internal(int index)
 	UE_LOG(LogTemp, Display, TEXT("StartWave"));
 	if (!Waves.IsValidIndex(index))
 	{
+		if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+		{
+			if (index != 0)
+			{
+				for (APlayerState* Player : GameState->PlayerArray)
+				{
+					UE_LOG(LogTemp, Display, TEXT("iframe given to player"));
+					Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->StartIFrame();
+				}
+			}
+		}
 		SpawnLoot();
 		return;
 	};
