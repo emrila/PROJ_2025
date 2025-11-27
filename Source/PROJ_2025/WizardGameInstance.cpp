@@ -284,6 +284,40 @@ TArray<FSessionProps> UWizardGameInstance::GetLanSessions()
 	return OutResults;
 }
 
+void UWizardGameInstance::ReturnToMainMenu(const FString& MainMenuMap)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: World is null"));
+		return;
+	}
+
+	ENetMode NetMode = World->GetNetMode();
+	
+	if (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer)
+	{
+		FString URL = MainMenuMap;
+		URL.Append(TEXT("?listen"));
+		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ServerTravel to %s"), *URL);
+		World->ServerTravel(URL);
+		return;
+	}
+
+	
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (PC)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ClientTravel to %s"), *MainMenuMap);
+		PC->ClientTravel(*MainMenuMap, TRAVEL_Absolute);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: No PlayerController, using OpenLevel fallback to %s"), *MainMenuMap);
+		UGameplayStatics::OpenLevel(this, FName(*MainMenuMap));
+	}
+}
+
 void UWizardGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	if (bWasSuccessful)

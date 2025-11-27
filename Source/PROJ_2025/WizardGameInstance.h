@@ -99,6 +99,9 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "LAN")
 	TArray<FSessionProps> GetLanSessions();
+
+	UFUNCTION(BlueprintCallable, Category = "Session")
+	void ReturnToMainMenu(const FString& MainMenuMap = TEXT("/Game/MainMenu"));
 	
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
