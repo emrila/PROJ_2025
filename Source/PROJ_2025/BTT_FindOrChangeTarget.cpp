@@ -4,6 +4,7 @@
 #include "BTT_FindOrChangeTarget.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "AIController.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
 UBTT_FindOrChangeTarget::UBTT_FindOrChangeTarget()
 {
@@ -60,7 +61,14 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 		if (VisiblePlayers.Num() > 0 && !VisiblePlayers.Contains(CurrentTarget)) // Hittade ny(a) target(s) och den har inte LOS till den gamla längre, då väljer den en ny direkt
 		{
 			AActor* NewTarget = VisiblePlayers[FMath::RandRange(0, VisiblePlayers.Num() - 1)];
-			Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+			if (APlayerCharacterBase* PCB = Cast<APlayerCharacterBase>(NewTarget))
+			{
+				if (PCB->IsAlive())
+				{
+					Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+					return EBTNodeResult::Succeeded;
+				}
+			}
 			return EBTNodeResult::Succeeded;
 		}
 		bool bTryToSwitch = FMath::FRand() <= SwitchChance;
@@ -68,7 +76,14 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 		{
 			VisiblePlayers.Remove(CurrentTarget);
 			AActor* NewTarget = VisiblePlayers[FMath::RandRange(0, VisiblePlayers.Num() - 1)];
-			Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+			if (APlayerCharacterBase* PCB = Cast<APlayerCharacterBase>(NewTarget))
+			{
+				if (PCB->IsAlive())
+				{
+					Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+					return EBTNodeResult::Succeeded;
+				}
+			}
 			return EBTNodeResult::Succeeded;
 		}
 		return EBTNodeResult::Succeeded; 
@@ -78,8 +93,16 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 	if (VisiblePlayers.Num() > 0) // Finns line of sight till nån så den tar den :)
 		{
 			AActor* NewTarget = VisiblePlayers[FMath::RandRange(0, VisiblePlayers.Num() - 1)];
-			Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
-			return EBTNodeResult::Succeeded;
+
+			if (APlayerCharacterBase* PCB = Cast<APlayerCharacterBase>(NewTarget))
+			{
+				if (PCB->IsAlive())
+				{
+					Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+					return EBTNodeResult::Succeeded;
+				}
+			}
+			return EBTNodeResult::Failed;
 		}
 
 	return EBTNodeResult::Failed; // Här är det lite rip. Den får försöka igen ig
