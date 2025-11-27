@@ -73,6 +73,11 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 
 void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform SpawnTransform)
 {
+	if (!OwnerCharacter || !ProjectileClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		return;
+	}
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
