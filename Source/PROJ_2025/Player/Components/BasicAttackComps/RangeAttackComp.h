@@ -23,6 +23,9 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnProjectile(const FTransform SpawnTransform);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_SpawnProjectile(const FTransform SpawnTransform);
 
 	virtual FTransform GetProjectileTransform();
 
@@ -34,5 +37,8 @@ protected:
 	TSubclassOf<AMageProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ProjectileOffsetDistanceInFront = 100.f;
+	float ProjectileOffsetDistanceInFront = 120.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* AttackAnimation;
 };
