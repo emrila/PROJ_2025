@@ -70,6 +70,10 @@ void AShield::ActivateShield()
 		GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle,
 			this, &AShield::TickDurability, 1.f, true);
 	}
+	if (GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
+	{
+		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
+	}
 	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(true);
