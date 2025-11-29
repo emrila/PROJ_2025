@@ -77,7 +77,7 @@ protected:
 	FTimerHandle DurabilityTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
 
-	bool IFrame = false;
+	bool bShouldGiveDamage = true;
 
 	bool bShouldCheckPlayerAlive = true;
 };
