@@ -154,6 +154,7 @@ void UWizardGameInstance::InitDelay()
 			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnCreateSessionComplete);
 			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnFindSessionsComplete);
 			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnJoinSessionCompleted);
+			SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnDestroySessionComplete);
 		}
 	}
 }
@@ -165,10 +166,10 @@ void UWizardGameInstance::Host_LanSession(FString SessionName)
 		UE_LOG(LogTemp, Error, TEXT("%s: SessionInterface is not valid!"), *FString(__FUNCTION__));
 		return;
 	}
-	FName SessionNameFName(*SessionName);
+	
+	ActiveSessionName = NAME_GameSession;
 
 	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
-	
 	SessionSettings->bIsLANMatch = true;
 	SessionSettings->NumPublicConnections = 3;
 	SessionSettings->bShouldAdvertise = true;
@@ -178,9 +179,8 @@ void UWizardGameInstance::Host_LanSession(FString SessionName)
 	SessionSettings->bUseLobbiesIfAvailable = false;
 	
 	SessionSettings->Set(FName(TEXT("SESSION_NAME")), SessionName, EOnlineDataAdvertisementType::ViaOnlineService);
-	
-	
-	SessionInterface->CreateSession(0, SessionNameFName, *SessionSettings);
+
+	SessionInterface->CreateSession(0, ActiveSessionName, *SessionSettings);
 }
 
 void UWizardGameInstance::Find_LanSessions()
@@ -287,34 +287,42 @@ TArray<FSessionProps> UWizardGameInstance::GetLanSessions()
 void UWizardGameInstance::ReturnToMainMenu(const FString& MainMenuMap)
 {
 	UWorld* World = GetWorld();
-	if (!World)
+    if (!World)
+    {
+        UE_LOG(LogTemp, Error, TEXT("%s: World is null!"), *FString(__FUNCTION__));
+        return;
+    }
+
+	//Needed?
+	if (!SessionInterface.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: World is null"));
+		UE_LOG(LogTemp, Warning, TEXT("%s: No SessionInterface, opening main menu locally."), *FString(__FUNCTION__));
+		UGameplayStatics::OpenLevel(this, FName(*MainMenuMap));
 		return;
 	}
 
 	ENetMode NetMode = World->GetNetMode();
-	
 	if (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer)
 	{
-		FString URL = MainMenuMap;
-		URL.Append(TEXT("?listen"));
-		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ServerTravel to %s"), *URL);
-		World->ServerTravel(URL);
-		return;
-	}
+		PendingMainMenuMap = MainMenuMap;
 
-	
-	APlayerController* PC = World->GetFirstPlayerController();
-	if (PC)
-	{
-		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ClientTravel to %s"), *MainMenuMap);
-		PC->ClientTravel(*MainMenuMap, TRAVEL_Absolute);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: No PlayerController, using OpenLevel fallback to %s"), *MainMenuMap);
-		UGameplayStatics::OpenLevel(this, FName(*MainMenuMap));
+		for (FConstPlayerControllerIterator It = World->GetPlayerControllerIterator(); It; ++It)
+		{
+			APlayerController* PC = It->Get();
+			if (!PC)
+			{
+				continue;
+			}
+			
+			if (PC->IsLocalController())
+			{
+				continue;
+			}
+			
+			PC->ClientTravel(*MainMenuMap, TRAVEL_Absolute);
+		}
+		
+		World->GetTimerManager().SetTimer(DestroySessionTimerHandle, this, &UWizardGameInstance::TriggerDestroySession, DestroySessionDelaySeconds, false, false);
 	}
 }
 
@@ -387,5 +395,48 @@ void UWizardGameInstance::OnJoinSessionCompleted(FName SessionName, EOnJoinSessi
 	}
 }
 
+void UWizardGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	UE_LOG(LogTemp, Log, TEXT("OnDestroySessionComplete: %s Success=%d"), *SessionName.ToString(), bWasSuccessful);
+	
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(DestroySessionTimerHandle);
+	}
+	
+	if (SessionName == ActiveSessionName)
+	{
+		ActiveSessionName = NAME_GameSession;
+	}
+
+	if (!bWasSuccessful)
+	{
+		UE_LOG(LogTemp, Error, TEXT("OnDestroySessionComplete: Failed to destroy session."));
+		PendingMainMenuMap.Empty();
+		return;
+	}
+
+	if (!PendingMainMenuMap.IsEmpty())
+	{
+		UGameplayStatics::OpenLevel(this, FName(*PendingMainMenuMap));
+		PendingMainMenuMap.Empty();
+	}
+}
+
+void UWizardGameInstance::TriggerDestroySession()
+{
+	if (SessionInterface.IsValid())
+	{
+		SessionInterface->DestroySession(ActiveSessionName);
+	}
+	else
+	{
+		if (!PendingMainMenuMap.IsEmpty())
+		{
+			UGameplayStatics::OpenLevel(this, FName(*PendingMainMenuMap));
+			PendingMainMenuMap.Empty();
+		}
+	}
+}
 
 

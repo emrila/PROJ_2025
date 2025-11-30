@@ -33,6 +33,9 @@ EBTNodeResult::Type UBTT_MeleeMove::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 		return EBTNodeResult::Failed;
 
 	TargetActor = Cast<AActor>(Blackboard->GetValueAsObject("TargetActor"));
+	if (!TargetActor)
+		return EBTNodeResult::Failed;
+	
 	float Dist = FVector::Dist(Mushroom->GetActorLocation(), TargetActor->GetActorLocation());
 	if (Dist <= Range)
 	{

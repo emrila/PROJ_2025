@@ -106,12 +106,20 @@ public:
 	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionsComplete(bool bWasSuccessful);
 	void OnJoinSessionCompleted(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+
+	void TriggerDestroySession();
 	
 	IOnlineSessionPtr SessionInterface;
 	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 	
 	TArray<FOnlineSessionSearchResult> LanSessionResults;
+
+	FName ActiveSessionName = NAME_GameSession;
+	FTimerHandle DestroySessionTimerHandle;
+	float DestroySessionDelaySeconds = 1.f;
+	FString PendingMainMenuMap;
 	
 private:
 	float ChanceForCamp = 0.f;
