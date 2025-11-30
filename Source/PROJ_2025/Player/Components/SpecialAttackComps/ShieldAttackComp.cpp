@@ -51,9 +51,9 @@ void UShieldAttackComp::StartAttack()
 	Server_DeactivateShield();
 }
 
-void UShieldAttackComp::Server_SpawnShield_Implementation()
+void UShieldAttackComp::SpawnShield()
 {
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !ShieldClass)
+	if (!OwnerCharacter || !ShieldClass)
 	{
 		return;
 	}
@@ -80,9 +80,6 @@ void UShieldAttackComp::Server_SpawnShield_Implementation()
 	}
 	CurrentShield = Shield;
 	CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
-		
-	CurrentShield->SetReplicates(true);
-	CurrentShield->SetReplicateMovement(true);
 
 	CurrentShield->SetDurability(GetDurability());
 	CurrentShield->SetDamageAmount(GetDamageAmount());
@@ -117,12 +114,6 @@ float UShieldAttackComp::GetDurability()
 float UShieldAttackComp::GetRecoveryRate()
 {
 	return BaseRecoveryRate * AttackSpeedModifier;
-}
-
-void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ThisClass, CurrentShield);
 }
 
 void UShieldAttackComp::Server_ActivateShield_Implementation()
@@ -186,7 +177,8 @@ void UShieldAttackComp::StartAttackCooldown()
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	Server_SpawnShield();
+	//Server_SpawnShield();
+	SpawnShield();
 }
 
 
