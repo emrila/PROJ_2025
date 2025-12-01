@@ -43,7 +43,7 @@ void AEnemyBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 	DOREPLIFETIME(AEnemyBase, UpdateHealthbar)
 }
 
-void AEnemyBase::OnRep_Health()
+void AEnemyBase::OnRep_Health() const
 {
 	UpdateHealthbar.Broadcast(Health);
 }
