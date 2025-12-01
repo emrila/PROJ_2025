@@ -6,6 +6,7 @@
 #include "ChronoRiftComp.generated.h"
 
 
+class AChronoRiftZone;
 class UChronoRiftDamageType;
 class AEnemyBase;
 struct FInputActionInstance;
@@ -24,6 +25,8 @@ public:
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
 	virtual void StartAttack() override;
+	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -43,41 +46,49 @@ protected:
 	virtual void ResetAttackCooldown() override;
 	
 	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch();
+	virtual void Server_PerformLaunch(); 
 	
-	UFUNCTION(Server, Reliable)
-	virtual void TickDamage();
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_PerformLaunch();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
+
+	virtual void SetIndicatorHidden(bool bIsHidden);
+
+	virtual float GetChronoDuration() const;
+
+	virtual float GetAttackRadius() const;
+
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
 	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SetLockedEnemies(const TArray<AActor*>& Enemies);
+	UPROPERTY(Replicated)
+	AActor* LovesMesh;
 	
+	UPROPERTY(editAnywhere, BlueprintReadWrite)
+	TSubclassOf<AActor> ChronoRiftIndicatorClass;
+	
+	UPROPERTY(Replicated)
 	FVector TargetAreaCenter;
 	
-	UPROPERTY(VisibleAnywhere)
-	TArray<AActor*> LockedTargets;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TargetAreaRadius = 1000.f;
+	float TargetAreaRadius = 200.f;
 	
 	bool bIsLockingTargetArea = false;
+
+	//Not changed by the upgrade system
+	float LockOnRange = 30000.f;
 	
-	bool bShouldLaunch = false;
+	float ChronoDuration = 4.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float LockOnRange = 3000.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ChronoDuration = 5.f;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float EnemyTimeDilationFactor = 0.3f;
+
+	UPROPERTY(Replicated)
+	AChronoRiftZone* CurrentChronoRiftZone;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float DamageTickInterval = 1.f;
+	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
 	
-	FTimerHandle ResetEnemiesTimerHandle;
-	FTimerHandle TickDamageTimerHandle;
+	FVector InitialIndicatorScale;
 };

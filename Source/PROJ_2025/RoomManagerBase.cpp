@@ -8,9 +8,12 @@
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
 #include "Chaos/ChaosPerfTest.h"
+#include "RoomExit.h"
+#include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
 
@@ -20,18 +23,49 @@ ARoomManagerBase::ARoomManagerBase()
 
 }
 
-void ARoomManagerBase::OnRoomInitialized()
+void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
 
+	
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
+		}
+		for (APlayerState* Player : GameState->PlayerArray)
+		{
+			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
+		}
+	}
+	for (URoomModifierBase* Mod : Room.ActiveModifiers)
+	{
+		if (!Mod)
+		{
+			continue;
+		}
+		Mod->OnRoomEntered(this);
+	}
+
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
+	TArray<URoomData*> AllRooms;
+	if (Room.RoomData->RoomType != ERoomType::Parkour)
+	{
+		AllRooms = GI->NormalMapPool;
+	}else
+	{
+		AllRooms = GI->CombatOnly;
+	}
 
-	TArray<URoomData*> AllRooms = GI->GetAllRoomData();
-
-	UE_LOG(LogTemp, Warning, TEXT("Found %d rooms"), AllRooms.Num());
-
-	bool CampExit = GI->RollForCampRoom();
+	bool ChoiceRoom = GI->RollForChoiceRoom();
+	bool CampExit = false;
+	if (!ChoiceRoom)
+	{
+		CampExit = GI->RollForCampRoom();
+	}
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
@@ -50,7 +84,7 @@ void ARoomManagerBase::OnRoomInitialized()
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -63,10 +97,14 @@ void ARoomManagerBase::OnRoomInitialized()
 	{
 		ChosenRooms.Add(GI->GetCampRoomData());
 	}
-
-	if (GI->RoomLoader->CurrentRoom != nullptr)
+	if (ChoiceRoom)
 	{
-		AllRooms.Remove(GI->RoomLoader->CurrentRoom);
+		ChosenRooms.Add(GI->GetChoiceRoomData());
+	}
+
+	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
+	{
+		AllRooms.Remove(Room.RoomData);
 	}
 	if (AllRooms.Num() <= 0)
 	{
@@ -102,7 +140,30 @@ void ARoomManagerBase::OnRoomInitialized()
 		if (!RoomExits[i]) continue;
 
 		URoomData* RoomData = ChosenRooms.IsValidIndex(i) ? ChosenRooms[i] : nullptr;
-		RoomExits[i]->LinkedRoomData = RoomData;
+		FRoomInstance RoomInstance;
+		RoomInstance.RoomData = RoomData;
+		const float ChanceForModifiers = 0.05f;
+		if (FMath::FRand() <= ChanceForModifiers)
+		{
+			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
+			{
+				TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
+
+				if (Mods.Num() > 0)
+				{
+					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
+					TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
+
+					URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
+					RoomInstance.ActiveModifiers.Add(ModInstance);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
+			}
+		}
+		RoomExits[i]->LinkedRoomInstance = RoomInstance;
 
 		if (RoomData)
 		{
@@ -145,6 +206,7 @@ void ARoomManagerBase::OnRoomInitialized()
 
 void ARoomManagerBase::SpawnLoot()
 {
+	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->TriggerSpawn();
@@ -153,6 +215,19 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		EnableExits();
 	}
+	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
+	{
+		if (GameState->Health <= 0)
+		{
+			GameState->RestoreHealth(10.f);
+			GameState->OnRep_Health();
+		}
+		
+		if (LootSpawnLocation)
+		{
+			LootSpawnLocation->SetTotalUpgradeNeededForCompletion(GameState->CurrentPlayerCount);
+		}
+	}
 }
 
 void ARoomManagerBase::EnableExits()
@@ -160,6 +235,11 @@ void ARoomManagerBase::EnableExits()
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
+	if (LootSpawnLocation)
+	{
+		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
+	}
+	
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))

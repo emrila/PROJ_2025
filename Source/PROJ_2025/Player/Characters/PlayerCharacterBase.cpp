@@ -184,6 +184,7 @@ void APlayerCharacterBase::HandleCameraDetachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
+	IFrame = true;
 	
 	bUseControllerRotationYaw = false;
 	bShouldUseLookInput = false;
@@ -191,8 +192,8 @@ void APlayerCharacterBase::HandleCameraDetachment()
 	
 	FollowCamera->bUsePawnControlRotation = false;
 	
-	FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
-	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	/*FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+	FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();*/
 	
 	FollowCamera->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
 }
@@ -210,6 +211,8 @@ void APlayerCharacterBase::HandleCameraReattachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 	
 	bUseControllerRotationYaw = true;
 	bShouldUseLookInput = true;
@@ -237,6 +240,18 @@ void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const 
 	InterpolateCamera(ToTargetLocation, LerpDuration);
 }
 
+void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !DamageVignetteWidget) return;
+
+	UUserWidget* DamageVignette = CreateWidget<UUserWidget>(PC, DamageVignetteWidget);
+	if (DamageVignette)
+	{
+		DamageVignette->AddToViewport();
+	}
+}
+
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -245,11 +260,28 @@ void APlayerCharacterBase::BeginPlay()
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+		
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		
 	}
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
+
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this] ()
+	{
+		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+		FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	},  0.3f, false);
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -269,6 +301,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bChangedName);
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
+	DOREPLIFETIME(APlayerCharacterBase, IFrame);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -287,10 +320,12 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
+			Client_ShowDamageVignette(); // send to owning client
 			IFrame = true;
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 		}
+		Server_HitFeedback();
 		return NewDamageAmount;
 		
 	}
@@ -353,7 +388,7 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
-	if (!bShouldUseLookInput)
+	if (!bShouldUseLookInput || !bIsAlive)
 	{
 		return;
 	}
@@ -372,7 +407,16 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 	}
 	if (bIsAlive)
 	{
+		bIsAttacking = true;
 		GetFirstAttackComponent()->StartAttack();
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		this,
+		&APlayerCharacterBase::EndIsAttacking,
+		0.1f,
+		false
+		);
 	}
 
 	
@@ -455,6 +499,28 @@ void APlayerCharacterBase::EndSuddenDeath()
 	SuddenDeath = false;
 }
 
+void APlayerCharacterBase::Jump()
+{
+	if (bIsAlive)
+	{
+		Super::Jump();
+	}
+}
+
+void APlayerCharacterBase::Server_HitFeedback_Implementation()
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	Multicast_HitFeedback();
+}
+
+void APlayerCharacterBase::Multicast_HitFeedback_Implementation()
+{
+	HitFeedback();
+}
+
 void APlayerCharacterBase::OnRep_CustomPlayerName()
 {
 	if (!PlayerNameTagWidgetComponent)
@@ -518,7 +584,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
 	if (!bChangedName)
 	{
-#if WITH_EDITORONLY_DATA
+/*#if WITH_EDITORONLY_DATA
 		if (bUsePlayerLoginProfile)
 		{
 			if (const UPlayerLoginSystem* PlayerLoginSystem = GetGameInstance()->GetSubsystem<UPlayerLoginSystem>())
@@ -531,13 +597,14 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		{
 			NewName = PlayerLoginSystem->GetProfile().Username;
 		}
-#endif
+#endif*/
 		bChangedName = true;
 	}
 	else
 	{
 		UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Player has changed name before, keeping existing name: %s"), __FUNCTION__, *CustomPlayerName);
 	}
-	Server_SetCustomPlayerName(NewName);
+	Server_SetCustomPlayerName(NewName);	
+	CustomPlayerName = NewName;
 	OnRep_CustomPlayerName();
 }

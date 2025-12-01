@@ -6,6 +6,15 @@
 #include "Core/AttributeData.h"
 #include "UpgradeDisplayData.generated.h"
 
+UENUM()
+namespace EUpgradeFlags
+{	
+	enum Type :  uint8
+	{
+		None, Pending, Add, Remove
+	};
+}
+
 USTRUCT(BlueprintType)
 struct FUpgradeDisplayData
 {
@@ -25,6 +34,9 @@ struct FUpgradeDisplayData
 	
 	UPROPERTY(BlueprintReadWrite)
 	FName TargetName = NAME_None;
+	
+	UPROPERTY(BlueprintReadWrite)
+	TEnumAsByte<EUpgradeFlags::Type> UpgradeFlag = EUpgradeFlags::None;	
 	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
@@ -73,6 +85,9 @@ struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(ToolTip = "Used as: value  * Multiplier", editcondition = "bIsLinear", editconditionHides))
 	FModiferData ModifierData;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta =(editcondition = "!bIsLinear", editconditionHides))
+	bool bCapAtMaxValue = false;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta =(TitleProperty="Multiplier", editcondition = "!bIsLinear", editconditionHides))
 	TArray<FModiferData> UpgradeModifiers =
 	{
@@ -92,11 +107,17 @@ struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 	
 	bool CanUpgrade(const int32 CurrentLevel) const
 	{
-		return bIsLinear
-			       ? MaxNumberOfUpgrades > CurrentLevel || MaxNumberOfUpgrades == -1
-			       : UpgradeModifiers.IsValidIndex(CurrentLevel + 1);
+		if (bIsLinear)
+		{
+			return MaxNumberOfUpgrades > CurrentLevel || MaxNumberOfUpgrades == -1;
+		}
+		
+		const bool bHasNext = UpgradeModifiers.IsValidIndex(CurrentLevel + 1);		
+		return bCapAtMaxValue
+			       ? bHasNext
+			       : bHasNext || UpgradeModifiers.IsValidIndex(CurrentLevel); 
 	}
-	
+
 	bool CanDowngrade(const int32 CurrentLevel) const
 	{
 		return bIsLinear

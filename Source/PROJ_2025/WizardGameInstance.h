@@ -6,10 +6,44 @@
 #include "AdvancedFriendsGameInstance.h"
 #include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
+#include "RoomModifierBase.h"
 #include "WizardGameInstance.generated.h"
 
 
 class UWidget;
+
+USTRUCT(BlueprintType)
+struct FSessionProps
+{
+	GENERATED_BODY()
+	
+	FSessionProps()
+		: SessionName(TEXT(""))
+		, IndexNum(0)
+		, CurrentNumOfPlayers(0)
+		, MaxNumOfPlayers(0)
+	{}
+
+	explicit FSessionProps(int32 IndexNum_, FString SessionName_, int32 CurrentNumOfPlayers_, int32 MaxNumOfPlayers_)
+		: SessionName(MoveTemp(SessionName_))
+		, IndexNum(IndexNum_)
+		, CurrentNumOfPlayers(CurrentNumOfPlayers_)
+		, MaxNumOfPlayers(MaxNumOfPlayers_)
+	{}
+
+	UPROPERTY(BlueprintReadOnly)
+	FString SessionName;
+
+	UPROPERTY(BlueprintReadOnly)
+	int32 IndexNum;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 CurrentNumOfPlayers;
+	
+	UPROPERTY(BlueprintReadOnly)
+	int32 MaxNumOfPlayers;
+};
+
 /**
  * 
  */
@@ -23,16 +57,62 @@ public:
 	TArray<URoomData*> GetAllRoomData() const;
 	URoomData* GetCampRoomData() const;
 
+	URoomData* GetChoiceRoomData() const;
+
 	bool RollForCampRoom();
+
+	bool RollForChoiceRoom() const;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
 	
 	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	URoomData* CampRoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	URoomData* ChoiceRoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> NormalMapPool;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> CombatOnly;
+	
+	//LAN stuff
+	virtual void Init() override;
+	
+	virtual void InitDelay();
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Host_LanSession(FString SessionName);
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Find_LanSessions();
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	void Join_LanSession(int32 SessionIndex);
+	
+	UFUNCTION(BlueprintCallable, Category = "LAN")
+	TArray<FSessionProps> GetLanSessions();
+
+	UFUNCTION(BlueprintCallable, Category = "Session")
+	void ReturnToMainMenu(const FString& MainMenuMap = TEXT("/Game/MainMenu"));
+	
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnFindSessionsComplete(bool bWasSuccessful);
+	void OnJoinSessionCompleted(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+	
+	IOnlineSessionPtr SessionInterface;
+	
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
+	
+	TArray<FOnlineSessionSearchResult> LanSessionResults;
 	
 private:
 	float ChanceForCamp = 0.f;
-
-
 };

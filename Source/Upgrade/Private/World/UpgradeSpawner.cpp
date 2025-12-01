@@ -56,10 +56,6 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		}
 		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
 
-		if (!UpgradeAlternative->OnUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::OnUpgradeSelected))
-		{
-			UpgradeAlternative->OnUpgrade.AddDynamic(this, &AUpgradeSpawner::OnUpgradeSelected);
-		}
 		if (!UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
 		{
 			UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
@@ -91,12 +87,12 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	
 	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
 	{
-		const float Distance = SegmentLength * i;
+		const float Distance = SegmentLength * (i+1);
 		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
 
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
+		SpawnParams.Owner = this;		
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 		AUpgradeAlternative* SpawnedAlternative = GetWorld()->SpawnActor<AUpgradeAlternative>(AlternativeClass, Location, Rotation, SpawnParams);
@@ -144,11 +140,6 @@ void AUpgradeSpawner::BeginPlay()
 	}	
 }
 
-void AUpgradeSpawner::OnUpgradeSelected(FUpgradeDisplayData SelectedUpgrade)
-{	
-	CompletedUpgrades++;	
-}
-
 void AUpgradeSpawner::LockUpgradeAlternatives()
 {
 	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
@@ -170,7 +161,6 @@ void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
 	DOREPLIFETIME(AUpgradeSpawner, TotalUpgradeNeededForCompletion);
-	DOREPLIFETIME(AUpgradeSpawner, CompletedUpgrades);
 }
 
 void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
@@ -208,7 +198,7 @@ void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
 	{
 		return;
 	}
-	TriggerSpawn();
+	//TriggerSpawn(); 
 	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
 	{
 		IInteractor::Execute_OnFinishedInteraction(Interactor, this);

@@ -56,6 +56,8 @@ public:
 
 	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
 	
+	virtual void EndIsAttacking() { bIsAttacking = false; }
+	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
 		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
@@ -78,7 +80,22 @@ public:
 	UFUNCTION()
 	void EndSuddenDeath();
 
+	virtual void Jump() override;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	void HitFeedback();
+
+	UFUNCTION(Server, Reliable)
+	void Server_HitFeedback();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HitFeedback();
 	
+	UFUNCTION(Client, Reliable)
+	void Client_ShowDamageVignette();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUserWidget> DamageVignetteWidget;
 
 protected:
 	//Handle override parent functions
@@ -94,6 +111,7 @@ protected:
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,AActor* DamageCauser) override;
 	
 	//Handle take damage
+	UPROPERTY(Replicated)
 	bool IFrame = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
@@ -195,13 +213,22 @@ protected:
 	
 	UPROPERTY(Replicated, VisibleAnywhere)
 	bool bChangedName = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
+	FText ClassDescription;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
 	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
-	FName RightHandSocket = TEXT("HandGrip_R");
+	FName RightHandSocket = TEXT("R_HandSocket");
 
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
-	FName LeftHandSocket = TEXT("HandGrip_L");
+	FName LeftHandSocket = TEXT("L_HandSocket");
 	
 	//TODO: Remove unused functions 
 	UFUNCTION(Server, Reliable)
@@ -225,6 +252,8 @@ private:
 
 	UPROPERTY(Replicated)
 	bool SuddenDeath;
+
+	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA

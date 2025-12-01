@@ -30,11 +30,13 @@ void ABomberCharacter::HandleDeath()
 	AAIController* AIController = Cast<AAIController>(GetController());
 	if (!AIController)
 	{
+		Super::HandleDeath();
 		return;
 	}
 	UBlackboardComponent* BlackboardComponent = AIController->GetBlackboardComponent();
 	if (!BlackboardComponent)
 	{
+		Super::HandleDeath();
 		return;
 	}
 	BlackboardComponent->SetValueAsBool("IsGonnaExplode", true);

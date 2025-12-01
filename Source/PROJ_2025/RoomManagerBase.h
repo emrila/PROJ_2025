@@ -3,9 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "RoomExit.h"
 #include "GameFramework/Actor.h"
 #include "RoomManagerBase.generated.h"
+
+class URoomModifierBase;
 
 UENUM(BlueprintType)
 enum class ERoomType : uint8
@@ -30,6 +31,18 @@ public:
 	ERoomType RoomType;
 };
 
+USTRUCT(BlueprintType)
+struct FRoomInstance
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly)
+	URoomData* RoomData = nullptr;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<URoomModifierBase*> ActiveModifiers;
+};
+
 UCLASS()
 class PROJ_2025_API ARoomManagerBase : public AActor
 {
@@ -38,18 +51,18 @@ class PROJ_2025_API ARoomManagerBase : public AActor
 public:	
 	ARoomManagerBase();
 
-	virtual void OnRoomInitialized();
+	virtual void OnRoomInitialized(const FRoomInstance& Room);
 
 	void SpawnLoot();
 	
 	UFUNCTION()
-	void EnableExits();
+	virtual void EnableExits();
 
 private:
 
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
-
+	
 	
 	
 };

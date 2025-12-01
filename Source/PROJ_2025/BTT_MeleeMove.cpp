@@ -34,7 +34,7 @@ EBTNodeResult::Type UBTT_MeleeMove::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 	TargetActor = Cast<AActor>(Blackboard->GetValueAsObject("TargetActor"));
 	float Dist = FVector::Dist(Mushroom->GetActorLocation(), TargetActor->GetActorLocation());
-	if (Dist <= 55.f)
+	if (Dist <= Range)
 	{
 			Super::FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
 		return EBTNodeResult::Succeeded;
@@ -66,7 +66,13 @@ void UBTT_MeleeMove::CheckIfOutOfRangeFromTarget()
 		return;
 	}
 	float Distance = FVector::Dist(Mushroom->GetActorLocation(), TargetActor->GetActorLocation());
-	UE_LOG(LogTemp, Warning, TEXT("%f"), Distance);
+	if (Distance <= Range)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandleTimeout);
+		FinishLatentTask(*OwnerComponent, EBTNodeResult::Succeeded);
+		return;
+	}
 	if (Distance >= InterruptRange)
 	{
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
@@ -83,8 +89,7 @@ void UBTT_MeleeMove::CheckIfOutOfRangeFromTarget()
 
 void UBTT_MeleeMove::TimedOut()
 {
-
-	UE_LOG(LogTemp, Error, TEXT("TimedOut"));
+	
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandle);
 	Blackboard->SetValueAsBool("MeleeAttack", false);
 	if (AMushroomCharacter* MushroomChar = Cast<AMushroomCharacter>(Mushroom))
@@ -93,7 +98,6 @@ void UBTT_MeleeMove::TimedOut()
 		MushroomChar->GetCharacterMovement()->MaxWalkSpeed = 600.f;
 	}
 	GetWorld()->GetTimerManager().ClearTimer(TimerHandleTimeout);
-
 	FinishLatentTask(*OwnerComponent, EBTNodeResult::Failed);
 
 }

@@ -56,6 +56,29 @@ URoomData* UWizardGameInstance::GetCampRoomData() const
 	return Cast<URoomData>(AssetList[0].GetAsset());
 }
 
+URoomData* UWizardGameInstance::GetChoiceRoomData() const
+{
+	FAssetRegistryModule& AssetRegistryModule = 
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+	FARFilter Filter;
+	Filter.ClassPaths.Add(URoomData::StaticClass()->GetClassPathName());
+	Filter.PackagePaths.Add(FName("/Game/RoomData/Choice"));
+	Filter.bRecursivePaths = true;
+
+	TArray<FAssetData> AssetList;
+	AssetRegistry.GetAssets(Filter, AssetList);
+
+	if (AssetList.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Camp RoomData assets found!"));
+		return nullptr;
+	}
+
+	return Cast<URoomData>(AssetList[0].GetAsset());
+}
+
 bool UWizardGameInstance::RollForCampRoom()
 {
 	if (ChanceForCamp == 0.f)
@@ -94,6 +117,274 @@ bool UWizardGameInstance::RollForCampRoom()
 	}
 	return false;
 	
+}
+
+bool UWizardGameInstance::RollForChoiceRoom() const
+{
+	if (RoomLoader->ClearedRooms == 3)
+	{
+		return true;
+	}
+	return false;
+}
+
+void UWizardGameInstance::Init()
+{
+	Super::Init();
+	
+	InitDelay();
+}
+
+void UWizardGameInstance::InitDelay()
+{
+	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(GetWorld());
+	
+	if (!OnlineSubsystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Failed to get Online Subsystem!"), *FString(__FUNCTION__));
+		return;
+	}
+
+	if (IOnlineSubsystem* Subsystem = Online::GetSubsystem(GetWorld()))
+	{
+		SessionInterface = Subsystem->GetSessionInterface();
+
+		if (SessionInterface.IsValid())
+		{
+			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnCreateSessionComplete);
+			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnFindSessionsComplete);
+			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UWizardGameInstance::OnJoinSessionCompleted);
+		}
+	}
+}
+
+void UWizardGameInstance::Host_LanSession(FString SessionName)
+{
+	if (!SessionInterface.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: SessionInterface is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	FName SessionNameFName(*SessionName);
+
+	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
+	
+	SessionSettings->bIsLANMatch = true;
+	SessionSettings->NumPublicConnections = 3;
+	SessionSettings->bShouldAdvertise = true;
+	SessionSettings->bAllowJoinInProgress = true;
+	SessionSettings->bAllowJoinViaPresence = false;
+	SessionSettings->bUsesPresence = false;
+	SessionSettings->bUseLobbiesIfAvailable = false;
+	
+	SessionSettings->Set(FName(TEXT("SESSION_NAME")), SessionName, EOnlineDataAdvertisementType::ViaOnlineService);
+	
+	
+	SessionInterface->CreateSession(0, SessionNameFName, *SessionSettings);
+}
+
+void UWizardGameInstance::Find_LanSessions()
+{
+	if (!SessionInterface.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: SessionInterface is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	SessionSearch->bIsLanQuery = true;
+	SessionSearch->MaxSearchResults = 10;
+	SessionSearch->PingBucketSize = 100;
+	
+	//SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, false, EOnlineComparisonOp::Equals);
+	
+	SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+}
+
+void UWizardGameInstance::Join_LanSession(int32 SessionIndex)
+{
+	if (!SessionInterface.IsValid() || !SessionSearch.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: SessionInterface or SessionSearch is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!SessionSearch->SearchResults.IsValidIndex(SessionIndex))
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Invalid SessionIndex!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	const FOnlineSessionSearchResult& Result = SessionSearch->SearchResults[SessionIndex];
+	
+	if (!Result.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Selected session result is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	int32 MaxPlayers = Result.Session.SessionSettings.NumPublicConnections;
+	int32 OpenSlots = Result.Session.NumOpenPublicConnections;
+
+	if (MaxPlayers <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Session has invalid MaxPlayers (%d)."), *FString(__FUNCTION__), MaxPlayers);
+		return;
+	}
+
+	if (OpenSlots <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: Session is full (OpenSlots=%d, MaxPlayers=%d)."), *FString(__FUNCTION__), OpenSlots, MaxPlayers);
+		return;
+	}
+	
+	ULocalPlayer* Player = GetFirstGamePlayer();
+	int32 LocalUserNum = Player ? Player->GetControllerId() : 0;
+	SessionInterface->JoinSession(LocalUserNum, NAME_GameSession, Result);
+}
+
+TArray<FSessionProps> UWizardGameInstance::GetLanSessions()
+{
+	TArray<FSessionProps> OutResults;
+	if (!SessionSearch.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: SessionSearch is not valid!"), *FString(__FUNCTION__));
+		return OutResults;
+	}
+	
+	if (LanSessionResults.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s: No LAN Sessions found!"), *FString(__FUNCTION__));
+		return OutResults;
+	}
+	
+	OutResults.Reserve(LanSessionResults.Num());
+	
+	for (int32 Index = 0; Index < LanSessionResults.Num(); ++Index)
+	{
+		const FOnlineSessionSearchResult& Result = LanSessionResults[Index];
+		
+		FString DisplayName;
+		if (!Result.Session.SessionSettings.Get(FName(TEXT("SESSION_NAME")), DisplayName))
+		{
+			DisplayName = Result.Session.OwningUserName;
+		}
+		
+		int32 MaxPlayers = Result.Session.SessionSettings.NumPublicConnections;
+		int32 CurrentPlayers = MaxPlayers - Result.Session.NumOpenPublicConnections;
+		
+		if (CurrentPlayers < 0)
+		{
+			CurrentPlayers = 0;
+		}
+		
+		FSessionProps Props(Index, DisplayName, CurrentPlayers, MaxPlayers);
+		OutResults.Add(Props);
+	}
+	return OutResults;
+}
+
+void UWizardGameInstance::ReturnToMainMenu(const FString& MainMenuMap)
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: World is null"));
+		return;
+	}
+
+	ENetMode NetMode = World->GetNetMode();
+	
+	if (NetMode == NM_ListenServer || NetMode == NM_DedicatedServer)
+	{
+		FString URL = MainMenuMap;
+		URL.Append(TEXT("?listen"));
+		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ServerTravel to %s"), *URL);
+		World->ServerTravel(URL);
+		return;
+	}
+
+	
+	APlayerController* PC = World->GetFirstPlayerController();
+	if (PC)
+	{
+		UE_LOG(LogTemp, Log, TEXT("ReturnToMainMenu: ClientTravel to %s"), *MainMenuMap);
+		PC->ClientTravel(*MainMenuMap, TRAVEL_Absolute);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ReturnToMainMenu: No PlayerController, using OpenLevel fallback to %s"), *MainMenuMap);
+		UGameplayStatics::OpenLevel(this, FName(*MainMenuMap));
+	}
+}
+
+void UWizardGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if (bWasSuccessful)
+	{
+		if (SessionInterface.IsValid())
+		{
+			ULocalPlayer* Player = GetFirstGamePlayer();
+			if (Player)
+			{
+				TSharedPtr<const FUniqueNetId> UserID = Player->GetPreferredUniqueNetId().GetUniqueNetId();
+				SessionInterface->RegisterPlayer(SessionName, *UserID, false);
+			}
+		}
+		if (GetWorld())
+		{
+			GetWorld()->ServerTravel(TEXT("/Game/Start?listen"));
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s: Session %s created successfully."), *FString(__FUNCTION__), *SessionName.ToString());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: Failed to create session %s."), *FString(__FUNCTION__), *SessionName.ToString());
+	}
+}
+
+void UWizardGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
+{
+	LanSessionResults.Empty();
+	
+	if (bWasSuccessful && SessionSearch.IsValid())
+	{
+		for (auto& Result : SessionSearch->SearchResults)
+		{
+			LanSessionResults.Add(Result);
+		}
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s: Found %d LAN Sessions."), *FString(__FUNCTION__), LanSessionResults.Num());
+}
+
+void UWizardGameInstance::OnJoinSessionCompleted(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{
+	if (!SessionInterface.IsValid())
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s: SessionInterface is not valid!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (SessionInterface.IsValid())
+	{
+		ULocalPlayer* Player = GetFirstGamePlayer();
+		if (Player)
+		{
+			TSharedPtr<const FUniqueNetId> UserID = Player->GetPreferredUniqueNetId().GetUniqueNetId();
+			SessionInterface->RegisterPlayer(SessionName, *UserID, false);
+		}
+	}
+
+	if (FString ConnectString; SessionInterface->GetResolvedConnectString(SessionName, ConnectString))
+	{
+		APlayerController* PC = GetWorld()->GetFirstPlayerController();
+		
+		if (PC)
+		{
+			PC->ClientTravel(ConnectString, TRAVEL_Absolute);
+		}
+	}
 }
 
 

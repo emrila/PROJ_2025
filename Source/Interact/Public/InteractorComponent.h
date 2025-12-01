@@ -30,10 +30,13 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-public:
+	UFUNCTION()
+	void OnActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor);
+
 	UFUNCTION(BlueprintCallable, Category="Interaction|Interactor")
 	void TraceForInteractable();
 
+public:
 	UFUNCTION(BlueprintCallable, Category="Interaction|Interactor")
 	void ClearInteractable();
 

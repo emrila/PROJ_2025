@@ -9,6 +9,9 @@ UMeleeAttackComp::UMeleeAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
+	DamageAmount = 30.0f;
+	AttackCooldown = 1.0f;
+
 	// ...
 }
 
@@ -35,7 +38,7 @@ void UMeleeAttackComp::StartAttack()
 
 	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
 	{
-		SetAttackCooldown(GetAttackCooldown());
+	//	SetAttackCooldown(GetAttackCooldown());
 	}
 	
 	Super::StartAttack();
@@ -174,6 +177,16 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 	//TODO : Determine which sweep locations to use based on the attack animation (one-handed, two-handed, etc.)
 }
 
+float UMeleeAttackComp::GetAttackCooldown() const
+{
+	return AttackCooldown * AttackSpeedModifier;
+}
+
+float UMeleeAttackComp::GetDamageAmount() const
+{
+	return Super::GetDamageAmount() * AttackDamageModifier;
+}
+
 void UMeleeAttackComp::Sweep_Implementation(FVector SweepLocation)
 {
 	if (!OwnerCharacter || SweepLocation == FVector::ZeroVector)
@@ -215,19 +228,13 @@ void UMeleeAttackComp::Sweep_Implementation(FVector SweepLocation)
 		{
 			UGameplayStatics::ApplyDamage(
 				Actor,
-				DamageAmount,
+				GetDamageAmount(),
 				OwnerCharacter->GetController(),
 				OwnerCharacter,
 				UDamageType::StaticClass()
 				);
-			UE_LOG(LogTemp, Log, TEXT("%s hit for %f damage"), *Actor->GetName(), DamageAmount);
-			DrawDebugSphere(GetWorld(), Actor->GetActorLocation(), AttackRadius, 12, FColor::Red, false, 5.0f);
+			UE_LOG(LogTemp, Log, TEXT("%s hit for %f damage"), *Actor->GetName(), GetDamageAmount());
 		}
-	}
-	
-	if (UniqueHitActors.Num() == 0)
-	{
-		DrawDebugSphere(GetWorld(), SweepLocation, AttackRadius, 12, FColor::Green, false, 5.0f);
 	}
 }
 

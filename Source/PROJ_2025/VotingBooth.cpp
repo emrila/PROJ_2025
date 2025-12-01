@@ -3,8 +3,6 @@
 
 #include "VotingBooth.h"
 
-#include "EditorMetadataOverrides.h"
-#include "NiagaraValidationRule.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -76,7 +74,9 @@ void AVotingBooth::CheckResults_Implementation()
 					GetActorRotation(),
 					SpawnInfo
 				);
-				this->Destroy();
+				OnVotingFinished.Broadcast();
+
+				//this->Destroy();
 				return;
 			}
 		}
@@ -91,8 +91,9 @@ void AVotingBooth::CheckResults_Implementation()
 			GetActorRotation(),
 			SpawnInfo
 		);
+		OnVotingFinished.Broadcast();
 
-		this->Destroy();
+		//this->Destroy();
 	}
  }
 

@@ -9,6 +9,7 @@
 UAttackComponentBase::UAttackComponentBase()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	SetIsReplicatedByDefault(true);
 }
 
 void UAttackComponentBase::StartAttack()
@@ -25,22 +26,23 @@ void UAttackComponentBase::StartAttack()
 	}
 
 	bCanAttack = false;
-	
-	
+
+
+	const float CurrentCoolDownTime = GetAttackCooldown();
 	if (OnCooldownTimerStarted.IsBound())
 	{
-		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCooldown,
+		CurrentCoolDownTime,
 		false
 		);
 }
 
-void UAttackComponentBase::StartAttack(const float NewDamageAmount)
+void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
 	if (!bCanAttack)
 	{
@@ -56,18 +58,22 @@ void UAttackComponentBase::StartAttack(const float NewDamageAmount)
 	DamageAmountToStore = DamageAmount;
 	DamageAmount = NewDamageAmount;
 
+	AttackCooldownToStore = AttackCooldown;
+	AttackCooldown = NewAttackCooldown;
+
 	bCanAttack = false;
 
+	const float CurrentCoolDownTime = GetAttackCooldown();
 	if (OnCooldownTimerStarted.IsBound())
 	{
-		OnCooldownTimerStarted.Broadcast(GetAttackCooldown());
+		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
 
 	GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
-		AttackCooldown,
+		CurrentCoolDownTime,
 		false
 		);
 }
@@ -91,7 +97,7 @@ void UAttackComponentBase::Server_SpawnEffect_Implementation(const FVector& Effe
 	
 	if (!Effect)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
+		//UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
 	if (!OwnerCharacter->HasAuthority() || EffectSpawnLocation.IsNearlyZero())
@@ -116,11 +122,16 @@ void UAttackComponentBase::BeginPlay()
 void UAttackComponentBase::ResetAttackCooldown()
 {
 	bCanAttack = true;
-	
 	if (DamageAmountToStore > 0.f)
 	{
 		DamageAmount = DamageAmountToStore;
 		DamageAmountToStore = 0.f;
+	}
+
+	if (AttackCooldownToStore > 0.f)
+	{
+		AttackCooldown = AttackCooldownToStore;
+		AttackCooldownToStore = 0.f;
 	}
 }
 

@@ -48,8 +48,10 @@ public:
 	UFUNCTION()
 	void ShowLobbyWidget();
 
-	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+	int PlayerCount = 0;
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> LobbyWidgetClass;

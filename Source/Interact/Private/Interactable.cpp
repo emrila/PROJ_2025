@@ -8,7 +8,7 @@
 
 void IInteractable::OnPreInteract_Implementation(UObject* Interactor)
 {
-	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
+	//INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
 }
 
 void IInteractable::OnInteract_Implementation(UObject* Interactor)
@@ -18,7 +18,7 @@ void IInteractable::OnInteract_Implementation(UObject* Interactor)
 
 void IInteractable::OnPostInteract_Implementation()
 {
-	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
+//	INTERACT_WARNING( TEXT("%hs is not implemented"), __FUNCTION__)
 }
 
 bool IInteractable::CanInteract_Implementation()

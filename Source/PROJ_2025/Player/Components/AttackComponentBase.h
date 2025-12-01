@@ -22,10 +22,10 @@ public:
 	
 	virtual void StartAttack();
 	
-	virtual void StartAttack(const float NewDamageAmount);
+	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown);
 
 	virtual bool GetCanAttack() const { return bCanAttack; }
-
+	
 	virtual bool SetCanAttack(const bool bNewCanAttack) { bCanAttack = bNewCanAttack; return bCanAttack; }
 
 	virtual void SetDamageAmount(const float Value) { DamageAmount = Value; }
@@ -52,6 +52,7 @@ protected:
 
 	virtual void PerformAttack() {}
 
+	//UFUNCTION(Server, Reliable)
 	virtual void ResetAttackCooldown();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -61,13 +62,13 @@ protected:
 	
 	bool bCanAttack = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float DamageAmount = 10.0f;
 	
 	float DamageAmountToStore= 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
 	float AttackCooldown = 1.f;
+
+	float AttackCooldownToStore = 0.f;
 
 	FTimerHandle AttackCooldownTimerHandle;
 
@@ -75,5 +76,8 @@ protected:
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 	
 	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
-	float UpgradeMultiplier = 1.f;
+	float AttackSpeedModifier = 1.f;
+	
+	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	float AttackDamageModifier = 1.f;
 };

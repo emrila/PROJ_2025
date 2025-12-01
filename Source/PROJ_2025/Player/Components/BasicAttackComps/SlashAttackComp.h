@@ -15,7 +15,10 @@ public:
 
 	virtual void StartAttack() override;
 	
-	virtual void StartAttack(const float NewDamageAmount) override;
+	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_StartAttack(const float NewDamageAmount, float NewAttackCooldown);
 
 protected:
 	virtual void BeginPlay() override;
@@ -33,13 +36,14 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Sweep(FVector SweepLocation);
 
+	virtual float GetAttackCooldown() const override;
+
+	virtual float GetDamageAmount() const override;
+
 	FTimerHandle SweepTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float AttackRadius = 50.f;
 	
-	bool bWasUsedByShadowStrike = false;
+	float AttackRadius = 200.f;
 };

@@ -48,8 +48,7 @@ AUpgradeAlternative::AUpgradeAlternative()
 	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);	
-	
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -67,6 +66,7 @@ void AUpgradeAlternative::SelectUpgrade()
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 		UpgradeWidget->OnUpgradeSelected(bSelected);
+		UpgradeWidget->OnUpgradeHasFocus(true);
 	}
 	if (bSelected && !bLocked)
 	{
@@ -97,11 +97,11 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
-	if (!Execute_CanInteract(this))
+	/*if (!Execute_CanInteract(this))
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Cannot interact right now!"), __FUNCTION__);
 		return;
-	}	
+	}	*/
 	
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
@@ -109,7 +109,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
 	SelectUpgrade();
 
-	if (bIsInteractor)
+	if (!bIsInteractor)
 	{
 		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
 		return;
@@ -138,7 +138,7 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor) && !bFocus && !bSelected && !bLocked)
+	if (IsTargetLocalPlayer(OtherActor) && /*!bFocus && */!bSelected && !bLocked)
 	{
 		SetFocus(true);
 	}
@@ -160,6 +160,7 @@ void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveCompo
 void AUpgradeAlternative::SetLocked(const bool bToggle)
 {
 	bLocked = bToggle;
+
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent); !bSelected)
 	{
 		UpgradeWidget->OnUpgradeSelected(bSelected);
