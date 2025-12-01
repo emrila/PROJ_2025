@@ -284,7 +284,7 @@ TArray<FSessionProps> UWizardGameInstance::GetLanSessions()
 	return OutResults;
 }
 
-void UWizardGameInstance::ReturnToMainMenu(const FString& MainMenuMap)
+void UWizardGameInstance::OpenMainMenuMap(const FString& MainMenuMap)
 {
 	UWorld* World = GetWorld();
     if (!World)
