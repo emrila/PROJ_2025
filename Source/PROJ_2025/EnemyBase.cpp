@@ -19,6 +19,9 @@ AEnemyBase::AEnemyBase()
 float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,
 	class AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!HasAuthority())
+		return 0.f;
+	
 	Health -= DamageAmount;
 	HandleHit(DamageEvent, DamageCauser);
 	if (Health <= 0)
@@ -46,6 +49,9 @@ void AEnemyBase::FinishDeath()
 
 void AEnemyBase::HandleDeath()
 {
+	if (!HasAuthority())
+		return;
+	
 	if (CombatManager && !HasDied)
 	{
 		CombatManager->RegisterEnemyDeath();

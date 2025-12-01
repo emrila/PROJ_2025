@@ -63,53 +63,30 @@ void UShieldAttackComp::Server_SpawnShield_Implementation()
 
 	FActorSpawnParameters Params;
 	Params.Owner = OwnerCharacter;
-	Params.Instigator = OwnerCharacter->GetInstigator();
 
-	// Spawn on server; the spawned actor must replicate (see AShield constructor)
-	AShield* Shield = GetWorld()->SpawnActor<AShield>(ShieldClass, SpawnLoc, SpawnRot, Params);
-	if (Shield)
+	if (!OwnerCharacter->GetInstigator())
 	{
-		// set server-side owner/initial values and store authoritative pointer
-		Shield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
-		// Ensure actor is set to replicate (extra safety)
-		Shield->SetReplicates(true);
-		Shield->SetReplicateMovement(true);
-
-		CurrentShield = Shield;
-
-		// default to deactivated state on spawn (server authoritative)
-		Shield->DeactivateShield();
-	}
-}
-
-void UShieldAttackComp::Multicast_SpawnShield_Implementation()
-{
-	if (!OwnerCharacter)
-	{
+		UE_LOG(LogTemp, Warning, TEXT("OwnerCharacter's Instigator is NULL in %s"), *FString(__FUNCTION__));
 		return;
 	}
-	if (ShieldClass)
+	
+	Params.Instigator = OwnerCharacter->GetInstigator();
+	
+	AShield* Shield = GetWorld()->SpawnActor<AShield>(ShieldClass, SpawnLoc, SpawnRot, Params);
+	if (!Shield)
 	{
-		FVector SpawnLoc = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * 120.f;
-		FRotator SpawnRot = OwnerCharacter->GetActorRotation();
-
-		FActorSpawnParameters Params;
-		Params.Owner = OwnerCharacter;
-
-		AShield* Shield = GetWorld()->SpawnActor<AShield>(ShieldClass, SpawnLoc, SpawnRot, Params);
-		if (Shield)
-		{
-			Shield->SetDamageAmount(GetDamageAmount());
-			Shield->SetDurability(GetDurability());
-			Shield->SetRecoveryRate(GetRecoveryRate());
-			bIsShieldActive = true;
-			if (APlayerCharacterBase* PlayerCharacterBase = Cast<APlayerCharacterBase>(OwnerCharacter); Shield)
-			{
-				Shield->SetOwnerCharacter(PlayerCharacterBase);
-				CurrentShield = Shield;
-			}
-		}
+		UE_LOG(LogTemp, Warning, TEXT("Shield spawn failed in %s"), *FString(__FUNCTION__));
+		return;
 	}
+	CurrentShield = Shield;
+	CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
+		
+	CurrentShield->SetReplicates(true);
+	CurrentShield->SetReplicateMovement(true);
+
+	CurrentShield->SetDurability(GetDurability());
+	CurrentShield->SetDamageAmount(GetDamageAmount());
+	CurrentShield->SetRecoveryRate(GetRecoveryRate());
 }
 
 float UShieldAttackComp::GetAttackCooldown() const
@@ -165,9 +142,9 @@ void UShieldAttackComp::Multicast_ActivateShield_Implementation()
 	}
 
 	bIsShieldActive = true;
-	
+
+	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
 	CurrentShield->SetDamageAmount(GetDamageAmount());
-	CurrentShield->SetDurability(GetDurability());
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
 	CurrentShield->ActivateShield();
 }
@@ -187,8 +164,8 @@ void UShieldAttackComp::Multicast_DeactivateShield_Implementation()
 	{
 		return;
 	}
-	CurrentShield->DeactivateShield();
 	bIsShieldActive = false;
+	CurrentShield->DeactivateShield();
 }
 
 void UShieldAttackComp::StartAttackCooldown()
@@ -197,7 +174,11 @@ void UShieldAttackComp::StartAttackCooldown()
 	{
 		return;
 	}
+	bCanAttack = false;
 
+	// Reset shield durability to max on cooldown start
+	CurrentShield->SetDurability(GetDurability());
+	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
 }
@@ -206,11 +187,6 @@ void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	Server_SpawnShield();
-
-	if (CurrentShield)
-	{
-		Server_DeactivateShield();
-	}
 }
 
 

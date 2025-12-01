@@ -47,6 +47,7 @@ void AShield::Tick(float DeltaTime)
 	SetActorLocation(NewLocation);
 	SetActorRotation(OwnerCharacter->GetActorRotation());
 
+	// TODO: Optimize this check so it doesn't run every tick and to handle in case players dies more than once (maybe use a delegate or event system)
 	if (bShouldCheckPlayerAlive)
 	{
 		if (!OwnerCharacter->IsAlive())
@@ -64,40 +65,42 @@ void AShield::Tick(float DeltaTime)
 
 void AShield::ActivateShield()
 {
-	if (GetWorld()->GetTimerManager().IsTimerActive(DurabilityTimerHandle))
-	{
-		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
-		GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle,
-			this, &AShield::TickDurability, 1.f, true);
-	}
-	if (GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
-	{
-		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
-	}
-	if (ShieldMesh)
+	if (ShieldMesh && CollisionBox)
 	{
 		ShieldMesh->SetVisibility(true);
-		if (CollisionBox)
+		SetActorEnableCollision(true);
+
+		if (GetWorld())
 		{
-			SetActorEnableCollision(true);	
+			GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
+
+			if (!GetWorld()->GetTimerManager().IsTimerActive(DurabilityTimerHandle))
+			{
+				GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle,
+				this, &AShield::TickDurability, 1.f, true);
+			}
 		}
 	}
 }
 
 void AShield::DeactivateShield()
 {
-	if (GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
-	{
-		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
-		GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle,
-			this, &AShield::TickRecovery, RecoveryRate, true);
-	}
 	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(false);
 		if (CollisionBox)
 		{
 			SetActorEnableCollision(false);	
+		}
+		if (GetWorld())
+		{
+			GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+
+			if (!GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
+			{
+				GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle,
+				this, &AShield::TickRecovery, RecoveryRate, true);
+			}
 		}
 	}
 }
@@ -119,6 +122,12 @@ void AShield::BeginPlay()
 	SetReplicateMovement(true);
 	
 	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
+
+	if (CollisionBox && ShieldMesh)
+	{
+		ShieldMesh->SetVisibility(false);
+		SetActorEnableCollision(false);
+	}
 }
 
 void AShield::TickDurability()
@@ -131,13 +140,15 @@ void AShield::TickDurability()
 	{
 		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Durability is:%f , Deactivating the shield."), Durability);
 			ShieldComp->StartAttackCooldown();
 			ShieldComp->Server_DeactivateShield();
 			return;
 		}
 	}
-
+	const float OldDurability = Durability;
 	Durability -= 10.f;
+	UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
 }
 
 void AShield::TickRecovery()
@@ -150,11 +161,14 @@ void AShield::TickRecovery()
 	{
 		if (Durability >= ShieldComp->GetDurability())
 		{
+			Durability = ShieldComp->GetDurability();
 			GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
 			return;
 		}
 	}
+	const float OldDurability = Durability;
 	Durability += 10.f;
+	UE_LOG(LogTemp, Warning, TEXT("Durability increased from:%f, to:%f"), OldDurability, Durability);
 }
 
 void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -164,7 +178,6 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 	{
 		//Apply damage to enemy
 		//Decrease durability, but with what amount?
-		//SetDamageAmount(OwnerCharacter->GetSecondAttackComponent()->GetDamageAmount());
 		
 		FVector KnockDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 		KnockDir.Z = 0.3f;
@@ -173,7 +186,7 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 
 		Enemy->LaunchCharacter(KnockDir * KnockbackForce, true, true);
 
-		if (!IFrame)
+		if (bShouldGiveDamage)
 		{
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
@@ -183,12 +196,9 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 			UDamageType::StaticClass()
 			);
 			Durability -= 10.f;
-			IFrame = true;
+			bShouldGiveDamage = false;
 			ResetIFrame();
 		}
-
-		// TODO: Find out why enemy is continually taking damage on overlap
-		// Decrease Durability
 	}
 	
 	//Decide what happens when hit by a projectile
@@ -199,6 +209,6 @@ void AShield::ResetIFrame()
 {
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle,
-		[this] { IFrame = false; }, 1.f, false);
+		[this] { bShouldGiveDamage = true; }, 1.f, false);
 }
 

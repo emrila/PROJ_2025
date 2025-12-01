@@ -26,8 +26,8 @@ public:
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnShield();
 	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnShield();
+	/*UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_SpawnShield();*/
 
 	virtual float GetAttackCooldown() const override;
 
