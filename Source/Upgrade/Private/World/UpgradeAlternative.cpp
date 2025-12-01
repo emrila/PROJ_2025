@@ -8,6 +8,7 @@
 #include "Components/WidgetComponent.h"
 #include "Dev/UpgradeLog.h"
 #include "Net/UnrealNetwork.h"
+#include "Util/UpgradeFunctionLibrary.h"
 #include "World/UI/UpgradeAlternativeWidget.h"
 
 namespace UpgradeWidget
@@ -74,6 +75,7 @@ void AUpgradeAlternative::SelectUpgrade()
 	}
 }
 
+/*
 bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 {
 	if (const APawn* Pawn = Cast<APawn>(OtherActor))
@@ -82,6 +84,7 @@ bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
 	}
 	return false;
 }
+*/
 
 void AUpgradeAlternative::OnRep_Selected()
 {
@@ -97,11 +100,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		return;
 	}
 	
-	/*if (!Execute_CanInteract(this))
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: Cannot interact right now!"), __FUNCTION__);
-		return;
-	}	*/
+	//DON'T CALL Execute_CanInteract(this);
 	
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
@@ -120,7 +119,6 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		
 	const FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDisplayData);
 	IInteractor::Execute_OnSuperFinishedInteraction(Interactor, InstancedStruct);
-	//Destroy(); 
 }
 
 bool AUpgradeAlternative::CanInteract_Implementation()
@@ -136,9 +134,26 @@ void AUpgradeAlternative::OnPostInteract_Implementation()
 	}
 }
 
+void AUpgradeAlternative::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+	{
+		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
+	}	
+	
+	bFocus = false;
+	bLocked = false;
+	if (HasAuthority())
+	{
+		bSelected = false;
+	}
+}
+
 void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
 {
-	if (IsTargetLocalPlayer(OtherActor) && /*!bFocus && */!bSelected && !bLocked)
+	if (UUpgradeFunctionLibrary::IsLocalPlayer(OtherActor) /*IsTargetLocalPlayer(OtherActor)*/ && /*!bFocus && */!bSelected && !bLocked)
 	{
 		SetFocus(true);
 	}
@@ -146,14 +161,9 @@ void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveCom
 
 void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,[[maybe_unused]] int32 OtherBodyIndex)
 {	
-	if (IsTargetLocalPlayer(OtherActor) && Execute_CanInteract(this))
+	if (UUpgradeFunctionLibrary::IsLocalPlayer(OtherActor)/*IsTargetLocalPlayer(OtherActor)*/ && Execute_CanInteract(this))
 	{
-		SetFocus(false);
-		/*bFocus = false;
-		if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-		{
-			UpgradeWidget->OnUpgradeHasFocus(bFocus);
-		}*/
+		SetFocus(false);	
 	}
 }
 

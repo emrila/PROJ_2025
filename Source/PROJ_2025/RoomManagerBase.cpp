@@ -55,7 +55,8 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (Room.RoomData->RoomType != ERoomType::Parkour)
 	{
 		AllRooms = GI->NormalMapPool;
-	}else
+	}
+	else
 	{
 		AllRooms = GI->CombatOnly;
 	}
@@ -145,22 +146,29 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		const float ChanceForModifiers = 0.05f;
 		if (FMath::FRand() <= ChanceForModifiers)
 		{
-			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
+			if (RoomData)
 			{
-				TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
-
-				if (Mods.Num() > 0)
+				if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
 				{
-					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
-					TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
+					TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
 
-					URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
-					RoomInstance.ActiveModifiers.Add(ModInstance);
+					if (Mods.Num() > 0)
+					{
+						int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
+						TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
+
+						URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
+						RoomInstance.ActiveModifiers.Add(ModInstance);
+					}
+				}
+				else
+				{
+					UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
 				}
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
+				UE_LOG(LogTemp, Warning, TEXT("No RoomData found for exit %d when trying to add modifier."), i);
 			}
 		}
 		RoomExits[i]->LinkedRoomInstance = RoomInstance;
@@ -211,7 +219,8 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
-	}else
+	}
+	else
 	{
 		EnableExits();
 	}

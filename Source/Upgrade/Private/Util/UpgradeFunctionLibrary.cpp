@@ -44,3 +44,12 @@ UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* Wo
 
 	 return UpgradeComponent;
 }
+
+bool UUpgradeFunctionLibrary::IsLocalPlayer(const AActor* OtherActor)
+{
+	if (const APawn* Pawn = Cast<APawn>(OtherActor))
+	{
+		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
+	}
+	return false;
+}
