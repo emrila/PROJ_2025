@@ -3,6 +3,7 @@
 #include "EnemyBase.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/SpecialAttackComps/ShieldAttackComp.h"
 
@@ -10,6 +11,8 @@
 AShield::AShield()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	bReplicates = true;
 	
 	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	RootComponent = CollisionBox;
@@ -32,20 +35,16 @@ AShield::AShield()
 void AShield::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (!HasAuthority())
+	{
+		return;
+	}
 	
 	if (!OwnerCharacter)
 	{
 		return;
 	}
-	
-	FVector Forward = OwnerCharacter->GetActorForwardVector();
-	FVector NewLocation =
-		OwnerCharacter->GetActorLocation() +
-		Forward * DistanceFromPlayer +
-		FVector(0.f, 0.f, VerticalOffset);
-
-	SetActorLocation(NewLocation);
-	SetActorRotation(OwnerCharacter->GetActorRotation());
 
 	// TODO: Optimize this check so it doesn't run every tick and to handle in case players dies more than once (maybe use a delegate or event system)
 	if (bShouldCheckPlayerAlive)
@@ -55,7 +54,8 @@ void AShield::Tick(float DeltaTime)
 			if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
 			{
 				ShieldComp->StartAttackCooldown();
-				ShieldComp->Server_DeactivateShield();
+				//ShieldComp->Server_DeactivateShield();
+				ShieldComp->DeactivateShield();
 			}
 			bShouldCheckPlayerAlive = false;
 		}
@@ -63,47 +63,80 @@ void AShield::Tick(float DeltaTime)
 	
 }
 
-void AShield::ActivateShield()
+void AShield::RequestActivateShield()
 {
+	Server_ActivateShield();
+}
+
+void AShield::Server_ActivateShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	Multicast_ActivateShield();
+
+	// Start durability timer on server
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+
+		// Clear any existing timer to avoid having multiples running
+		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
+
+		GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle, this, &AShield::TickDurability, 1.f, true);
+	}
+}
+
+void AShield::Multicast_ActivateShield_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
 	if (ShieldMesh && CollisionBox)
 	{
 		ShieldMesh->SetVisibility(true);
 		SetActorEnableCollision(true);
-
-		if (GetWorld())
-		{
-			GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
-
-			if (!GetWorld()->GetTimerManager().IsTimerActive(DurabilityTimerHandle))
-			{
-				GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle,
-				this, &AShield::TickDurability, 1.f, true);
-			}
-		}
 	}
 }
 
-void AShield::DeactivateShield()
+void AShield::RequestDeactivateShield()
 {
-	if (ShieldMesh)
+	Server_DeactivateShield();
+}
+
+void AShield::Server_DeactivateShield_Implementation()
+{
+	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
+	{
+		return;
+	}
+	
+	Multicast_DeactivateShield();
+	if (GetWorld())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+
+		// Clear any existing timer to avoid having multiples running
+		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
+
+		GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle, this, &AShield::TickRecovery, 1.f, true);
+	}
+}
+
+void AShield::Multicast_DeactivateShield_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (ShieldMesh && CollisionBox)
 	{
 		ShieldMesh->SetVisibility(false);
-		if (CollisionBox)
-		{
-			SetActorEnableCollision(false);	
-		}
-		if (GetWorld())
-		{
-			GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
-
-			if (!GetWorld()->GetTimerManager().IsTimerActive(RecoveryTimerHandle))
-			{
-				GetWorld()->GetTimerManager().SetTimer(RecoveryTimerHandle,
-				this, &AShield::TickRecovery, RecoveryRate, true);
-			}
-		}
+		SetActorEnableCollision(false);
 	}
-}
+}	
 
 void AShield::SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter)
 {
@@ -121,7 +154,10 @@ void AShield::BeginPlay()
 	bReplicates = true;
 	SetReplicateMovement(true);
 	
-	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
+	if (HasAuthority() && CollisionBox)
+	{
+		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
+	}
 
 	if (CollisionBox && ShieldMesh)
 	{
@@ -132,6 +168,11 @@ void AShield::BeginPlay()
 
 void AShield::TickDurability()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	if (!OwnerCharacter)
 	{
 		return;
@@ -142,7 +183,7 @@ void AShield::TickDurability()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Durability is:%f , Deactivating the shield."), Durability);
 			ShieldComp->StartAttackCooldown();
-			ShieldComp->Server_DeactivateShield();
+			ShieldComp->DeactivateShield();
 			return;
 		}
 	}
@@ -153,6 +194,10 @@ void AShield::TickDurability()
 
 void AShield::TickRecovery()
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
 	if (!OwnerCharacter)
 	{
 		return;
@@ -174,11 +219,13 @@ void AShield::TickRecovery()
 void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                               UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
 	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
 	{
-		//Apply damage to enemy
-		//Decrease durability, but with what amount?
-		
 		FVector KnockDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 		KnockDir.Z = 0.3f;
 
@@ -197,18 +244,21 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 			);
 			Durability -= 10.f;
 			bShouldGiveDamage = false;
-			ResetIFrame();
+			ResetShouldGiveDamage();
 		}
 	}
-	
-	//Decide what happens when hit by a projectile
-	//Decide what happens when hit by a ground slam attack
 }
 
-void AShield::ResetIFrame()
+void AShield::ResetShouldGiveDamage()
 {
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle,
 		[this] { bShouldGiveDamage = true; }, 1.f, false);
+}
+
+void AShield::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AShield, Durability)
 }
 
