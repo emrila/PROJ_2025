@@ -13,7 +13,7 @@ UShieldAttackComp::UShieldAttackComp()
 
 	DamageAmount = 10.f;
 	AttackCooldown = 20.f;
-	BaseDurability = 200.f;
+	BaseDurability = 50.f;
 	BaseRecoveryRate = 1.f;
 }
 
@@ -44,16 +44,23 @@ void UShieldAttackComp::StartAttack()
 	
 	if (!bIsShieldActive)
 	{
-		Server_ActivateShield();
+		//Server_ActivateShield();
+		ActivateShield();
 		return;
 	}
 
-	Server_DeactivateShield();
+	DeactivateShield();
+	//Server_DeactivateShield();
 }
 
-void UShieldAttackComp::Server_SpawnShield_Implementation()
+void UShieldAttackComp::SpawnShield()
 {
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority() || !ShieldClass)
+	if (!OwnerCharacter || !ShieldClass)
+	{
+		return;
+	}
+
+	if (!OwnerCharacter->HasAuthority())
 	{
 		return;
 	}
@@ -80,9 +87,6 @@ void UShieldAttackComp::Server_SpawnShield_Implementation()
 	}
 	CurrentShield = Shield;
 	CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
-		
-	CurrentShield->SetReplicates(true);
-	CurrentShield->SetReplicateMovement(true);
 
 	CurrentShield->SetDurability(GetDurability());
 	CurrentShield->SetDamageAmount(GetDamageAmount());
@@ -119,22 +123,7 @@ float UShieldAttackComp::GetRecoveryRate()
 	return BaseRecoveryRate * AttackSpeedModifier;
 }
 
-void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ThisClass, CurrentShield);
-}
-
-void UShieldAttackComp::Server_ActivateShield_Implementation()
-{
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-	Multicast_ActivateShield();
-}
-
-void UShieldAttackComp::Multicast_ActivateShield_Implementation()
+void UShieldAttackComp::ActivateShield()
 {
 	if (!OwnerCharacter || !CurrentShield)
 	{
@@ -146,26 +135,20 @@ void UShieldAttackComp::Multicast_ActivateShield_Implementation()
 	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
 	CurrentShield->SetDamageAmount(GetDamageAmount());
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
-	CurrentShield->ActivateShield();
+	//CurrentShield->ActivateShield();
+	CurrentShield->RequestActivateShield();
 }
 
-void UShieldAttackComp::Server_DeactivateShield_Implementation()
-{
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-	Multicast_DeactivateShield();
-}
-
-void UShieldAttackComp::Multicast_DeactivateShield_Implementation()
+void UShieldAttackComp::DeactivateShield()
 {
 	if (!OwnerCharacter || !CurrentShield)
 	{
 		return;
 	}
 	bIsShieldActive = false;
-	CurrentShield->DeactivateShield();
+	//CurrentShield->DeactivateShield();
+
+	CurrentShield->RequestDeactivateShield();
 }
 
 void UShieldAttackComp::StartAttackCooldown()
@@ -174,10 +157,19 @@ void UShieldAttackComp::StartAttackCooldown()
 	{
 		return;
 	}
+
+	Multicast_StartAttackCooldown();
+}
+
+void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
+{
 	bCanAttack = false;
 
 	// Reset shield durability to max on cooldown start
-	CurrentShield->SetDurability(GetDurability());
+	if (CurrentShield)
+	{
+		CurrentShield->SetDurability(GetDurability());
+	}
 	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
@@ -186,7 +178,43 @@ void UShieldAttackComp::StartAttackCooldown()
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	Server_SpawnShield();
+	//Server_SpawnShield();
+	//SpawnShield();
+
+	if (OwnerCharacter)
+	{
+		TArray<AActor*> ShieldActors;
+		OwnerCharacter->GetAllChildActors(ShieldActors);
+
+		for (AActor* Actor : ShieldActors)
+		{
+			if (AShield* Shield = Cast<AShield>(Actor))
+			{
+				CurrentShield = Shield;
+				UE_LOG(LogTemp, Warning, TEXT("Shield found in %s"), *FString(__FUNCTION__));
+				break;
+			}
+		}
+
+		if (!CurrentShield)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No shield found in %s"), *FString(__FUNCTION__));
+			SpawnShield();
+			return;
+		}
+		
+		CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
+
+		CurrentShield->SetDurability(GetDurability());
+		CurrentShield->SetDamageAmount(GetDamageAmount());
+		CurrentShield->SetRecoveryRate(GetRecoveryRate());
+	}
+}
+
+void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UShieldAttackComp, CurrentShield);
 }
 
 

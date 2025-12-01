@@ -7,7 +7,12 @@
 #include "GameFramework/Character.h"
 #include "EnemyBase.generated.h"
 
+
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUpdateHealthbar, float, CurrentHealth);
+
 UCLASS()
+
 class PROJ_2025_API AEnemyBase : public ACharacter
 {
 	GENERATED_BODY()
@@ -21,14 +26,20 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UPROPERTY(BlueprintAssignable, Replicated)
+	FUpdateHealthbar UpdateHealthbar;
+
 	UPROPERTY()
 	ACombatManager* CombatManager;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_Health, Category="Stats")
 	float Health;
+
+	UFUNCTION()
+	void OnRep_Health();
 
 	UPROPERTY(Replicated)
 	bool HasDied;
