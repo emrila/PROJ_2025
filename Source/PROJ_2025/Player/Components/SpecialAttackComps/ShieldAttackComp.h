@@ -22,12 +22,8 @@ public:
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
 	virtual void StartAttack() override;
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SpawnShield();
-	
-	/*UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnShield();*/
+
+	virtual void SpawnShield();
 
 	virtual float GetAttackCooldown() const override;
 
@@ -36,8 +32,6 @@ public:
 	virtual float GetDurability();
 
 	virtual float GetRecoveryRate();
-	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_ActivateShield();
@@ -61,7 +55,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AShield> ShieldClass;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	AShield* CurrentShield;
 
 	FTimerHandle DurabilityTimerHandle;
