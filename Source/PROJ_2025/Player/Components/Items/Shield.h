@@ -1,5 +1,4 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
@@ -18,10 +17,22 @@ public:
 	AShield();
 	
 	virtual void Tick(float DeltaTime) override;
+
+	virtual void RequestActivateShield();
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_ActivateShield();
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_ActivateShield();
 	
-	virtual void ActivateShield();
-	
-	virtual void DeactivateShield();
+	virtual void RequestDeactivateShield();
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_DeactivateShield();
+
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_DeactivateShield();
 	
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
 
@@ -50,7 +61,9 @@ protected:
 		const FHitResult& SweepResult
 		);
 
-	virtual void ResetIFrame();
+	virtual void ResetShouldGiveDamage();
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* ShieldMesh;
@@ -63,12 +76,12 @@ protected:
 	float VerticalOffset = 50.f;
 	
 	float DamageAmount = 20.0f;
-	
+
+	UPROPERTY(Replicated)
 	float Durability = 10.f;
 
-	float RecoveryRate = 1.f; //durability per second
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float RecoveryRate = 1.f;
+	
 	float KnockbackForce = 1000.f;
 	
 	UPROPERTY()

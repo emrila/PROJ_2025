@@ -32,30 +32,27 @@ public:
 	virtual float GetDurability();
 
 	virtual float GetRecoveryRate();
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_ActivateShield();
 
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_ActivateShield();
+	virtual void ActivateShield();
 
-	UFUNCTION(Server, Reliable)
-	virtual void Server_DeactivateShield();
-
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_DeactivateShield();
+	virtual void DeactivateShield();
 
 	virtual void StartAttackCooldown();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	virtual void Multicast_StartAttackCooldown();
 
 protected:
 	virtual void BeginPlay() override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	bool bIsShieldActive = false;
 	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AShield> ShieldClass;
 	
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	AShield* CurrentShield;
 
 	FTimerHandle DurabilityTimerHandle;
