@@ -212,7 +212,7 @@ void APlayerCharacterBase::HandleCameraReattachment()
 		return;
 	}
 	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 1.f, false);
 	
 	bUseControllerRotationYaw = true;
 	bShouldUseLookInput = true;
@@ -262,7 +262,12 @@ void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-
+	if (FollowCamera)
+	{
+		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
+		FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
+	}
+	
 	SetUpLocalCustomPlayerName();
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
@@ -282,13 +287,6 @@ void APlayerCharacterBase::BeginPlay()
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
-
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this] ()
-	{
-		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
-		FollowCameraRelativeRotation = FollowCamera->GetRelativeRotation();
-	},  0.3f, false);
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -573,7 +571,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	
 	if (!GetPlayerState())
 	{
-		constexpr float InRate = 0.2f;
+		/*constexpr float InRate = 0.2f;
 		UE_LOG(PlayerBaseLog, Warning, TEXT("%hs, PlayerState is Null, retrying in %f"), __FUNCTION__, InRate);
 		FTimerHandle TimerHandle;
 
@@ -581,7 +579,7 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 		                                {
 			                                SetUpLocalCustomPlayerName();
 		                                },
-		                                InRate, false);
+		                                InRate, false);*/
 
 		return;
 	}
