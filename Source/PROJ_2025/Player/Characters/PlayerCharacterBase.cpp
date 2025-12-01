@@ -224,6 +224,13 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
+void APlayerCharacterBase::SetIsAlive(const bool NewIsAlive)
+{
+	UE_LOG(PlayerBaseLog, Log, TEXT("%s, NewIsAlive: %d"), *FString(__FUNCTION__), NewIsAlive);
+	bIsAlive = NewIsAlive;
+	OnPlayerDied.Broadcast(bIsAlive);
+}
+
 void APlayerCharacterBase::Client_StartCameraInterpolation_Implementation(const FVector& TargetLocation, const float LerpDuration)
 {
 	if (!FollowCamera)
@@ -306,16 +313,19 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
+	if (!bIsAlive)
+	{
+		return 0.f;
+	}
 	const float NewDamageAmount = DamageAmount * DefenceStat;
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
 		if (SuddenDeath)
 		{
-			bIsAlive = false;
+			SetIsAlive(false);
 			GameState->OnRep_Health();
 			return 0;
 		}
-	
 	
 		GameState->DamageHealth(NewDamageAmount);
 		if (DamageAmount >= 10)
@@ -327,7 +337,6 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 		Server_HitFeedback();
 		return NewDamageAmount;
-		
 	}
 	return 0;
 }
