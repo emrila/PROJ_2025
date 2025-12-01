@@ -32,15 +32,14 @@ public:
 	URoomModifierBase()
 	{
 		PrimaryComponentTick.bCanEverTick = true;
-		SetIsReplicatedByDefault(true);
+		SetIsReplicated(true);
+		//SetIsReplicatedByDefault(true);
 	}
 	
 	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager)
 	{
 		RoomManager = InRoomManager;
 	}
-	
-	virtual ~URoomModifierBase() override{}
 
 	int ModLevel = 1;
 

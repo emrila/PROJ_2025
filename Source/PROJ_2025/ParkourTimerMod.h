@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "RoomModifierBase.h"
+#include "TimerUserWidget.h"
 #include "ParkourTimerMod.generated.h"
 
 /**
@@ -16,5 +17,33 @@ class PROJ_2025_API UParkourTimerMod : public URoomModifierBase
 
 	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager) override;
 
-	float Timer;
+	
+
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(ReplicatedUsing=OnRep_PlayersThatMadeIt)
+	TArray<APlayerState*> PlayersThatMadeIt;
+
+	UPROPERTY()
+	UTimerUserWidget* TimerWidget;
+
+	UFUNCTION()
+	void OnRep_PlayersThatMadeIt() const;
+
+	virtual void BeginReplication() override;
+	
+	void Multicast_AddTimerWidget();
+
+	UFUNCTION()
+	void SetupAfterRoomEntered(ARoomManagerBase* InRoomManager);
+	
+	UFUNCTION()
+	void OnOverlapBegin(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult
+	);
 };
