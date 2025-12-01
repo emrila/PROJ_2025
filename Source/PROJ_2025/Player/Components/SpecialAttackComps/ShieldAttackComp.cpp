@@ -1,7 +1,6 @@
 ﻿#include "ShieldAttackComp.h"
 
 #include "EnhancedInputComponent.h"
-#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
@@ -13,7 +12,7 @@ UShieldAttackComp::UShieldAttackComp()
 
 	DamageAmount = 10.f;
 	AttackCooldown = 20.f;
-	BaseDurability = 50.f;
+	BaseDurability = 200.f;
 	BaseRecoveryRate = 1.f;
 }
 
@@ -38,6 +37,11 @@ void UShieldAttackComp::StartAttack()
 		return;
 	}
 	if (!bCanAttack)
+	{
+		return;
+	}
+
+	if (!OwnerCharacter->IsAlive())
 	{
 		return;
 	}
@@ -186,6 +190,8 @@ void UShieldAttackComp::BeginPlay()
 		TArray<AActor*> ShieldActors;
 		OwnerCharacter->GetAllChildActors(ShieldActors);
 
+		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
+
 		for (AActor* Actor : ShieldActors)
 		{
 			if (AShield* Shield = Cast<AShield>(Actor))
@@ -215,6 +221,16 @@ void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UShieldAttackComp, CurrentShield);
+}
+
+void UShieldAttackComp::OnPlayerDied(bool bNewIsAlive)
+{
+	if (!bNewIsAlive)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, Player Died, Deactivating Shield"), *FString(__FUNCTION__));
+		DeactivateShield();
+		ResetAttackCooldown();
+	}
 }
 
 
