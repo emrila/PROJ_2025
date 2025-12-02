@@ -36,11 +36,18 @@ protected:
 	virtual void OnAttackCanceled(const FInputActionInstance& ActionInstance);
 	
 	virtual void PrepareForAttack();
+
+	virtual void TryLockingTargetOrLocation();
 	
-	virtual void TryLockingTarget();
+	virtual void TryLockingTarget(FVector StartLocation, FVector EndLocation);
+
+	virtual void TryLockingLocation(FVector StartLocation, FVector EndLocation);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_SetLockedTarget(AActor* Target);
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
 	
 	virtual void HandlePreAttackState();
 	
@@ -52,6 +59,9 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_TeleportPlayer(
 		const FVector& TeleportLocation);
+
+	UFUNCTION(Server, Reliable)
+	virtual void Server_PerformSweep();
 
 	virtual void ResetAttackCooldown() override;
 
@@ -66,41 +76,41 @@ protected:
 
 	UPROPERTY()
 	AActor* LockedTarget;
+
+	FVector LockedLocation;
+
+	FVector SweepStartLocation;
 	
 	float LockOnRange = 2000.f;
+
+	float MinimumDistanceToTarget = 200.f;
 	
 	FTimerHandle LockedTargetTickTimer;
 	
 	bool bKilledTarget = false;
 
-	//Handle attack properties
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float OffsetDistanceBehindTarget = 50.f;
+	bool bCanTeleport = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float StrikeDuration = 3.f;
+	//Handle attack properties
+	float OffsetDistanceBehindTarget = 100.f;
+
+	float AcceptableAngelDegrees = 10.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float StrikeDelay = 1.f;
+	float StrikeDuration = 0.5f;
+	
+	//float StrikeDelay = 1.f;
 	
 	//Handle player teleport
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TeleportDelay = 0.2f;
 	
 	FTimerHandle PlayerTeleportTimerHandle;
 	
 	//Handle camera interpolation
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
 	float CameraInterpDistanceBehind = 500.f;
-
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
-	float CameraInterpHeight = 120.f;*/
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
-	float CameraInterpDuration = 0.35f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera")
-	float CameraInterpDelay = 1.f;
+	float CameraInterpDuration = 0.3f;
+	
+	float CameraInterpDelay = 0.5f;
 	
 	//VFX
 	FVector DisappearLocation;

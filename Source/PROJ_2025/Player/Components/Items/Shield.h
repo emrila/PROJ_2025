@@ -71,18 +71,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* CollisionBox;
 	
-	float DistanceFromPlayer = 80.f;
-	
-	float VerticalOffset = 50.f;
-	
 	float DamageAmount = 20.0f;
 
 	UPROPERTY(Replicated)
 	float Durability = 10.f;
 
 	float RecoveryRate = 1.f;
-	
-	float KnockbackForce = 1000.f;
 	
 	UPROPERTY()
 	APlayerCharacterBase* OwnerCharacter;
@@ -91,6 +85,4 @@ protected:
 	FTimerHandle RecoveryTimerHandle;
 
 	bool bShouldGiveDamage = true;
-
-	bool bShouldCheckPlayerAlive = true;
 };

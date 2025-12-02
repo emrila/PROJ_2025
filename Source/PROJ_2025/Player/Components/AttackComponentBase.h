@@ -58,7 +58,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(Replicated)
-	ACharacter* OwnerCharacter;
+	APlayerCharacterBase* OwnerCharacter;
 	
 	bool bCanAttack = true;
 	

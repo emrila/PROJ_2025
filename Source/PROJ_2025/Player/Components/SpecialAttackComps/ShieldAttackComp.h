@@ -46,6 +46,9 @@ protected:
 	virtual void BeginPlay() override;
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION()
+	virtual void OnPlayerDied(bool bNewIsAlive);
 	
 	bool bIsShieldActive = false;
 	

@@ -5,6 +5,7 @@
 #include "PlayerControllerBase.generated.h"
 
 
+class URoomModifierBase;
 class UInputMappingContext;
 class APlayerCharacterBase;
 
@@ -23,6 +24,8 @@ public:
 	UFUNCTION(Client, Reliable)
 	void Client_SetSpawnRotation(const FRotator& NewRot);
 
+	UFUNCTION(Server, Reliable)
+	void Server_RegisterModifierClient(URoomModifierBase* Modifier);
 protected:
 	virtual void BeginPlay() override;
 
@@ -31,7 +34,8 @@ protected:
 	virtual void SetupInputComponent() override;
 
 	virtual void OnPossess(APawn* InPawn) override;
-
+	
+	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* ControlledPlayer;
 

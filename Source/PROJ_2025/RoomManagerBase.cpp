@@ -20,6 +20,7 @@
 ARoomManagerBase::ARoomManagerBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 }
 
@@ -40,13 +41,14 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
 		}
 	}
-	for (URoomModifierBase* Mod : Room.ActiveModifiers)
+	for (TSubclassOf<URoomModifierBase> Mod : Room.ActiveModifierClasses)
 	{
-		if (!Mod)
-		{
-			continue;
-		}
-		Mod->OnRoomEntered(this);
+		if (!Mod) continue;
+
+		URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(this, Mod);
+		ModInstance->RegisterComponent();
+		ModInstance->OnRoomEntered(this);
+		RoomModifiers.Add(ModInstance);
 	}
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
@@ -55,8 +57,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (Room.RoomData->RoomType != ERoomType::Parkour)
 	{
 		AllRooms = GI->NormalMapPool;
-	}
-	else
+	}else
 	{
 		AllRooms = GI->CombatOnly;
 	}
@@ -143,32 +144,25 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		URoomData* RoomData = ChosenRooms.IsValidIndex(i) ? ChosenRooms[i] : nullptr;
 		FRoomInstance RoomInstance;
 		RoomInstance.RoomData = RoomData;
-		const float ChanceForModifiers = 0.05f;
-		if (FMath::FRand() <= ChanceForModifiers)
+		if (!RoomData) continue;
+		const float ChanceForModifier = GI->RoomLoader->ChanceForModifiers;
+		if (FMath::FRand() <= ChanceForModifier)
 		{
-			if (RoomData)
+			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
 			{
-				if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
-				{
-					TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
+				TArray<TSubclassOf<URoomModifierBase>>& Mods = FoundMods->Modifiers;
 
-					if (Mods.Num() > 0)
-					{
-						int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
-						TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
-
-						URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
-						RoomInstance.ActiveModifiers.Add(ModInstance);
-					}
-				}
-				else
+				if (Mods.Num() > 0)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
+					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
+					TSubclassOf<URoomModifierBase> ModClass = Mods[RandomIndex];
+					
+					RoomInstance.ActiveModifierClasses.Add(ModClass);
 				}
 			}
 			else
 			{
-				UE_LOG(LogTemp, Warning, TEXT("No RoomData found for exit %d when trying to add modifier."), i);
+				UE_LOG(LogTemp, Warning, TEXT("No modifiers found for RoomType %d"), (uint8)RoomData->RoomType);
 			}
 		}
 		RoomExits[i]->LinkedRoomInstance = RoomInstance;
@@ -219,8 +213,7 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
-	}
-	else
+	}else
 	{
 		EnableExits();
 	}
@@ -248,6 +241,11 @@ void ARoomManagerBase::EnableExits()
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
 	}
+
+	for (URoomModifierBase* Mod : RoomModifiers)
+	{
+		Mod->OnExitsUnlocked();
+	}
 	
 	for (AActor* Actor : FoundExits)
 	{
@@ -258,6 +256,7 @@ void ARoomManagerBase::EnableExits()
 		}
 	}
 }
+
 
 /*
 public class dontRunThis

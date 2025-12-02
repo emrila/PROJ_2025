@@ -39,7 +39,7 @@ public:
 	float Health;
 
 	UFUNCTION()
-	void OnRep_Health();
+	void OnRep_Health() const;
 
 	UPROPERTY(Replicated)
 	bool HasDied;
