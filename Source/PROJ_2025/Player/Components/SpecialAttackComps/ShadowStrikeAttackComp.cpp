@@ -672,7 +672,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 			Params
 		);
 
-		DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
+		//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
 
 		if (bHit)
 		{
