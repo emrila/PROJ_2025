@@ -30,6 +30,8 @@ AShield::AShield()
 	ShieldMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 
 	ShieldMesh->SetIsReplicated(true);
+
+	Tags.Add(TEXT("Shield"));
 }
 
 void AShield::Tick(float DeltaTime)
@@ -163,7 +165,7 @@ void AShield::TickDurability()
 	}
 	const float OldDurability = Durability;
 	Durability -= 10.f;
-	UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
+	//UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
 }
 
 void AShield::TickRecovery()
@@ -187,7 +189,7 @@ void AShield::TickRecovery()
 	}
 	const float OldDurability = Durability;
 	Durability += 10.f;
-	UE_LOG(LogTemp, Warning, TEXT("Durability increased from:%f, to:%f"), OldDurability, Durability);
+	//UE_LOG(LogTemp, Warning, TEXT("Durability increased from:%f, to:%f"), OldDurability, Durability);
 }
 
 void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,

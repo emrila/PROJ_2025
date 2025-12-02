@@ -266,6 +266,19 @@ void UShadowStrikeAttackComp::HandlePostAttackState()
 		OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 	OwnerCharacter->HandleCameraReattachment();
+	if (!bWentThroughShield)
+	{
+		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+		{
+			OwnerCharacter->ResetIFrame();
+		}, 1.f, false);
+		return;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+	{
+		OwnerCharacter->ResetIFrame();
+	}, 5.f, false);
 }
 
 void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
@@ -645,6 +658,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 
 	if (GetWorld())
 	{
@@ -658,14 +672,15 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 			Params
 		);
 
-		DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
+		//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
 
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
 			{
-				if (AActor* HitActor = Hit.GetActor(); HitActor && !HitActor->IsA(APlayerCharacterBase::StaticClass()))
+				if (AActor* HitActor = Hit.GetActor())
 				{
+					if (HitActor->IsA(AEnemyBase::StaticClass()))
 					UGameplayStatics::ApplyDamage(
 						HitActor,
 						GetDamageAmount(),
@@ -673,6 +688,11 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 						OwnerCharacter,
 						UDamageType::StaticClass()
 					);
+
+					if (HitActor->ActorHasTag("Shield"))
+					{
+						bWentThroughShield = true;
+					}
 				}
 			}
 		}
