@@ -64,7 +64,7 @@ void UChronoRiftComp::StartAttack()
 		return;
 	}
 
-	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter->IsAlive())
 	{
 		return;
 	}
