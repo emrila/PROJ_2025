@@ -211,8 +211,6 @@ void APlayerCharacterBase::HandleCameraReattachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 1.f, false);
 	
 	bUseControllerRotationYaw = true;
 	bShouldUseLookInput = true;

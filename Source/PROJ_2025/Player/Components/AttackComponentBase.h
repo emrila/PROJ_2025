@@ -12,7 +12,7 @@ class APlayerCharacterBase;
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownTimerStarted, float, CurrentCoolDownTime);
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
 	GENERATED_BODY()
