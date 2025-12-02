@@ -62,6 +62,9 @@ private:
 
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
+
+	UPROPERTY()
+	TArray<URoomModifierBase*> RoomModifiers;
 	
 	
 	

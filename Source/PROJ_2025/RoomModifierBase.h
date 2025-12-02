@@ -33,13 +33,18 @@ public:
 	{
 		PrimaryComponentTick.bCanEverTick = true;
 		SetIsReplicated(true);
-		//SetIsReplicatedByDefault(true);
 	}
 	
-	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager)
-	{
-		RoomManager = InRoomManager;
-	}
+	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager);
+
+	virtual void OnExitsUnlocked();
+
+	UFUNCTION(Server, Reliable)
+	void RegisterClient();
+
+	virtual void OnAllClientsReady();
+	
+	int ClientsReady = 0;
 
 	int ModLevel = 1;
 

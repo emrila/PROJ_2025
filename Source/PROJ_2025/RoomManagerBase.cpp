@@ -48,6 +48,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(this, Mod);
 		ModInstance->RegisterComponent();
 		ModInstance->OnRoomEntered(this);
+		RoomModifiers.Add(ModInstance);
 	}
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
@@ -239,6 +240,11 @@ void ARoomManagerBase::EnableExits()
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
+	}
+
+	for (URoomModifierBase* Mod : RoomModifiers)
+	{
+		Mod->OnExitsUnlocked();
 	}
 	
 	for (AActor* Actor : FoundExits)
