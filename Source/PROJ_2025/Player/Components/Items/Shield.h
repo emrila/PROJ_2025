@@ -36,6 +36,8 @@ public:
 	
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
 
+	float GetDamageAmount() const { return DamageAmount; }
+
 	void SetDurability(const float Value) { Durability = Value; }
 
 	void SetRecoveryRate(const float Value) { RecoveryRate = Value; }

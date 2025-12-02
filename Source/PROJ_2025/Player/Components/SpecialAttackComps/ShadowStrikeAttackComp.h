@@ -91,6 +91,8 @@ protected:
 
 	bool bCanTeleport = false;
 
+	bool bWentThroughShield = false;
+
 	//Handle attack properties
 	float OffsetDistanceBehindTarget = 100.f;
 
@@ -124,4 +126,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
 	UNiagaraSystem* TeleportEffect;
+
+	FTimerHandle PlayerIFrameTimer;
 };

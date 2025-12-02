@@ -5,6 +5,7 @@
 #include "Golem.h"
 #include "KismetTraceUtils.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -265,6 +266,19 @@ void UShadowStrikeAttackComp::HandlePostAttackState()
 		OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
 	OwnerCharacter->HandleCameraReattachment();
+	if (!bWentThroughShield)
+	{
+		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+		{
+			OwnerCharacter->ResetIFrame();
+		}, 1.f, false);
+		return;
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+	{
+		OwnerCharacter->ResetIFrame();
+	}, 5.f, false);
 }
 
 void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
@@ -389,18 +403,32 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 		}
 	}
 
-	if (OwnerCharacter && OwnerCharacter->GetMesh())
+	if (!OwnerCharacter->GetCapsuleComponent())
 	{
-		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
-		OwnerCharacter->SetActorLocation(TeleportLocation, false, nullptr, ETeleportType::TeleportPhysics);
+		return;
 	}
 
-	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this, TeleportLocation]()
+	float CapsuleRadius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	float CapsuleHalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+	if (OwnerCharacter && OwnerCharacter->GetMesh())
+	{
+		OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius/5.f, CapsuleHalfHeight/5.f, true);
+		UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
+			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
+		OwnerCharacter->SetActorLocation(TeleportLocation, true, nullptr, ETeleportType::TeleportPhysics);
+	}
+
+	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this, CapsuleRadius, CapsuleHalfHeight]()
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
 		{
 			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
+			OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
+			UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
+			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 		}
 	});
 
@@ -553,8 +581,16 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 
 	float AngleDegrees = FMath::RadiansToDegrees(acosf(FMath::Clamp(Dot, -1.f, 1.f)));
 
-	if (AngleDegrees > AcceptableAngelDegrees
-		&& StartLocation.Z < EndLocation.Z)
+	UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is: %f."), *FString(__FUNCTION__), AngleDegrees);
+
+	float NewAcceptableAngelDegrees = AcceptableAngelDegrees;
+
+	if (StartLocation.Z > EndLocation.Z)
+	{
+		NewAcceptableAngelDegrees = AcceptableAngelDegrees - 5.f;
+	}
+
+	if (AngleDegrees > NewAcceptableAngelDegrees)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
 		       *FString(__FUNCTION__));
@@ -622,6 +658,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 
 	if (GetWorld())
 	{
@@ -641,8 +678,9 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 		{
 			for (const FHitResult& Hit : HitResults)
 			{
-				if (AActor* HitActor = Hit.GetActor(); HitActor && !HitActor->IsA(APlayerCharacterBase::StaticClass()))
+				if (AActor* HitActor = Hit.GetActor())
 				{
+					if (HitActor->IsA(AEnemyBase::StaticClass()))
 					UGameplayStatics::ApplyDamage(
 						HitActor,
 						GetDamageAmount(),
@@ -650,6 +688,11 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 						OwnerCharacter,
 						UDamageType::StaticClass()
 					);
+
+					if (HitActor->ActorHasTag("Shield"))
+					{
+						bWentThroughShield = true;
+					}
 				}
 			}
 		}
