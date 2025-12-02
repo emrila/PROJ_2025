@@ -1,4 +1,4 @@
-﻿#include "ShadowStrikeAttackComp.h"
+﻿#include "ShadowStrikeVariant2.h"
 
 #include "EnemyBase.h"
 #include "EnhancedInputComponent.h"
@@ -14,15 +14,16 @@
 #include "Player/Components/Items/Shield.h"
 
 
-UShadowStrikeAttackComp::UShadowStrikeAttackComp()
+UShadowStrikeVariant2::UShadowStrikeVariant2()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DamageAmount = 20.f;
 	AttackCooldown = 5.f;
+	// ...
 }
 
-void UShadowStrikeAttackComp::StartAttack()
+void UShadowStrikeVariant2::StartAttack()
 {
 	if (!OwnerCharacter)
 	{
@@ -30,7 +31,7 @@ void UShadowStrikeAttackComp::StartAttack()
 		return;
 	}
 
-	if (!bCanAttack)
+	if (!bCanAttack /*|| bIsLockingTarget*/)
 	{
 		return;
 	}
@@ -59,21 +60,21 @@ void UShadowStrikeAttackComp::StartAttack()
 	Super::StartAttack();
 }
 
-void UShadowStrikeAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
+void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
                                                      UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this,
-		                           &UShadowStrikeAttackComp::OnPrepareForAttack);
+		                           &UShadowStrikeVariant2::OnPrepareForAttack);
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this,
-		                           &UShadowStrikeAttackComp::OnLockedTarget);
+		                           &UShadowStrikeVariant2::OnLockedTarget);
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this,
-		                           &UShadowStrikeAttackComp::OnAttackCanceled);
+		                           &UShadowStrikeVariant2::OnAttackCanceled);
 	}
 }
 
-void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick TickType,
+void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickType,
                                             FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -82,7 +83,7 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 	if (bHasLockedTarget && bCanAttack)
 	{
 		TryLockingTargetOrLocation();
-		if (bCanTeleport)
+		if (bCanTeleport/*!LockedLocation.IsNearlyZero()*/)
 		{
 			DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
@@ -99,7 +100,7 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 			GetWorld()->GetTimerManager().SetTimer(
 				AttackCooldownTimerHandle,
 				this, 
-				&UShadowStrikeAttackComp::ResetAttackCooldown,
+				&UShadowStrikeVariant2::ResetAttackCooldown,
 				GetAttackCooldown()/2.f,
 				false);
 		}
@@ -107,12 +108,12 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 	}*/
 }
 
-void UShadowStrikeAttackComp::BeginPlay()
+void UShadowStrikeVariant2::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-void UShadowStrikeAttackComp::PerformAttack()
+void UShadowStrikeVariant2::PerformAttack()
 {
 	if (!OwnerCharacter)
 	{
@@ -148,13 +149,13 @@ void UShadowStrikeAttackComp::PerformAttack()
 	GetWorld()->GetTimerManager().SetTimer(
 		CameraReattachmentTimer,
 		this,
-		&UShadowStrikeAttackComp::HandlePostAttackState,
+		&UShadowStrikeVariant2::HandlePostAttackState,
 		StrikeDuration,
 		false
 	);
 }
 
-void UShadowStrikeAttackComp::OnPrepareForAttack(const FInputActionInstance& ActionInstance)
+void UShadowStrikeVariant2::OnPrepareForAttack(const FInputActionInstance& ActionInstance)
 {
 	// Not sure if I need a parameter for this function and to actually compare ETriggerEvent types
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
@@ -166,7 +167,7 @@ void UShadowStrikeAttackComp::OnPrepareForAttack(const FInputActionInstance& Act
 	PrepareForAttack();
 }
 
-void UShadowStrikeAttackComp::OnLockedTarget(const FInputActionInstance& ActionInstance)
+void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionInstance)
 {
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
@@ -178,13 +179,24 @@ void UShadowStrikeAttackComp::OnLockedTarget(const FInputActionInstance& ActionI
 		return;
 	}
 
-
+	if (OwnerCharacter->HasAuthority())
+	{
+		LockedLocation = FVector::ZeroVector;
+		SweepStartLocation = FVector::ZeroVector;	
+	}
+	else
+	{
+		Server_SetLockedLocation(FVector::ZeroVector, FVector::ZeroVector);
+		LockedLocation = FVector::ZeroVector;
+		SweepStartLocation = FVector::ZeroVector;
+	}
+	
 	bHasLockedTarget = false;
 	StartAttack();
 }
 
 //Not sure if this function is needed at all, can we cancel a shadow strike attack?
-void UShadowStrikeAttackComp::OnAttackCanceled(const FInputActionInstance& ActionInstance)
+void UShadowStrikeVariant2::OnAttackCanceled(const FInputActionInstance& ActionInstance)
 {
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Canceled)
 	{
@@ -194,7 +206,7 @@ void UShadowStrikeAttackComp::OnAttackCanceled(const FInputActionInstance& Actio
 	bHasLockedTarget = false;
 }
 
-void UShadowStrikeAttackComp::PrepareForAttack()
+void UShadowStrikeVariant2::PrepareForAttack()
 {
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
 	{
@@ -204,18 +216,18 @@ void UShadowStrikeAttackComp::PrepareForAttack()
 	//UE_LOG(LogTemp, Warning, TEXT("I am preparing for the Shadow Strike Attack!"));
 }
 
-void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Target)
+void UShadowStrikeVariant2::Server_SetLockedTarget_Implementation(AActor* Target)
 {
 	LockedTarget = Target;
 }
 
-void UShadowStrikeAttackComp::Server_SetLockedLocation_Implementation(FVector Location, FVector SweepStart)
+void UShadowStrikeVariant2::Server_SetLockedLocation_Implementation(FVector Location, FVector SweepStart)
 {
 	LockedLocation = Location;
 	SweepStartLocation = SweepStart;
 }
 
-void UShadowStrikeAttackComp::HandlePreAttackState()
+void UShadowStrikeVariant2::HandlePreAttackState()
 {
 	if (!OwnerCharacter)
 	{
@@ -226,7 +238,7 @@ void UShadowStrikeAttackComp::HandlePreAttackState()
 	OwnerCharacter->HandleCameraDetachment();
 }
 
-void UShadowStrikeAttackComp::HandlePostAttackState()
+void UShadowStrikeVariant2::HandlePostAttackState()
 {
 	if (!OwnerCharacter)
 	{
@@ -255,7 +267,7 @@ void UShadowStrikeAttackComp::HandlePostAttackState()
 	}, 5.f, false);
 }
 
-void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
+void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 {
 	if (!OwnerCharacter)
 	{
@@ -269,17 +281,11 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 
 	const FVector CurrentTargetLocation = LockedLocation;
 	const float CurrentTargetZ = CurrentTargetLocation.Z;
+	
+	const FVector CurrentPlayerLocation = OwnerCharacter->GetActorLocation();
+	const FVector CurrentPlayerForward = OwnerCharacter->GetActorForwardVector();
 
-	FVector CurrentPlayerCameraLocation = FVector::ZeroVector;
-	FVector CurrentPlayerCameraForwardVector = FVector::ZeroVector;
-
-	if (OwnerCharacter->GetFollowCamera())
-	{
-		CurrentPlayerCameraLocation = OwnerCharacter->GetFollowCamera()->GetComponentLocation();
-		CurrentPlayerCameraForwardVector = OwnerCharacter->GetFollowCamera()->GetForwardVector();
-	}
-
-	float DistanceToTarget = FVector::Dist(CurrentTargetLocation, CurrentPlayerCameraLocation);
+	float DistanceToTarget = FVector::Dist(CurrentTargetLocation, CurrentPlayerLocation);
 
 	if (LockedTarget)
 	{
@@ -297,28 +303,26 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 		}
 	}
 
-	FVector NewTargetLocation =
-		CurrentPlayerCameraForwardVector * DistanceToTarget + CurrentPlayerCameraLocation;
-
+	FVector NewTargetLocation = CurrentPlayerForward * DistanceToTarget + CurrentPlayerLocation;
 	NewTargetLocation.Z = CurrentTargetZ;
 
-	// TODO: Play VFX before teleporting the player
-	DisappearLocation = OwnerCharacter->GetActorLocation();
+	// Play disappear effect at current player location
+	DisappearLocation = CurrentPlayerLocation;
 	Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
 
-	//Teleport player but cache current player location relative to the camera
-	FVector PlayerToCameraVector = CurrentPlayerCameraLocation - OwnerCharacter->GetActorLocation();
+	// Cache player-to-camera offset for later camera interpolation (if a follow camera exists)
+	FVector PlayerToCameraVector = FVector::ZeroVector;
+	if (OwnerCharacter->GetFollowCamera())
+	{
+		PlayerToCameraVector = OwnerCharacter->GetFollowCamera()->GetComponentLocation() - CurrentPlayerLocation;
+	}
 
+	// Teleport on all clients
 	Multicast_TeleportPlayer(NewTargetLocation);
 
-	// TODO: Play VFX after teleporting the player
-
-	//Interpolate camera
-	FVector NewCameraLocation = OwnerCharacter->GetActorLocation() +
-												   PlayerToCameraVector;
-
-	OwnerCharacter->Client_StartCameraInterpolation(
-		NewCameraLocation, CameraInterpDuration);
+	// Start camera interpolation relative to player's new location
+	FVector NewCameraLocation = OwnerCharacter->GetActorLocation() + PlayerToCameraVector;
+	OwnerCharacter->Client_StartCameraInterpolation(NewCameraLocation, CameraInterpDuration);
 	/*FTimerHandle CameraLerpTimer;
 	GetWorld()->GetTimerManager().SetTimer(CameraLerpTimer,
 	                                       [this, PlayerToCameraVector]()
@@ -334,7 +338,7 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 	);*/
 }
 
-void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
+void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 	const FVector& TeleportLocation)
 {
 	if (!OwnerCharacter)
@@ -409,17 +413,17 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	GetWorld()->GetTimerManager().SetTimer(PlayerTeleportTimerHandle, TimerDel, TeleportDelay, false);
 }
 
-void UShadowStrikeAttackComp::TryLockingTargetOrLocation()
+void UShadowStrikeVariant2::TryLockingTargetOrLocation()
 {
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	
+
 	if (!OwnerCharacter->IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Verbose, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."), *FString(__FUNCTION__));
 		return;
 	}
 
@@ -455,8 +459,36 @@ void UShadowStrikeAttackComp::TryLockingTargetOrLocation()
 	TryLockingLocation(TraceStart, TraceEnd);
 }
 
-void UShadowStrikeAttackComp::TryLockingTarget(FVector StartLocation, FVector EndLocation)
+void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndLocation)
 {
+	/*if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	if (!PC)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
+		return;
+	}
+
+	APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
+
+	if (!CameraManager)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
+		return;
+	}
+
+	FVector CameraLocation = CameraManager->GetCameraLocation();
+	FRotator CameraRotation = CameraManager->GetCameraRotation();
+
+	FVector TraceStart = CameraLocation;
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * GetAttackRange());*/
+
 	if (!OwnerCharacter)
 	{
 		return;
@@ -477,6 +509,20 @@ void UShadowStrikeAttackComp::TryLockingTarget(FVector StartLocation, FVector En
 		ObjectQueryParams,
 		Params
 	);
+
+	/*if (!bHasLockedTarget)
+	{
+		DrawDebugLine(
+		GetWorld(),
+		TraceStart,
+		TraceEnd,
+		FColor::Red,
+		false,
+		5.0f,
+		0,
+		1.0f
+		);
+	}*/
 
 	if (bHit && HitResult.GetActor())
 	{
@@ -503,12 +549,14 @@ void UShadowStrikeAttackComp::TryLockingTarget(FVector StartLocation, FVector En
 	LockedTarget = nullptr;
 }
 
-void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector EndLocation)
+void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector EndLocation)
 {
 	if (!OwnerCharacter)
 	{
 		return;
 	}
+	
+	FVector NewEndLocation = EndLocation;
 
 	FVector Forward = OwnerCharacter->GetActorForwardVector();
 
@@ -520,89 +568,48 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 
 	//UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is: %f."), *FString(__FUNCTION__), AngleDegrees);
 
-	float NewAcceptableAngelDegrees = AcceptableAngelDegrees;
-
-	if (StartLocation.Z > EndLocation.Z)
+	if (StartLocation.Z < EndLocation.Z)
 	{
-		NewAcceptableAngelDegrees = AcceptableAngelDegrees - 5.f;
+		if (AngleDegrees > AcceptableAngelDegrees)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
+				   *FString(__FUNCTION__));
+			const float TraceDistance = (EndLocation - StartLocation).Size();
+			if (TraceDistance > KINDA_SMALL_NUMBER && AngleDegrees > KINDA_SMALL_NUMBER)
+			{
+				const float Fraction = AcceptableAngelDegrees / AngleDegrees;
+				const FQuat DeltaQuat = FQuat::FindBetweenNormals(Forward, ToTarget);
+				const FQuat ClampedQuat = FQuat::Slerp(FQuat::Identity, DeltaQuat, FMath::Clamp(Fraction, 0.f, 1.f));
+				const FVector ClampedDir = ClampedQuat.RotateVector(Forward).GetSafeNormal();
+
+				NewEndLocation = StartLocation + ClampedDir * TraceDistance;
+			}
+		}
+	}
+	else
+	{
+		NewEndLocation = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * LockOnRange;
 	}
 
-	if (AngleDegrees > NewAcceptableAngelDegrees)
+	if (OwnerCharacter->HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
-		       *FString(__FUNCTION__));
-		bCanTeleport = false;
-
-		if (OwnerCharacter->HasAuthority())
-		{
-			LockedLocation = FVector::ZeroVector;
-			SweepStartLocation = FVector::ZeroVector;	
-		}
-		else
-		{
-			Server_SetLockedLocation(FVector::ZeroVector, FVector::ZeroVector);
-			LockedLocation = FVector::ZeroVector;
-			SweepStartLocation = FVector::ZeroVector;
-		}
-		return;
+		LockedLocation = NewEndLocation;
+		SweepStartLocation = OwnerCharacter->GetActorLocation();
 	}
-
-	bCanTeleport = true;
-
-	FHitResult HitResult;
-
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(OwnerCharacter);
-
-	if (GetWorld())
+	else
 	{
-		bool bHit = GetWorld()->LineTraceSingleByChannel(
-			HitResult, StartLocation, EndLocation, ECC_Visibility, Params);
-
-		if (bHit && HitResult.GetActor())
-		{
-			if (HitResult.GetActor()->IsA(AShield::StaticClass()))
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Shield hit!"));
-			}
-			if (!HitResult.GetActor()->IsA(APlayerCharacterBase::StaticClass()) && !HitResult.GetActor()->IsA(AShield::StaticClass()))
-			{
-				if (OwnerCharacter->HasAuthority())
-				{
-					LockedLocation = HitResult.ImpactPoint;
-					SweepStartLocation = OwnerCharacter->GetActorLocation();
-				}
-				else
-				{
-					Server_SetLockedLocation(HitResult.ImpactPoint, OwnerCharacter->GetActorLocation());
-					LockedLocation = HitResult.ImpactPoint;
-					SweepStartLocation = OwnerCharacter->GetActorLocation();
-				}
-			}
-		}
-		else
-		{
-			if (OwnerCharacter->HasAuthority())
-			{
-				LockedLocation = EndLocation;
-				SweepStartLocation = OwnerCharacter->GetActorLocation();
-			}
-			else
-			{
-				Server_SetLockedLocation(EndLocation, OwnerCharacter->GetActorLocation());
-				LockedLocation = EndLocation;
-				SweepStartLocation = OwnerCharacter->GetActorLocation();
-			}
-		}
+		Server_SetLockedLocation(NewEndLocation, OwnerCharacter->GetActorLocation());
+		LockedLocation = NewEndLocation;
+		SweepStartLocation = OwnerCharacter->GetActorLocation();
 	}
 }
 
-void UShadowStrikeAttackComp::Server_SetWentThroughShield_Implementation(const bool Value)
+void UShadowStrikeVariant2::Server_SetWentThroughShield_Implementation(const bool Value)
 {
 	bWentThroughShield = Value;
 }
 
-void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
+void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 {
 	if (SweepStartLocation.IsNearlyZero())
 	{
@@ -669,7 +676,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 	}
 }
 
-void UShadowStrikeAttackComp::ResetAttackCooldown()
+void UShadowStrikeVariant2::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetLockedTarget_Implementation(nullptr);
@@ -680,12 +687,12 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 	bWentThroughShield = false;
 }
 
-float UShadowStrikeAttackComp::GetAttackCooldown() const
+float UShadowStrikeVariant2::GetAttackCooldown() const
 {
 	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
 }
 
-float UShadowStrikeAttackComp::GetDamageAmount() const
+float UShadowStrikeVariant2::GetDamageAmount() const
 {
 	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
 	{
@@ -694,7 +701,7 @@ float UShadowStrikeAttackComp::GetDamageAmount() const
 	return Super::GetDamageAmount() + (AttackDamageModifier * 20.f);
 }
 
-float UShadowStrikeAttackComp::GetAttackRange() const
+float UShadowStrikeVariant2::GetAttackRange() const
 {
 	if (AttackDamageModifier == 1.f)
 	{
