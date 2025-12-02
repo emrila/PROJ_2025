@@ -67,17 +67,30 @@ void ACombatManager::StartWave_Internal(int index)
 	{
 		TArray<AEnemySpawn*> Spawns = EnemyLocationsCopy[Pair.Key];
 		
+		TArray<AEnemySpawn*> RelevantSpawns;
+
+		for (AEnemySpawn* spawn : Spawns)
+		{
+			if (spawn->ExclusiveToWaves.IsEmpty())
+			{
+				RelevantSpawns.Add(spawn);
+			}else if (spawn->ExclusiveToWaves.Contains(index+1))
+			{
+				RelevantSpawns.Add(spawn);
+			}
+		}
+		
 		const int MaxSpawns = FMath::RoundToInt(Pair.Value * MaxSpawnMultiplier);
 		UE_LOG(LogTemp, Display, TEXT("spawnmult: %f"), MaxSpawnMultiplier);
 		for (int i = 0; i < MaxSpawns; i++)
 		{
-			if (Spawns.Num() == 0)
+			if (RelevantSpawns.Num() == 0)
 			{
 				UE_LOG(LogTemp, Error, TEXT("RAN OUT OF %s TO SPAWN"),*UEnum::GetValueAsString(Pair.Key));
 				break;
 			}
-			const int32 RandomIndex = FMath::RandRange(0, Spawns.Num() - 1);
-			const AEnemySpawn* SpawnPoint = Spawns[RandomIndex];
+			const int32 RandomIndex = FMath::RandRange(0, RelevantSpawns.Num() - 1);
+			const AEnemySpawn* SpawnPoint = RelevantSpawns[RandomIndex];
 			FActorSpawnParameters Params;
 			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 			AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(
@@ -94,7 +107,7 @@ void ACombatManager::StartWave_Internal(int index)
 				Sum++;
 				
 			}
-			Spawns.RemoveAt(RandomIndex);
+			RelevantSpawns.RemoveAt(RandomIndex);
 
 		}
 	}

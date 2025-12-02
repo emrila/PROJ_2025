@@ -40,7 +40,7 @@ struct FRoomInstance
 	URoomData* RoomData = nullptr;
 
 	UPROPERTY(BlueprintReadOnly)
-	TArray<URoomModifierBase*> ActiveModifiers;
+	TArray<TSubclassOf<URoomModifierBase>> ActiveModifierClasses;
 };
 
 UCLASS()
@@ -62,6 +62,9 @@ private:
 
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
+
+	UPROPERTY()
+	TArray<URoomModifierBase*> RoomModifiers;
 	
 	
 	
