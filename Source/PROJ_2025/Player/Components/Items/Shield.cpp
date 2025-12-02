@@ -231,7 +231,7 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 
 		KnockbackForce = 1000.f;
 
-		Enemy->LaunchCharacter(KnockDir * KnockbackForce, true, true);
+		//Enemy->LaunchCharacter(KnockDir * KnockbackForce, true, true);
 
 		if (bShouldGiveDamage)
 		{
