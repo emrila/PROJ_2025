@@ -135,11 +135,11 @@ void AShield::BeginPlay()
 		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
 	}
 
-	if (CollisionBox && ShieldMesh)
+	/*if (CollisionBox && ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(false);
 		SetActorEnableCollision(false);
-	}
+	}*/
 }
 
 void AShield::TickDurability()

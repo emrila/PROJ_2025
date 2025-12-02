@@ -5,6 +5,7 @@
 #include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
 #include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -73,6 +74,13 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		{
 			bIsInterpolatingCamera = false;
 		}
+	}
+
+	if (IFrame)
+	{
+		// Possibly add visual effects or indicators for I-frames here
+		DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
 	}
 }
 
@@ -184,7 +192,7 @@ void APlayerCharacterBase::HandleCameraDetachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
-	IFrame = true;
+	StartIFrame();
 	
 	bUseControllerRotationYaw = false;
 	bShouldUseLookInput = false;
@@ -220,6 +228,18 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	
 	FollowCamera->AttachToComponent(CameraBoom, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
+}
+
+void APlayerCharacterBase::StartIFrame()
+{
+	IFrame = true;
+	OnIFrameStarted.Broadcast(IFrame);
+}
+
+void APlayerCharacterBase::ResetIFrame()
+{
+	IFrame = false;
+	OnIFrameStarted.Broadcast(IFrame);
 }
 
 void APlayerCharacterBase::SetIsAlive(const bool NewIsAlive)
@@ -327,7 +347,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client
-			IFrame = true;
+			StartIFrame();
 			FTimerHandle TimerHandle;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &APlayerCharacterBase::ResetIFrame, 0.5, false);
 		}

@@ -47,6 +47,9 @@ protected:
 	void Server_SetLockedTarget(AActor* Target);
 
 	UFUNCTION(Server, Reliable)
+	void Server_SetWentThroughShield(const bool Value);
+
+	UFUNCTION(Server, Reliable)
 	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
 	
 	virtual void HandlePreAttackState();

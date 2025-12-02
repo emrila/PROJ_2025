@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "Player/Components/Items/Shield.h"
 
 
 UShadowStrikeAttackComp::UShadowStrikeAttackComp()
@@ -79,17 +80,13 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	//Handle indicator here
-	/*if (bHasLockedTarget && bCanAttack)
-	{
-		TryLockingTarget();
+	TryLockingTargetOrLocation();
 		
-		if (LockedTarget)
-		{
-			DrawDebugSphere(GetWorld(), LockedTarget->GetActorLocation(), 150.f, 10, FColor::Cyan, false, 0.1f);
-		}
-	}*/
-
-
+	if (bCanTeleport/*!LockedLocation.IsNearlyZero()*/)
+	{
+		DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
+	}
+	
 	//Not relevant anymore
 	/*if (bKilledTarget)
 	{
@@ -112,8 +109,6 @@ void UShadowStrikeAttackComp::TickComponent(float DeltaTime, enum ELevelTick Tic
 void UShadowStrikeAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// ...
 }
 
 void UShadowStrikeAttackComp::PerformAttack()
@@ -135,14 +130,7 @@ void UShadowStrikeAttackComp::PerformAttack()
 
 	Server_PerformSweep();
 
-	/*APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter);
-	
-	/*if (!PlayerCharacter)	
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}*/
-
+	//Not relevant anymore
 	/*FTimerHandle AttackTimer;
 	GetWorld()->GetTimerManager().SetTimer(AttackTimer, [this, PlayerCharacter]()
 	{
@@ -154,7 +142,6 @@ void UShadowStrikeAttackComp::PerformAttack()
 		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
 		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->GetDamageAmount(), 1.f);
 	}, StrikeDelay, false);*/
-
 
 	FTimerHandle CameraReattachmentTimer;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -180,7 +167,6 @@ void UShadowStrikeAttackComp::OnPrepareForAttack(const FInputActionInstance& Act
 
 void UShadowStrikeAttackComp::OnLockedTarget(const FInputActionInstance& ActionInstance)
 {
-	// Not sure if I need a parameter for this function and to actually compare ETriggerEvent types
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
 		return;
@@ -196,7 +182,7 @@ void UShadowStrikeAttackComp::OnLockedTarget(const FInputActionInstance& ActionI
 	StartAttack();
 }
 
-//Not sure if this function is needed at all
+//Not sure if this function is needed at all, can we cancel a shadow strike attack?
 void UShadowStrikeAttackComp::OnAttackCanceled(const FInputActionInstance& ActionInstance)
 {
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Canceled)
@@ -219,24 +205,11 @@ void UShadowStrikeAttackComp::PrepareForAttack()
 
 void UShadowStrikeAttackComp::Server_SetLockedTarget_Implementation(AActor* Target)
 {
-	if (!Target)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s Locked Target is now set to null."), *FString(__FUNCTION__));
-		LockedTarget = nullptr;
-		return;
-	}
 	LockedTarget = Target;
 }
 
 void UShadowStrikeAttackComp::Server_SetLockedLocation_Implementation(FVector Location, FVector SweepStart)
 {
-	if (Location == FVector::ZeroVector)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s Locked Location is now set to zero."), *FString(__FUNCTION__));
-		LockedLocation = FVector::ZeroVector;
-		SweepStartLocation = FVector::ZeroVector;
-		return;
-	}
 	LockedLocation = Location;
 	SweepStartLocation = SweepStart;
 }
@@ -414,8 +387,8 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	if (OwnerCharacter && OwnerCharacter->GetMesh())
 	{
 		OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius/5.f, CapsuleHalfHeight/5.f, true);
-		UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
-			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+		/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
+			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
 		OwnerCharacter->SetActorLocation(TeleportLocation, true, nullptr, ETeleportType::TeleportPhysics);
 	}
@@ -427,8 +400,8 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
 			OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
-			UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
-			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
+			/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
+			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		}
 	});
 
@@ -545,21 +518,21 @@ void UShadowStrikeAttackComp::TryLockingTarget(FVector StartLocation, FVector En
 	{
 		if (AActor* HitActor = HitResult.GetActor(); !HitActor->IsA(APlayerCharacterBase::StaticClass()))
 		{
-			bCanTeleport = true;
 			if (OwnerCharacter->HasAuthority())
 			{
 				LockedTarget = HitActor;
 				LockedLocation = LockedTarget->GetActorLocation();
-				SweepStartLocation = StartLocation;
+				SweepStartLocation = OwnerCharacter->GetActorLocation();
 			}
 			else
 			{
 				Server_SetLockedTarget(HitActor);
-				Server_SetLockedLocation(LockedTarget->GetActorLocation(), StartLocation);
+				Server_SetLockedLocation(LockedTarget->GetActorLocation(), OwnerCharacter->GetActorLocation());
 				LockedTarget = HitActor;
 				LockedLocation = LockedTarget->GetActorLocation();
-				SweepStartLocation = StartLocation;
+				SweepStartLocation = OwnerCharacter->GetActorLocation();
 			}
+			bCanTeleport = true;
 			return;
 		}
 	}
@@ -581,7 +554,7 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 
 	float AngleDegrees = FMath::RadiansToDegrees(acosf(FMath::Clamp(Dot, -1.f, 1.f)));
 
-	UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is: %f."), *FString(__FUNCTION__), AngleDegrees);
+	//UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is: %f."), *FString(__FUNCTION__), AngleDegrees);
 
 	float NewAcceptableAngelDegrees = AcceptableAngelDegrees;
 
@@ -592,8 +565,9 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 
 	if (AngleDegrees > NewAcceptableAngelDegrees)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
-		       *FString(__FUNCTION__));
+		/*UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
+		       *FString(__FUNCTION__));*/
+		bCanTeleport = false;
 		return;
 	}
 
@@ -609,18 +583,25 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 		bool bHit = GetWorld()->LineTraceSingleByChannel(
 			HitResult, StartLocation, EndLocation, ECC_Visibility, Params);
 
-		if (bHit && HitResult.GetActor() && !HitResult.GetActor()->IsA(APlayerCharacterBase::StaticClass()))
+		if (bHit && HitResult.GetActor())
 		{
-			if (OwnerCharacter->HasAuthority())
+			if (HitResult.GetActor()->IsA(AShield::StaticClass()))
 			{
-				LockedLocation = HitResult.ImpactPoint;
-				SweepStartLocation = StartLocation;
+				UE_LOG(LogTemp, Warning, TEXT("Shield hit!"));
 			}
-			else
+			if (!HitResult.GetActor()->IsA(APlayerCharacterBase::StaticClass()) && !HitResult.GetActor()->IsA(AShield::StaticClass()))
 			{
-				Server_SetLockedLocation(HitResult.ImpactPoint, StartLocation);
-				LockedLocation = HitResult.ImpactPoint;
-				SweepStartLocation = StartLocation;
+				if (OwnerCharacter->HasAuthority())
+				{
+					LockedLocation = HitResult.ImpactPoint;
+					SweepStartLocation = OwnerCharacter->GetActorLocation();
+				}
+				else
+				{
+					Server_SetLockedLocation(HitResult.ImpactPoint, OwnerCharacter->GetActorLocation());
+					LockedLocation = HitResult.ImpactPoint;
+					SweepStartLocation = OwnerCharacter->GetActorLocation();
+				}
 			}
 		}
 		else
@@ -628,16 +609,21 @@ void UShadowStrikeAttackComp::TryLockingLocation(FVector StartLocation, FVector 
 			if (OwnerCharacter->HasAuthority())
 			{
 				LockedLocation = EndLocation;
-				SweepStartLocation = StartLocation;
+				SweepStartLocation = OwnerCharacter->GetActorLocation();
 			}
 			else
 			{
-				Server_SetLockedLocation(EndLocation, StartLocation);
+				Server_SetLockedLocation(EndLocation, OwnerCharacter->GetActorLocation());
 				LockedLocation = EndLocation;
-				SweepStartLocation = StartLocation;
+				SweepStartLocation = OwnerCharacter->GetActorLocation();
 			}
 		}
 	}
+}
+
+void UShadowStrikeAttackComp::Server_SetWentThroughShield_Implementation(const bool Value)
+{
+	bWentThroughShield = Value;
 }
 
 void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
@@ -671,9 +657,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 			FCollisionShape::MakeSphere(50.f),
 			Params
 		);
-
-		//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
-
+		
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
@@ -689,12 +673,22 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 						UDamageType::StaticClass()
 					);
 
-					if (HitActor->ActorHasTag("Shield"))
+					if (HitActor->IsA(AShield::StaticClass()))
 					{
-						bWentThroughShield = true;
+						Server_SetWentThroughShield_Implementation(true);
 					}
 				}
 			}
+		}
+
+		if (bWentThroughShield)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("%s Went through shield, longer I-frames applied."), *FString(__FUNCTION__));
+			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
+		}
+		else
+		{
+			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
 		}
 	}
 }
@@ -703,9 +697,11 @@ void UShadowStrikeAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetLockedTarget_Implementation(nullptr);
+	Server_SetWentThroughShield_Implementation(false);
 	Server_SetLockedLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
 	DisappearLocation = FVector::ZeroVector;
 	AppearLocation = FVector::ZeroVector;
+	bWentThroughShield = false;
 }
 
 float UShadowStrikeAttackComp::GetAttackCooldown() const
