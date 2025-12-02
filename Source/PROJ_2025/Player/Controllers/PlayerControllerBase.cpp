@@ -1,6 +1,7 @@
 ﻿#include "PlayerControllerBase.h"
 
 #include "EnhancedInputSubsystems.h"
+#include "RoomModifierBase.h"
 #include "../Characters/PlayerCharacterBase.h"
 #include "Blueprint/UserWidget.h"
 #include "Net/UnrealNetwork.h"
@@ -54,6 +55,13 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	{
 		SetupInputComponent();
 	}
+}
+
+void APlayerControllerBase::Server_RegisterModifierClient_Implementation(URoomModifierBase* Modifier)
+{
+	if (!Modifier) return;
+
+	Modifier->RegisterClient();
 }
 
 void APlayerControllerBase::SetupInputComponent()

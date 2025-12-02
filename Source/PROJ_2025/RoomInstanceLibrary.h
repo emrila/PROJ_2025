@@ -17,17 +17,11 @@ class PROJ_2025_API URoomInstanceLibrary : public UBlueprintFunctionLibrary
 public:
 
 	UFUNCTION(BlueprintPure, Category="Room")
-	static FRoomInstance MakeRoomInstance(URoomData* RoomData)
+	static FRoomInstance MakeRoomInstance(URoomData* RoomData, TArray<TSubclassOf<URoomModifierBase>> ActiveModifierClasses)
 	{
 		FRoomInstance Instance;
 		Instance.RoomData = RoomData;
-		Instance.ActiveModifiers = {};
+		Instance.ActiveModifierClasses = ActiveModifierClasses;
 		return Instance;
-	}
-
-	UFUNCTION(BlueprintCallable, Category="Room")
-	static void AddModifierToRoom(FRoomInstance& RoomInstance, URoomModifierBase* Modifier)
-	{
-		RoomInstance.ActiveModifiers.Add(Modifier);
 	}
 };
