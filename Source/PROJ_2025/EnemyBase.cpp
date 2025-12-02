@@ -8,6 +8,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
 
+
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -24,6 +25,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 	
 	Health -= DamageAmount;
 	HandleHit(DamageEvent, DamageCauser);
+	OnRep_Health();
 	if (Health <= 0)
 	{
 		HandleDeath();
@@ -38,8 +40,13 @@ void AEnemyBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifeti
 
 	DOREPLIFETIME(AEnemyBase, Health);
 	DOREPLIFETIME(AEnemyBase, HasDied);
+	DOREPLIFETIME(AEnemyBase, UpdateHealthbar)
 }
 
+void AEnemyBase::OnRep_Health() const
+{
+	UpdateHealthbar.Broadcast(Health);
+}
 
 void AEnemyBase::FinishDeath()
 {
