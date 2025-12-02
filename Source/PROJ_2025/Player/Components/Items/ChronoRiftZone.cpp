@@ -57,7 +57,7 @@ void AChronoRiftZone::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ThisClass, ChronoRiftEffect);
+	DOREPLIFETIME(AChronoRiftZone, ChronoRiftEffect);
 }
 
 
@@ -69,7 +69,11 @@ void AChronoRiftZone::BeginPlay()
 	EnemiesSLowedDown.Empty();
 	
 	GetWorld()->GetTimerManager().SetTimer(TickDamageTimerHandle, this, &AChronoRiftZone::TickDamage, 1.f, true);
-	
+	/*MakeInitialSphereSweep();
+	Server_SpawnEffect();
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
+	DestroySelf();*/
 	FTimerHandle InitialDelayTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		InitialDelayTimerHandle,
@@ -81,7 +85,7 @@ void AChronoRiftZone::BeginPlay()
 			SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
 			DestroySelf();
 		},
-		0.5f,
+		0.2f,
 		false
 	);
 }
