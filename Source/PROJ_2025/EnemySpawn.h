@@ -23,6 +23,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawn")
 	EEnemyType EnemyType;
 
+	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category="Spawn")
+	TArray<int> ExclusiveToWaves;
+
 protected:
 
 #if WITH_EDITORONLY_DATA

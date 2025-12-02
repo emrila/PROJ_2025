@@ -39,9 +39,15 @@ public:
 	void LoadNextRoom(const FRoomInstance& NextRoomData);
 	
 	void AddProgressWidget();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	float ChanceForModifiers;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UUserWidget> ParkourTimerWidget;
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);

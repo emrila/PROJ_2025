@@ -20,6 +20,7 @@
 ARoomManagerBase::ARoomManagerBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bReplicates = true;
 
 }
 
@@ -40,13 +41,14 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
 		}
 	}
-	for (URoomModifierBase* Mod : Room.ActiveModifiers)
+	for (TSubclassOf<URoomModifierBase> Mod : Room.ActiveModifierClasses)
 	{
-		if (!Mod)
-		{
-			continue;
-		}
-		Mod->OnRoomEntered(this);
+		if (!Mod) continue;
+
+		URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(this, Mod);
+		ModInstance->RegisterComponent();
+		ModInstance->OnRoomEntered(this);
+		RoomModifiers.Add(ModInstance);
 	}
 
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
@@ -142,8 +144,9 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		URoomData* RoomData = ChosenRooms.IsValidIndex(i) ? ChosenRooms[i] : nullptr;
 		FRoomInstance RoomInstance;
 		RoomInstance.RoomData = RoomData;
-		const float ChanceForModifiers = 0.05f;
-		if (FMath::FRand() <= ChanceForModifiers)
+		if (!RoomData) continue;
+		const float ChanceForModifier = GI->RoomLoader->ChanceForModifiers;
+		if (FMath::FRand() <= ChanceForModifier)
 		{
 			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
 			{
@@ -152,10 +155,9 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 				if (Mods.Num() > 0)
 				{
 					int32 RandomIndex = FMath::RandRange(0, Mods.Num() - 1);
-					TSubclassOf<URoomModifierBase> Mod = Mods[RandomIndex];
-
-					URoomModifierBase* ModInstance = NewObject<URoomModifierBase>(GetWorld(), Mod);
-					RoomInstance.ActiveModifiers.Add(ModInstance);
+					TSubclassOf<URoomModifierBase> ModClass = Mods[RandomIndex];
+					
+					RoomInstance.ActiveModifierClasses.Add(ModClass);
 				}
 			}
 			else
@@ -239,6 +241,11 @@ void ARoomManagerBase::EnableExits()
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
 	}
+
+	for (URoomModifierBase* Mod : RoomModifiers)
+	{
+		Mod->OnExitsUnlocked();
+	}
 	
 	for (AActor* Actor : FoundExits)
 	{
@@ -249,6 +256,7 @@ void ARoomManagerBase::EnableExits()
 		}
 	}
 }
+
 
 /*
 public class dontRunThis
