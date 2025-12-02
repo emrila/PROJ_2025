@@ -17,6 +17,8 @@ class UAttackComponentBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
+
 UCLASS()
 class PROJ_2025_API APlayerCharacterBase : public ACharacter
 {
@@ -54,9 +56,11 @@ public:
 
 	virtual bool IsAlive() const { return bIsAlive; }
 
-	virtual void SetIsAlive(const bool NewIsAlive) { bIsAlive = NewIsAlive; }
+	virtual void SetIsAlive(const bool NewIsAlive);
 	
 	virtual void EndIsAttacking() { bIsAttacking = false; }
+
+	FOnPlayerDied OnPlayerDied;
 	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(

@@ -116,7 +116,7 @@ void UAttackComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	OwnerCharacter = Cast<ACharacter>(GetOwner());
+	OwnerCharacter = Cast<APlayerCharacterBase>(GetOwner());
 }
 
 void UAttackComponentBase::ResetAttackCooldown()
@@ -138,7 +138,7 @@ void UAttackComponentBase::ResetAttackCooldown()
 void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ThisClass, OwnerCharacter);
+	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)

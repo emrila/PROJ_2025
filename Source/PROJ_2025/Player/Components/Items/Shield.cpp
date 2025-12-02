@@ -35,32 +35,6 @@ AShield::AShield()
 void AShield::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	if (!HasAuthority())
-	{
-		return;
-	}
-	
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-
-	// TODO: Optimize this check so it doesn't run every tick and to handle in case players dies more than once (maybe use a delegate or event system)
-	if (bShouldCheckPlayerAlive)
-	{
-		if (!OwnerCharacter->IsAlive())
-		{
-			if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
-			{
-				ShieldComp->StartAttackCooldown();
-				//ShieldComp->Server_DeactivateShield();
-				ShieldComp->DeactivateShield();
-			}
-			bShouldCheckPlayerAlive = false;
-		}
-	}
-	
 }
 
 void AShield::RequestActivateShield()
@@ -226,13 +200,6 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 	
 	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
 	{
-		FVector KnockDir = (OtherActor->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		KnockDir.Z = 0.3f;
-
-		KnockbackForce = 1000.f;
-
-		//Enemy->LaunchCharacter(KnockDir * KnockbackForce, true, true);
-
 		if (bShouldGiveDamage)
 		{
 			UGameplayStatics::ApplyDamage(
