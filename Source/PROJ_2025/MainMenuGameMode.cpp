@@ -22,6 +22,11 @@ void AMainMenuGameMode::BeginPlay()
 
 void AMainMenuGameMode::ShowUsernameInputWidget()
 {
+	if (!UsernameInputWidget)
+	{
+		ShowMainMenu();
+		return;
+	}
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		UsernameInputWidget = CreateWidget<UUserWidget>(PC, UsernameInputWidgetClass);
