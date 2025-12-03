@@ -23,6 +23,8 @@ protected:
 	template <typename T = UUserWidget>
 	void ToggleMenuWidget(T* Widget);
 	
+	void AddGameVersionToHUD();
+
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess=true))
 	TSubclassOf<UUserWidget> HUDClass;
@@ -35,6 +37,9 @@ private:
 	
 	UPROPERTY(BlueprintReadWrite, meta=(AllowPrivateAccess=true))
 	TObjectPtr<UUserWidget> MenuWidget;
+	
+	TSharedPtr<class STextSWidget> BuildVersionSlateWidget;
+	TSharedPtr<class SWeakWidget> BuildVersionWidget;
 };
 
 template <typename T>
