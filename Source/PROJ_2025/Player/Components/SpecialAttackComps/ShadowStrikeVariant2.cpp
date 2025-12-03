@@ -760,10 +760,11 @@ float UShadowStrikeVariant2::GetDamageAmount() const
 
 float UShadowStrikeVariant2::GetAttackRange() const
 {
-	if (AttackDamageModifier == 1.f)
+	/*if (AttackDamageModifier == 1.f)
 	{
 		return LockOnRange;
 	}
 	//500.f is random atm, TBD later
-	return LockOnRange + (AttackDamageModifier * 500.f);
+	return LockOnRange + (AttackDamageModifier * 500.f);*/
+	return LockOnRange;
 }
