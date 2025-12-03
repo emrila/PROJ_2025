@@ -75,27 +75,37 @@ void AEnemyBase::HandleDeath()
 			AAIController* AICon = Cast<AAIController>(ControllerNullCheck);
 			if (AICon)
 			{
-				AICon->BrainComponent->StopLogic("Enemy died");
+				if (AICon->BrainComponent)
+				{
+					AICon->BrainComponent->StopLogic("Enemy died");
+				}
 			}
 			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
-			float PlayRate = 3.f;
-			float Duration = AnimInst->Montage_Play(DeathMontage, PlayRate);
-			if (Duration <= 0.f)
+			if (AnimInst)
+			{
+				float PlayRate = 3.f;
+				float Duration = AnimInst->Montage_Play(DeathMontage, PlayRate);
+				if (Duration <= 0.f)
+				{
+					SpawnDeathEffect();
+					Destroy();
+					return;
+				}
+				FTimerHandle DeathTimerHandle;
+
+				GetWorld()->GetTimerManager().SetTimer(
+					DeathTimerHandle,
+					this,
+					&AEnemyBase::FinishDeath,
+					(Duration/PlayRate) - 0.4f,
+					false
+				);
+				return;
+			}else
 			{
 				SpawnDeathEffect();
 				Destroy();
-				return;
 			}
-			FTimerHandle DeathTimerHandle;
-
-			GetWorld()->GetTimerManager().SetTimer(
-				DeathTimerHandle,
-				this,
-				&AEnemyBase::FinishDeath,
-				(Duration/PlayRate) - 0.4f,
-				false
-			);
-			return;
 		}
 		return;
 	}

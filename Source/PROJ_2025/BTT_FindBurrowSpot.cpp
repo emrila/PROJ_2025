@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "CactusCharacter.h"
 #include "NavigationSystem.h"
+#include "RoyalShroom.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 UBTT_FindBurrowSpot::UBTT_FindBurrowSpot()
@@ -116,9 +117,13 @@ EBTNodeResult::Type UBTT_FindBurrowSpot::ExecuteTask(UBehaviorTreeComponent& Own
 
 			Cactus->SetActorRotation(NewRotation);
 		}
+		Blackboard->SetValueAsBool("IsBurrowing", true);
+		Blackboard->SetValueAsVector("BurrowLocation", BestPoint);
+	}else if (ARoyalShroom* RoyalShroom = Cast<ARoyalShroom>(AIPawn))
+	{
+		Blackboard->SetValueAsVector("SummonLocation", BestPoint);
 	}
-	Blackboard->SetValueAsBool("IsBurrowing", true);
-	Blackboard->SetValueAsVector("BurrowLocation", BestPoint);
+
 
 	return EBTNodeResult::Succeeded;
 }
