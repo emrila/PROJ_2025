@@ -79,14 +79,14 @@ URoomData* UWizardGameInstance::GetChoiceRoomData() const
 	return Cast<URoomData>(AssetList[0].GetAsset());
 }
 
-bool UWizardGameInstance::RollForCampRoom()
+bool UWizardGameInstance::RollForCampRoom(bool OnlyIncrementChance)
 {
 	if (ChanceForCamp == 0.f)
 	{
-		ChanceForCamp = 0.01f;
+		ChanceForCamp = 0.05f;
 		return false;
 	}
-	if (FMath::FRand() <= ChanceForCamp)
+	if (!OnlyIncrementChance && FMath::FRand() <= ChanceForCamp)
 	{
 		ChanceForCamp = 0.001f;
 		return true;
@@ -97,17 +97,17 @@ bool UWizardGameInstance::RollForCampRoom()
 	}
 	else if (ChanceForCamp == 0.01f)
 	{
-		ChanceForCamp = 0.03f;
+		ChanceForCamp = 0.05f;
 	}
-	else if (ChanceForCamp == 0.03f)
+	else if (ChanceForCamp == 0.05f)
 	{
 		ChanceForCamp = 0.1f;
 	}
 	else if (ChanceForCamp == 0.1f)
 	{
-		ChanceForCamp = 0.5f;
+		ChanceForCamp = 0.75f;
 	}
-	else if (ChanceForCamp == 0.5f)
+	else if (ChanceForCamp == 0.75f)
 	{
 		ChanceForCamp = 0.9f;
 	}
@@ -126,6 +126,22 @@ bool UWizardGameInstance::RollForChoiceRoom() const
 		return true;
 	}
 	return false;
+}
+
+bool UWizardGameInstance::RollForBossRoom() const
+{
+	if (RoomLoader->ClearedRooms == 9)
+	{
+		return true;
+	}
+	return false;
+}
+
+void UWizardGameInstance::RemoveRoomFromPool(URoomData* RoomData)
+{
+	NormalMapPool.Remove(RoomData);
+	CombatOnly.Remove(RoomData);
+	
 }
 
 void UWizardGameInstance::Init()
