@@ -13,13 +13,14 @@
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
 
+DEFINE_LOG_CATEGORY(ShadowStrikeLog);
 
 UShadowStrikeVariant2::UShadowStrikeVariant2()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DamageAmount = 20.f;
-	AttackCooldown = 5.f;
+	AttackCooldown = 10.f;
 	// ...
 }
 
@@ -31,9 +32,14 @@ void UShadowStrikeVariant2::StartAttack()
 		return;
 	}
 
-	if (!bCanAttack /*|| bIsLockingTarget*/)
+	if (!bCanAttack)
 	{
-		return;
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("bCanAttack is false, checking for recast possibility."));
+		if (!bShouldRecast)
+		{
+			UE_LOG(ShadowStrikeLog, Warning, TEXT("bShouldRecast is false. Returning without attacking."));
+			return;
+		}
 	}
 
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
@@ -54,6 +60,16 @@ void UShadowStrikeVariant2::StartAttack()
 	{
 		return;
 	}
+	
+	if (bShouldRecast)
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s Attack was recast, resetting recast state."), *FString(__FUNCTION__));
+		if (GetWorld()->GetTimerManager().IsTimerActive(RecastTimerHandle))
+		{
+			GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
+		}
+		ResetRecast();
+	}
 
 	PerformAttack();
 
@@ -61,7 +77,7 @@ void UShadowStrikeVariant2::StartAttack()
 }
 
 void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
-                                                     UInputAction* OwnerInputAction)
+                                                   UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
@@ -75,7 +91,7 @@ void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* Owne
 }
 
 void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickType,
-                                            FActorComponentTickFunction* ThisTickFunction)
+                                          FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -88,7 +104,7 @@ void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickT
 			DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
 	}
-	
+
 	//Not relevant anymore
 	/*if (bKilledTarget)
 	{
@@ -182,7 +198,7 @@ void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionIns
 	if (OwnerCharacter->HasAuthority())
 	{
 		LockedLocation = FVector::ZeroVector;
-		SweepStartLocation = FVector::ZeroVector;	
+		SweepStartLocation = FVector::ZeroVector;
 	}
 	else
 	{
@@ -190,7 +206,7 @@ void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionIns
 		LockedLocation = FVector::ZeroVector;
 		SweepStartLocation = FVector::ZeroVector;
 	}
-	
+
 	bHasLockedTarget = false;
 	StartAttack();
 }
@@ -246,7 +262,7 @@ void UShadowStrikeVariant2::HandlePostAttackState()
 		return;
 	}
 
-	LockedTarget = nullptr;
+	//LockedTarget = nullptr;
 	if (OwnerCharacter->GetCharacterMovement())
 	{
 		OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -254,14 +270,14 @@ void UShadowStrikeVariant2::HandlePostAttackState()
 	OwnerCharacter->HandleCameraReattachment();
 	if (!bWentThroughShield)
 	{
-		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
 		{
 			OwnerCharacter->ResetIFrame();
 		}, 1.f, false);
 		return;
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
 	{
 		OwnerCharacter->ResetIFrame();
 	}, 5.f, false);
@@ -281,7 +297,7 @@ void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 
 	const FVector CurrentTargetLocation = LockedLocation;
 	const float CurrentTargetZ = CurrentTargetLocation.Z;
-	
+
 	const FVector CurrentPlayerLocation = OwnerCharacter->GetActorLocation();
 	const FVector CurrentPlayerForward = OwnerCharacter->GetActorForwardVector();
 
@@ -386,25 +402,25 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		return;
 	}
 
-	float CapsuleRadius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
-	float CapsuleHalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	/*float CapsuleRadius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	float CapsuleHalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();*/
 
 	if (OwnerCharacter && OwnerCharacter->GetMesh())
 	{
-		OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius/5.f, CapsuleHalfHeight/5.f, true);
+		//OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius / 5.f, CapsuleHalfHeight / 5.f, true);
 		/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
 		OwnerCharacter->SetActorLocation(TeleportLocation, true, nullptr, ETeleportType::TeleportPhysics);
 	}
 
-	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this, CapsuleRadius, CapsuleHalfHeight]()
+	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
 		{
 			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
-			OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
+			//OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
 			/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		}
@@ -423,7 +439,8 @@ void UShadowStrikeVariant2::TryLockingTargetOrLocation()
 
 	if (!OwnerCharacter->IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Verbose, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
+		       *FString(__FUNCTION__));
 		return;
 	}
 
@@ -555,7 +572,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	{
 		return;
 	}
-	
+
 	FVector NewEndLocation = EndLocation;
 
 	FVector Forward = OwnerCharacter->GetActorForwardVector();
@@ -573,7 +590,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 		if (AngleDegrees > AcceptableAngelDegrees)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
-				   *FString(__FUNCTION__));
+			       *FString(__FUNCTION__));
 			const float TraceDistance = (EndLocation - StartLocation).Size();
 			if (TraceDistance > KINDA_SMALL_NUMBER && AngleDegrees > KINDA_SMALL_NUMBER)
 			{
@@ -628,6 +645,8 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	
+	bool bHitEnemies = false;
 
 	if (GetWorld())
 	{
@@ -640,7 +659,7 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			FCollisionShape::MakeSphere(50.f),
 			Params
 		);
-		
+
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
@@ -648,13 +667,22 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 				if (AActor* HitActor = Hit.GetActor())
 				{
 					if (HitActor->IsA(AEnemyBase::StaticClass()))
-					UGameplayStatics::ApplyDamage(
-						HitActor,
-						GetDamageAmount(),
-						OwnerCharacter->GetController(),
-						OwnerCharacter,
-						UDamageType::StaticClass()
-					);
+					{
+						UGameplayStatics::ApplyDamage(
+							HitActor,
+							GetDamageAmount(),
+							OwnerCharacter->GetController(),
+							OwnerCharacter,
+							UDamageType::StaticClass()
+						);
+						
+						if (!bHitEnemies)
+						{
+							bHitEnemies = true;
+							UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Hit Enemy"), *FString(__FUNCTION__));
+						}
+					}
+
 
 					if (HitActor->IsA(AShield::StaticClass()))
 					{
@@ -664,7 +692,7 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			}
 		}
 
-		if (bWentThroughShield)
+		/*if (bWentThroughShield)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%s Went through shield, longer I-frames applied."), *FString(__FUNCTION__));
 			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
@@ -672,7 +700,31 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 		else
 		{
 			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
+		}*/
+	}
+	if (bHitEnemies)
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Hit Enemy, Checking if this was a Recast attack."), *FString(__FUNCTION__));
+		if (GetWorld()->GetTimerManager().IsTimerActive(RecastTimerHandle))
+		{
+			UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, It was a Recast attack, cannot recast or attack before cooldown."), *FString(__FUNCTION__));
+			return;
 		}
+		bShouldRecast = true;
+	}
+	else
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, No Hit, Setting bShouldRecast to false"), *FString(__FUNCTION__));
+		bShouldRecast = false;
+	}
+	if (bShouldRecast)
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, It was not a recast, setting timer for recast attack possibility."), *FString(__FUNCTION__));
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+		{
+			ResetRecast();
+		}, RecastDuration, false);
 	}
 }
 
@@ -685,10 +737,15 @@ void UShadowStrikeVariant2::ResetAttackCooldown()
 	DisappearLocation = FVector::ZeroVector;
 	AppearLocation = FVector::ZeroVector;
 	bWentThroughShield = false;
+	bShouldRecast = false;
 }
 
 float UShadowStrikeVariant2::GetAttackCooldown() const
 {
+	if (AttackCooldown <= 5.f)
+	{
+		return 5.f;
+	}
 	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
 }
 
