@@ -15,15 +15,16 @@ class GUI_API APlayerHUD : public AHUD
 	
 protected:
 	
-	virtual void BeginPlay() override;
+	virtual void BeginPlay() override;	
 	
-	template<typename T = UUserWidget>
+	void InitWidgets();
+	void AddGameVersionToHUD();
+
+	template <typename T = UUserWidget>
 	T* CreateAndAddToViewPort(const TSubclassOf<T>& WidgetClass, bool Visible = true);
 
 	template <typename T = UUserWidget>
 	void ToggleMenuWidget(T* Widget);
-	
-	void AddGameVersionToHUD();
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess=true))

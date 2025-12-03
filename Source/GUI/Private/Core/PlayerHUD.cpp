@@ -11,7 +11,20 @@ void APlayerHUD::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	InitWidgets();
 	AddGameVersionToHUD();
+}
+
+void APlayerHUD::InitWidgets()
+{
+	if (HUDClass)
+	{
+		HUDWidget = CreateAndAddToViewPort<UUserWidget>(HUDClass);
+	}
+	if (MenuClass)
+	{
+		MenuWidget = CreateAndAddToViewPort<UUserWidget>(MenuClass, false);
+	}
 }
 
 void APlayerHUD::AddGameVersionToHUD()
