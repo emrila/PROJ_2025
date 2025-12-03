@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/SlateWrapperTypes.h"
+#include "PlayerHUDInterface.h"
 #include "GameFramework/HUD.h"
 #include "Blueprint/UserWidget.h"
 #include "PlayerHUD.generated.h"
 
 UCLASS()
-class GUI_API APlayerHUD : public AHUD
+class GUI_API APlayerHUD : public AHUD, public IPlayerHUDInterface
 {
 	GENERATED_BODY()
 	
@@ -17,7 +17,9 @@ protected:
 	
 	virtual void BeginPlay() override;	
 	
-	void InitWidgets();
+	virtual void InitWidgets_Implementation() override;
+	virtual void ToggleWidget_Implementation(int32 WidgetGroup) override;
+	
 	void AddGameVersionToHUD();
 
 	template <typename T = UUserWidget>
@@ -43,55 +45,3 @@ private:
 	TSharedPtr<class SWeakWidget> BuildVersionWidget;
 };
 
-template <typename T>
-T* APlayerHUD::CreateAndAddToViewPort(const TSubclassOf<T>& WidgetClass, const bool Visible)
-{
-	if (!WidgetClass)
-	{
-		return nullptr;
-	}
-
-	T* Widget = CreateWidget<T>(GetWorld(), WidgetClass);
-
-	if (!Widget)
-	{
-		return nullptr;
-	}
-	
-	Widget->AddToViewport();	
-
-	ESlateVisibility Visibility = Visible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed;
-	Widget->SetVisibility(Visibility);
-	return Widget;
-}
-
-template <typename T>
-void APlayerHUD::ToggleMenuWidget(T* Widget)
-{
-	if (!Widget)
-	{
-		return;
-	}
-	if (Widget->GetVisibility() == ESlateVisibility::Visible)
-	{
-		Widget->SetVisibility(ESlateVisibility::Collapsed);
-		HUDWidget->SetVisibility(ESlateVisibility::Visible);
-
-		APlayerController* Controller = GetOwningPlayerController();
-		Controller->SetInputMode(FInputModeGameOnly());
-		Controller->FlushPressedKeys();
-		Controller->SetIgnoreMoveInput(false);
-		Controller->SetShowMouseCursor(false);
-	}
-	else if (Widget->GetVisibility() == ESlateVisibility::Collapsed)
-	{
-		Widget->SetVisibility(ESlateVisibility::Visible);
-		HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
-
-		APlayerController* Controller = GetOwningPlayerController();
-		Controller->SetInputMode(FInputModeGameAndUI());
-		Controller->SetIgnoreMoveInput(true);
-		Controller->FlushPressedKeys();
-		Controller->SetShowMouseCursor(true);
-	}
-}
