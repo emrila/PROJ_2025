@@ -3,6 +3,7 @@
 #include "MageProjectile.h"
 
 #include "EnemyBase.h"
+#include "Shield.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -43,6 +44,10 @@ void AMageProjectile::BeginPlay()
 
 void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
 {
+	if (!HasAuthority())
+	{
+		return;
+	}
 	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
@@ -50,8 +55,25 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), this, nullptr);
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
 
-		Destroy();	
+		Destroy();
+		return;
 	}
+
+	if (OtherActor->ActorHasTag("Shield"))
+	{
+		AShield* Shield = Cast<AShield>(OtherActor);
+		if (Shield)
+		{
+			const float OldDamageAmount = DamageAmount;
+			UE_LOG(LogTemp, Warning, TEXT("Shield Damage: %f"), Shield->GetDamageAmount());
+			DamageAmount += Shield->GetDamageAmount();
+			//TODO: Change visuals
+
+			UE_LOG(LogTemp, Warning, TEXT("Damage boosted from %f: to:%f"), OldDamageAmount, DamageAmount);
+		}
+		
+	}
+	
 }
 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,

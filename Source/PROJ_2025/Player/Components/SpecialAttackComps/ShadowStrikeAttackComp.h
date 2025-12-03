@@ -47,6 +47,9 @@ protected:
 	void Server_SetLockedTarget(AActor* Target);
 
 	UFUNCTION(Server, Reliable)
+	void Server_SetWentThroughShield(const bool Value);
+
+	UFUNCTION(Server, Reliable)
 	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
 	
 	virtual void HandlePreAttackState();
@@ -91,6 +94,8 @@ protected:
 
 	bool bCanTeleport = false;
 
+	bool bWentThroughShield = false;
+
 	//Handle attack properties
 	float OffsetDistanceBehindTarget = 100.f;
 
@@ -124,4 +129,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
 	UNiagaraSystem* TeleportEffect;
+
+	FTimerHandle PlayerIFrameTimer;
 };

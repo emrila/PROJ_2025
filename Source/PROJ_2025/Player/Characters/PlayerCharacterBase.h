@@ -18,6 +18,7 @@ class UAttackComponentBase;
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
 
 UCLASS()
 class PROJ_2025_API APlayerCharacterBase : public ACharacter
@@ -50,9 +51,9 @@ public:
 	virtual void HandleCameraReattachment();
 	
 	//Handle Damage
-	virtual void StartIFrame() { IFrame = true;}
+	virtual void StartIFrame();
 	
-	virtual void ResetIFrame() { IFrame = false;}
+	virtual void ResetIFrame();
 
 	virtual bool IsAlive() const { return bIsAlive; }
 
@@ -61,6 +62,7 @@ public:
 	virtual void EndIsAttacking() { bIsAttacking = false; }
 
 	FOnPlayerDied OnPlayerDied;
+	FOnIFrameChanged OnIFrameStarted;
 	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
