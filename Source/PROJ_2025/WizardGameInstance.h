@@ -59,10 +59,11 @@ public:
 
 	URoomData* GetChoiceRoomData() const;
 
-	bool RollForCampRoom();
+	bool RollForCampRoom(bool OnlyIncrementChance = false);
 
 	bool RollForChoiceRoom() const;
 
+	bool RollForBossRoom() const;
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
 	
@@ -78,10 +79,16 @@ public:
 	URoomData* ChoiceRoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	URoomData* BossRoom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> NormalMapPool;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> CombatOnly;
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	void RemoveRoomFromPool(URoomData* RoomData);
 	
 	//LAN stuff
 	virtual void Init() override;
