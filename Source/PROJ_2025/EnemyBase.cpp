@@ -75,7 +75,10 @@ void AEnemyBase::HandleDeath()
 			AAIController* AICon = Cast<AAIController>(ControllerNullCheck);
 			if (AICon)
 			{
-				AICon->BrainComponent->StopLogic("Enemy died");
+				if (AICon->BrainComponent)
+				{
+					AICon->BrainComponent->StopLogic("Enemy died");
+				}
 			}
 			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
 			float PlayRate = 3.f;
