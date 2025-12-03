@@ -99,7 +99,7 @@ void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickT
 	if (bHasLockedTarget && bCanAttack)
 	{
 		TryLockingTargetOrLocation();
-		if (bCanTeleport/*!LockedLocation.IsNearlyZero()*/)
+		if (bCanTeleport)
 		{
 			DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
@@ -554,7 +554,7 @@ void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndL
 			else
 			{
 				Server_SetLockedTarget(HitActor);
-				Server_SetLockedLocation(LockedTarget->GetActorLocation(), OwnerCharacter->GetActorLocation());
+				Server_SetLockedLocation(HitActor->GetActorLocation(), OwnerCharacter->GetActorLocation());
 				LockedTarget = HitActor;
 				LockedLocation = LockedTarget->GetActorLocation();
 				SweepStartLocation = OwnerCharacter->GetActorLocation();
