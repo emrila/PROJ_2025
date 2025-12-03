@@ -245,6 +245,10 @@ void UShadowStrikeVariant2::Server_SetLockedLocation_Implementation(FVector Loca
 void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNewShouldRecast)
 {
 	bShouldRecast = bNewShouldRecast;
+	if (bShouldRecast)
+	{
+		OnCanRecast.Broadcast();
+	}
 }
 
 void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDidRecast)
