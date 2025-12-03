@@ -2,19 +2,19 @@
 
 #include "CoreMinimal.h"
 #include "../AttackComponentBase.h"
-#include "ShadowStrikeAttackComp.generated.h"
+#include "ShadowStrikeVariant2.generated.h"
 
 
 class UNiagaraSystem;
 struct FInputActionInstance;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PROJ_2025_API UShadowStrikeAttackComp : public UAttackComponentBase
+class PROJ_2025_API UShadowStrikeVariant2 : public UAttackComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	UShadowStrikeAttackComp();
+	UShadowStrikeVariant2();
 
 	virtual void StartAttack() override;
 	
@@ -132,3 +132,4 @@ protected:
 
 	FTimerHandle PlayerIFrameTimer;
 };
+
