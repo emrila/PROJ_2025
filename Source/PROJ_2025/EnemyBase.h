@@ -44,7 +44,7 @@ public:
 	UPROPERTY(Replicated)
 	bool HasDied;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadWrite)
 	float DamageMultiplier = 1.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
