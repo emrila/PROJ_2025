@@ -49,7 +49,7 @@ bool UUpgradeFunctionLibrary::IsLocalPlayer(const AActor* OtherActor)
 {
 	if (const APawn* Pawn = Cast<APawn>(OtherActor))
 	{
-		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
+		return /*Pawn->IsPlayerControlled() &&*/ Pawn->IsLocallyControlled();
 	}
 	return false;
 }
