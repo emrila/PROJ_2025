@@ -81,24 +81,31 @@ void AEnemyBase::HandleDeath()
 				}
 			}
 			UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
-			float PlayRate = 3.f;
-			float Duration = AnimInst->Montage_Play(DeathMontage, PlayRate);
-			if (Duration <= 0.f)
+			if (AnimInst)
+			{
+				float PlayRate = 3.f;
+				float Duration = AnimInst->Montage_Play(DeathMontage, PlayRate);
+				if (Duration <= 0.f)
+				{
+					SpawnDeathEffect();
+					Destroy();
+					return;
+				}
+				FTimerHandle DeathTimerHandle;
+
+				GetWorld()->GetTimerManager().SetTimer(
+					DeathTimerHandle,
+					this,
+					&AEnemyBase::FinishDeath,
+					(Duration/PlayRate) - 0.4f,
+					false
+				);
+				return;
+			}else
 			{
 				SpawnDeathEffect();
 				Destroy();
-				return;
 			}
-			FTimerHandle DeathTimerHandle;
-
-			GetWorld()->GetTimerManager().SetTimer(
-				DeathTimerHandle,
-				this,
-				&AEnemyBase::FinishDeath,
-				(Duration/PlayRate) - 0.4f,
-				false
-			);
-			return;
 		}
 		return;
 	}
