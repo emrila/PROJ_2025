@@ -61,12 +61,19 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		AllRooms = GI->CombatOnly;
 	}
-
-	bool ChoiceRoom = GI->RollForChoiceRoom();
+	bool BossRoom = GI->RollForBossRoom();
 	bool CampExit = false;
-	if (!ChoiceRoom)
+	bool ChoiceRoom = false;
+	if (!BossRoom)
 	{
-		CampExit = GI->RollForCampRoom();
+		ChoiceRoom = GI->RollForChoiceRoom();
+		if (!ChoiceRoom)
+		{
+			CampExit = GI->RollForCampRoom();
+		}else
+		{
+			GI->RollForCampRoom(true);
+		}
 	}
 
 	TArray<AActor*> FoundExits;
@@ -80,13 +87,13 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1)
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -102,6 +109,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (ChoiceRoom)
 	{
 		ChosenRooms.Add(GI->GetChoiceRoomData());
+	}
+	if (BossRoom)
+	{
+		ChosenRooms.Add(GI->BossRoom);
 	}
 
 	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
@@ -145,7 +156,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		FRoomInstance RoomInstance;
 		RoomInstance.RoomData = RoomData;
 		if (!RoomData) continue;
-		const float ChanceForModifier = GI->RoomLoader->ChanceForModifiers;
+		const float ChanceForModifier = GI->RoomLoader->ClearedRooms * 0.01f;
 		if (FMath::FRand() <= ChanceForModifier)
 		{
 			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
