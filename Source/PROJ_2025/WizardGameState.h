@@ -50,15 +50,6 @@ public:
 	void SetHealth(float HealthAmount);
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
-	bool MageSelected = false;
-
-	UPROPERTY(Replicated, BlueprintReadWrite)
-	bool TankSelected = false;
-
-	UPROPERTY(Replicated, BlueprintReadWrite)
-	bool RogueSelected = false;
-
-	UPROPERTY(Replicated, BlueprintReadWrite)
 	TArray<UWidget*> SelectionWidgets;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)

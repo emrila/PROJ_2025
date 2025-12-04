@@ -13,13 +13,14 @@
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
 
+DEFINE_LOG_CATEGORY(ShadowStrikeLog);
 
 UShadowStrikeVariant2::UShadowStrikeVariant2()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DamageAmount = 20.f;
-	AttackCooldown = 5.f;
+	AttackCooldown = 10.f;
 	// ...
 }
 
@@ -31,9 +32,21 @@ void UShadowStrikeVariant2::StartAttack()
 		return;
 	}
 
-	if (!bCanAttack /*|| bIsLockingTarget*/)
+	if (!bCanAttack)
 	{
-		return;
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Cooldown is on, checking if can recast."), *FString(__FUNCTION__));
+		if (!bShouldRecast)
+		{
+			UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Cannot recast, returning."), *FString(__FUNCTION__));
+			return;
+		}
+	}
+	
+	if (bShouldRecast)
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Recasting. Clearing recast timer and setting can recast to false."), *FString(__FUNCTION__));
+		GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
+		Server_SetShouldRecast(false);
 	}
 
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
@@ -48,20 +61,22 @@ void UShadowStrikeVariant2::StartAttack()
 		return;
 	}
 
-	float DistanceToTarget = FVector::Dist(LockedLocation, OwnerCharacter->GetActorLocation());
+	/*float DistanceToTarget = FVector::Dist(LockedLocation, OwnerCharacter->GetActorLocation());
 
 	if (DistanceToTarget <= MinimumDistanceToTarget)
 	{
 		return;
-	}
+	}*/
 
 	PerformAttack();
+	
+	Server_SetDidRecast(true);
 
 	Super::StartAttack();
 }
 
 void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
-                                                     UInputAction* OwnerInputAction)
+                                                   UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
@@ -75,7 +90,7 @@ void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* Owne
 }
 
 void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickType,
-                                            FActorComponentTickFunction* ThisTickFunction)
+                                          FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -83,12 +98,12 @@ void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickT
 	if (bHasLockedTarget && bCanAttack)
 	{
 		TryLockingTargetOrLocation();
-		if (bCanTeleport/*!LockedLocation.IsNearlyZero()*/)
+		if (bCanTeleport)
 		{
 			DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
 	}
-	
+
 	//Not relevant anymore
 	/*if (bKilledTarget)
 	{
@@ -182,7 +197,7 @@ void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionIns
 	if (OwnerCharacter->HasAuthority())
 	{
 		LockedLocation = FVector::ZeroVector;
-		SweepStartLocation = FVector::ZeroVector;	
+		SweepStartLocation = FVector::ZeroVector;
 	}
 	else
 	{
@@ -190,7 +205,7 @@ void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionIns
 		LockedLocation = FVector::ZeroVector;
 		SweepStartLocation = FVector::ZeroVector;
 	}
-	
+
 	bHasLockedTarget = false;
 	StartAttack();
 }
@@ -227,6 +242,20 @@ void UShadowStrikeVariant2::Server_SetLockedLocation_Implementation(FVector Loca
 	SweepStartLocation = SweepStart;
 }
 
+void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNewShouldRecast)
+{
+	bShouldRecast = bNewShouldRecast;
+	if (bShouldRecast)
+	{
+		OnCanRecast.Broadcast();
+	}
+}
+
+void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDidRecast)
+{
+	bDidRecast = BNewDidRecast;
+}
+
 void UShadowStrikeVariant2::HandlePreAttackState()
 {
 	if (!OwnerCharacter)
@@ -246,7 +275,7 @@ void UShadowStrikeVariant2::HandlePostAttackState()
 		return;
 	}
 
-	LockedTarget = nullptr;
+	//LockedTarget = nullptr;
 	if (OwnerCharacter->GetCharacterMovement())
 	{
 		OwnerCharacter->GetCharacterMovement()->SetMovementMode(MOVE_Walking);
@@ -254,14 +283,14 @@ void UShadowStrikeVariant2::HandlePostAttackState()
 	OwnerCharacter->HandleCameraReattachment();
 	if (!bWentThroughShield)
 	{
-		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
 		{
 			OwnerCharacter->ResetIFrame();
 		}, 1.f, false);
 		return;
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this] ()
+	GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
 	{
 		OwnerCharacter->ResetIFrame();
 	}, 5.f, false);
@@ -281,7 +310,7 @@ void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 
 	const FVector CurrentTargetLocation = LockedLocation;
 	const float CurrentTargetZ = CurrentTargetLocation.Z;
-	
+
 	const FVector CurrentPlayerLocation = OwnerCharacter->GetActorLocation();
 	const FVector CurrentPlayerForward = OwnerCharacter->GetActorForwardVector();
 
@@ -386,25 +415,25 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		return;
 	}
 
-	float CapsuleRadius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
-	float CapsuleHalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	/*float CapsuleRadius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	float CapsuleHalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();*/
 
 	if (OwnerCharacter && OwnerCharacter->GetMesh())
 	{
-		OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius/5.f, CapsuleHalfHeight/5.f, true);
+		//OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius / 5.f, CapsuleHalfHeight / 5.f, true);
 		/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
 		OwnerCharacter->SetActorLocation(TeleportLocation, true, nullptr, ETeleportType::TeleportPhysics);
 	}
 
-	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this, CapsuleRadius, CapsuleHalfHeight]()
+	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
 		{
 			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
-			OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
+			//OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
 			/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		}
@@ -423,7 +452,8 @@ void UShadowStrikeVariant2::TryLockingTargetOrLocation()
 
 	if (!OwnerCharacter->IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Verbose, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."), *FString(__FUNCTION__));
+		UE_LOG(LogTemp, Verbose, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
+		       *FString(__FUNCTION__));
 		return;
 	}
 
@@ -537,7 +567,7 @@ void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndL
 			else
 			{
 				Server_SetLockedTarget(HitActor);
-				Server_SetLockedLocation(LockedTarget->GetActorLocation(), OwnerCharacter->GetActorLocation());
+				Server_SetLockedLocation(HitActor->GetActorLocation(), OwnerCharacter->GetActorLocation());
 				LockedTarget = HitActor;
 				LockedLocation = LockedTarget->GetActorLocation();
 				SweepStartLocation = OwnerCharacter->GetActorLocation();
@@ -555,7 +585,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	{
 		return;
 	}
-	
+
 	FVector NewEndLocation = EndLocation;
 
 	FVector Forward = OwnerCharacter->GetActorForwardVector();
@@ -573,7 +603,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 		if (AngleDegrees > AcceptableAngelDegrees)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%s AngleDegrees is greater than AcceptableAngelDegrees."),
-				   *FString(__FUNCTION__));
+			       *FString(__FUNCTION__));
 			const float TraceDistance = (EndLocation - StartLocation).Size();
 			if (TraceDistance > KINDA_SMALL_NUMBER && AngleDegrees > KINDA_SMALL_NUMBER)
 			{
@@ -628,6 +658,8 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	
+	bool bHitEnemies = false;
 
 	if (GetWorld())
 	{
@@ -641,6 +673,7 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			Params
 		);
 		
+		TSet<AActor*> Enemies;
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
@@ -648,47 +681,66 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 				if (AActor* HitActor = Hit.GetActor())
 				{
 					if (HitActor->IsA(AEnemyBase::StaticClass()))
+					{
+						Enemies.Add(HitActor);
+					}
+					if (HitActor->IsA(AShield::StaticClass()))
+					{
+						Server_SetWentThroughShield(true);
+					}
+				}
+			}
+		}
+		
+		bHitEnemies = Enemies.Num() > 0;
+		
+		if (bHitEnemies)
+		{
+			for (AActor* EnemyActor : Enemies)
+			{
+				if (EnemyActor)
+				{
 					UGameplayStatics::ApplyDamage(
-						HitActor,
+						EnemyActor,
 						GetDamageAmount(),
 						OwnerCharacter->GetController(),
 						OwnerCharacter,
 						UDamageType::StaticClass()
 					);
-
-					if (HitActor->IsA(AShield::StaticClass()))
-					{
-						Server_SetWentThroughShield_Implementation(true);
-					}
 				}
 			}
+			if (bDidRecast) { return;}
+			Server_SetShouldRecast(true);
+			GetWorld()->GetTimerManager().SetTimer(RecastTimerHandle, [this] ()
+			{
+				Server_SetShouldRecast(false);
+			}, RecastDuration, false);
 		}
-
-		if (bWentThroughShield)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("%s Went through shield, longer I-frames applied."), *FString(__FUNCTION__));
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
-		}
-		else
-		{
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
-		}
+		
 	}
+	
 }
 
 void UShadowStrikeVariant2::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
-	Server_SetLockedTarget_Implementation(nullptr);
-	Server_SetWentThroughShield_Implementation(false);
-	Server_SetLockedLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetLockedTarget(nullptr);
+	Server_SetWentThroughShield(false);
+	Server_SetDidRecast(false);
+	Server_SetLockedLocation(FVector::ZeroVector, FVector::ZeroVector);
 	DisappearLocation = FVector::ZeroVector;
 	AppearLocation = FVector::ZeroVector;
 	bWentThroughShield = false;
+	bShouldRecast = false;
+	bDidRecast = false;
 }
 
 float UShadowStrikeVariant2::GetAttackCooldown() const
 {
+	if (AttackCooldown <= 5.f)
+	{
+		return 5.f;
+	}
 	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
 }
 
@@ -703,10 +755,11 @@ float UShadowStrikeVariant2::GetDamageAmount() const
 
 float UShadowStrikeVariant2::GetAttackRange() const
 {
-	if (AttackDamageModifier == 1.f)
+	/*if (AttackDamageModifier == 1.f)
 	{
 		return LockOnRange;
 	}
 	//500.f is random atm, TBD later
-	return LockOnRange + (AttackDamageModifier * 500.f);
+	return LockOnRange + (AttackDamageModifier * 500.f);*/
+	return LockOnRange;
 }
