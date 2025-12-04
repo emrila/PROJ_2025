@@ -16,6 +16,7 @@ void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	//DOREPLIFETIME(APlayerControllerBase, ControlledPlayer);
 	DOREPLIFETIME(APlayerControllerBase, DamageTaken);
+	DOREPLIFETIME(APlayerControllerBase, DamageDealt);
 }
 
 void APlayerControllerBase::Tick(float DeltaTime)
