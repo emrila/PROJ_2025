@@ -221,13 +221,26 @@ void AChronoRiftZone::TickDamage()
 {
 	for (AActor* Enemy : EnemiesToGiveDamage)
 	{
+		AActor* DamageCauser;
+		if (OwnerCharacter)
+		{
+			DamageCauser = OwnerCharacter;
+		}
+		else
+		{
+			DamageCauser = this;
+		}
 		if (IsValid(Enemy))
 		{
+			if (!OwnerCharacter )
+			{
+				
+			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
 			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
-			this, 
+			DamageCauser, 
 			UChronoRiftDamageType::StaticClass()
 			);
 		}
@@ -259,5 +272,7 @@ void AChronoRiftZone::Multicast_SpawnEffect_Implementation()
 	}
 	//Set Scale and Duration here before spawning
 	const FVector SpawnLocation = GetActorLocation();
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
+	//UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
+	
+	BP_SpawnEffect(Lifetime, 400.f, Radius);
 }

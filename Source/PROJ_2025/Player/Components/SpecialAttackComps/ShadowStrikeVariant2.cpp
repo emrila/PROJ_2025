@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "Player/Components/Items/ShadowStrikeRibbon.h"
 #include "Player/Components/Items/Shield.h"
 
 DEFINE_LOG_CATEGORY(ShadowStrikeLog);
@@ -47,6 +48,7 @@ void UShadowStrikeVariant2::StartAttack()
 		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Recasting. Clearing recast timer and setting can recast to false."), *FString(__FUNCTION__));
 		GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
 		Server_SetShouldRecast(false);
+		Server_SetDidRecast(true);
 	}
 
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
@@ -69,8 +71,6 @@ void UShadowStrikeVariant2::StartAttack()
 	}*/
 
 	PerformAttack();
-	
-	Server_SetDidRecast(true);
 
 	Super::StartAttack();
 }
@@ -126,6 +126,26 @@ void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickT
 void UShadowStrikeVariant2::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!Ribbon)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = OwnerCharacter;
+		SpawnParams.Instigator = OwnerCharacter->GetInstigator();
+		Ribbon = Cast<AShadowStrikeRibbon>(
+			GetWorld()->SpawnActor<AShadowStrikeRibbon>(RibbonClass, SpawnParams));
+		
+		if (!Ribbon)
+		{
+			UE_LOG(ShadowStrikeLog, Warning, TEXT("%s Ribbon is Null after spawning."), *FString(__FUNCTION__));
+		}
+	}
 }
 
 void UShadowStrikeVariant2::PerformAttack()
@@ -142,9 +162,7 @@ void UShadowStrikeVariant2::PerformAttack()
 	}
 
 	HandlePreAttackState();
-
 	Server_TeleportPlayer();
-
 	Server_PerformSweep();
 
 	//Not relevant anymore
@@ -254,6 +272,10 @@ void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNe
 void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDidRecast)
 {
 	bDidRecast = BNewDidRecast;
+	if (bDidRecast)
+	{
+		OnRecast.Broadcast();
+	}
 }
 
 void UShadowStrikeVariant2::HandlePreAttackState()
@@ -376,7 +398,8 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		return;
 	}
 
-	if (LockedTarget)
+	//Not Slowing down Enemy anymore
+	/*if (LockedTarget)
 	{
 		LockedTarget->CustomTimeDilation = 0.f;
 
@@ -406,9 +429,9 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 							C->CustomTimeDilation = 1.f;
 						}
 					}
-				}, 2.5f, false);
+				}, 1.5f, false);
 		}
-	}
+	}*/
 
 	if (!OwnerCharacter->GetCapsuleComponent())
 	{
@@ -424,7 +447,7 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
-		OwnerCharacter->SetActorLocation(TeleportLocation, true, nullptr, ETeleportType::TeleportPhysics);
+		OwnerCharacter->SetActorLocation(TeleportLocation);
 	}
 
 	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
@@ -472,10 +495,11 @@ void UShadowStrikeVariant2::TryLockingTargetOrLocation()
 		return;
 	}
 
-	FVector CameraLocation = CameraManager->GetCameraLocation();
+	//FVector CameraLocation = CameraManager->GetCameraLocation();
+	FVector PlayerLocation = OwnerCharacter->GetActorLocation();
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
 
-	FVector TraceStart = CameraLocation;
+	FVector TraceStart = PlayerLocation;
 	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * GetAttackRange());
 
 	TryLockingTarget(TraceStart, TraceEnd);
@@ -523,6 +547,11 @@ void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndL
 	{
 		return;
 	}
+	
+	if (!bShouldLockTarget)
+	{
+		return;
+	}
 
 	FHitResult HitResult;
 
@@ -539,20 +568,17 @@ void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndL
 		ObjectQueryParams,
 		Params
 	);
-
-	/*if (!bHasLockedTarget)
-	{
-		DrawDebugLine(
+	
+	/*DrawDebugLine(
 		GetWorld(),
-		TraceStart,
-		TraceEnd,
+		StartLocation,
+		EndLocation,
 		FColor::Red,
 		false,
 		5.0f,
 		0,
 		1.0f
-		);
-	}*/
+		);*/
 
 	if (bHit && HitResult.GetActor())
 	{
@@ -620,6 +646,28 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	{
 		NewEndLocation = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * LockOnRange;
 	}
+	
+	FHitResult HitResult;
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(OwnerCharacter);
+	
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	
+	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
+		HitResult,
+		StartLocation,
+		NewEndLocation,
+		ObjectQueryParams,
+		Params
+	);
+	
+	if (bHit)
+	{
+		const FVector Dir = (NewEndLocation - StartLocation).GetSafeNormal();
+		NewEndLocation = HitResult.ImpactPoint - Dir * 20.f; // back off a bit
+	}
 
 	if (OwnerCharacter->HasAuthority())
 	{
@@ -632,6 +680,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 		LockedLocation = NewEndLocation;
 		SweepStartLocation = OwnerCharacter->GetActorLocation();
 	}
+	bCanTeleport = true;
 }
 
 void UShadowStrikeVariant2::Server_SetWentThroughShield_Implementation(const bool Value)
@@ -658,8 +707,6 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
-	
-	bool bHitEnemies = false;
 
 	if (GetWorld())
 	{
@@ -672,6 +719,13 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			FCollisionShape::MakeSphere(50.f),
 			Params
 		);
+		
+		DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Purple, false, 5.f);
+		if (Ribbon)
+		{
+			Ribbon->SetActorLocation(OwnerCharacter->GetActorLocation());
+			Ribbon->BP_SpawnRibbon(LockedLocation, TeleportDelay);
+		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -691,10 +745,8 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 				}
 			}
 		}
-		
-		bHitEnemies = Enemies.Num() > 0;
-		
-		if (bHitEnemies)
+
+		if (Enemies.Num() > 0)
 		{
 			for (AActor* EnemyActor : Enemies)
 			{

@@ -26,19 +26,19 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_RegisterModifierClient(URoomModifierBase* Modifier);
+	
+	UFUNCTION(BlueprintPure)
+	float GetMouseSensitivity() const
+	{
+		return MouseSensitivity;
+	}
+	
+	UFUNCTION(BlueprintCallable)
+	void SetMouseSensitivity(const float NewSensitivity)
+	{
+		MouseSensitivity = NewSensitivity;
+	}
 
-	UFUNCTION(Server, Reliable)
-	void AddDamageTaken(float Damage);
-	
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	float GetDamageTaken();
-
-	UFUNCTION(Server, Reliable)
-	void AddDamageDealt(float Damage);
-	
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	float GetDamageDealt();
-	
 protected:
 	virtual void BeginPlay() override;
 
@@ -48,11 +48,8 @@ protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 	
-	UPROPERTY(Replicated)
-	float DamageTaken = 0.f;
-
-	UPROPERTY(Replicated)
-	float DamageDealt = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Custom", Getter, Setter)
+	float MouseSensitivity = 1.f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* ControlledPlayer;

@@ -156,7 +156,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		FRoomInstance RoomInstance;
 		RoomInstance.RoomData = RoomData;
 		if (!RoomData) continue;
-		const float ChanceForModifier = GI->RoomLoader->ClearedRooms * 0.025f;
+		const float ChanceForModifier = GI->RoomLoader->ClearedRooms * GI->RoomLoader->ChanceForModifiers;
 		if (FMath::FRand() <= ChanceForModifier)
 		{
 			if (FRoomModifierArray* FoundMods = GI->AvailableModsForRoomType.Find(RoomData->RoomType))
