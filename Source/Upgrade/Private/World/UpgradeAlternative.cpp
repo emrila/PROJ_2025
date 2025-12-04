@@ -75,17 +75,6 @@ void AUpgradeAlternative::SelectUpgrade()
 	}
 }
 
-/*
-bool AUpgradeAlternative::IsTargetLocalPlayer(const AActor* OtherActor) const
-{
-	if (const APawn* Pawn = Cast<APawn>(OtherActor))
-	{
-		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
-	}
-	return false;
-}
-*/
-
 void AUpgradeAlternative::OnRep_Selected()
 {
 	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));	

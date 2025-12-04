@@ -41,10 +41,8 @@ protected:
 	
 	void SelectUpgrade();		
 	void SetLocked(bool bToggle);
-	void SetFocus(bool bToggle);
-	
-/*private:	
-	bool IsTargetLocalPlayer(const AActor* OtherActor) const;*/
+	void SetFocus(bool bToggle);	
+
 public:	
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
 	FOnUpgrade OnUpgrade;	
