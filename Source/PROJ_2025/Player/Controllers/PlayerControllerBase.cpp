@@ -38,6 +38,16 @@ float APlayerControllerBase::GetDamageTaken()
 	return DamageTaken;
 }
 
+void APlayerControllerBase::AddDamageDealt_Implementation(float Damage)
+{
+	DamageDealt += Damage;
+}
+
+float APlayerControllerBase::GetDamageDealt()
+{
+	return DamageDealt;
+}
+
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();

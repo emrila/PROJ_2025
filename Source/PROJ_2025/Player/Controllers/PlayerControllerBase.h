@@ -32,6 +32,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetDamageTaken();
+
+	UFUNCTION(Server, Reliable)
+	void AddDamageDealt(float Damage);
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetDamageDealt();
 	
 protected:
 	virtual void BeginPlay() override;
@@ -44,6 +50,9 @@ protected:
 	
 	UPROPERTY(Replicated)
 	float DamageTaken = 0.f;
+
+	UPROPERTY(Replicated)
+	float DamageDealt = 0.f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* ControlledPlayer;
