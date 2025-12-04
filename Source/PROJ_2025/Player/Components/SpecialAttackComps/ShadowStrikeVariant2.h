@@ -8,6 +8,8 @@
 class UNiagaraSystem;
 struct FInputActionInstance;
 
+DECLARE_LOG_CATEGORY_EXTERN(ShadowStrikeLog, Log, All);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UShadowStrikeVariant2 : public UAttackComponentBase
 {
@@ -48,6 +50,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetWentThroughShield(const bool Value);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetShouldRecast(const bool bNewShouldRecast);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetDidRecast(const bool BNewDidRecast);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
@@ -73,6 +81,8 @@ protected:
 	virtual float GetDamageAmount() const override;
 
 	virtual float GetAttackRange() const;
+	
+	virtual void ResetRecast() {bShouldRecast = false;}
 
 	//Handle target
 	bool bHasLockedTarget = false;
@@ -84,7 +94,7 @@ protected:
 
 	FVector SweepStartLocation;
 	
-	float LockOnRange = 2000.f;
+	float LockOnRange = 1000.f;
 
 	float MinimumDistanceToTarget = 200.f;
 	
@@ -95,6 +105,10 @@ protected:
 	bool bCanTeleport = false;
 
 	bool bWentThroughShield = false;
+	
+	bool bShouldRecast = false;
+	
+	bool bDidRecast = false;
 
 	//Handle attack properties
 	float OffsetDistanceBehindTarget = 100.f;
@@ -103,12 +117,15 @@ protected:
 	
 	float StrikeDuration = 0.5f;
 	
+	float RecastDuration = 3.0f;
+	
 	//float StrikeDelay = 1.f;
 	
 	//Handle player teleport
 	float TeleportDelay = 0.2f;
 	
 	FTimerHandle PlayerTeleportTimerHandle;
+	FTimerHandle RecastTimerHandle;
 	
 	//Handle camera interpolation
 	float CameraInterpDistanceBehind = 500.f;

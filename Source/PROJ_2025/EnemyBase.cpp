@@ -7,6 +7,8 @@
 #include "BrainComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
+#include "Player/Controllers/PlayerControllerBase.h"
 
 
 AEnemyBase::AEnemyBase()
@@ -24,6 +26,11 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 		return 0.f;
 	
 	Health -= DamageAmount;
+	APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(DamageCauser);
+	if (Player)
+	{
+		Cast<APlayerControllerBase>(Player->GetController())->AddDamageDealt(DamageAmount);
+	}
 	HandleHit(DamageEvent, DamageCauser);
 	OnRep_Health();
 	if (Health <= 0)
