@@ -22,9 +22,14 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void InitWidgets();
-	virtual void InitWidgets_Implementation(){};	
+	virtual void InitWidgets_Implementation(){}		
 	
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void ToggleWidget(int32 WidgetGroup = 0);
-	virtual void ToggleWidget_Implementation(int32 WidgetGroup){};
+	virtual void ToggleWidget_Implementation(int32 WidgetGroup){}
+	
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void CreateAndAdd(TSubclassOf<UUserWidget> WidgetClass, bool Visible = true);
+	virtual void CreateAndAdd_Implementation(TSubclassOf<UUserWidget> WidgetClass, bool Visible = true){}
+	
 };
