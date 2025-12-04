@@ -48,6 +48,7 @@ void UShadowStrikeVariant2::StartAttack()
 		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Recasting. Clearing recast timer and setting can recast to false."), *FString(__FUNCTION__));
 		GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
 		Server_SetShouldRecast(false);
+		Server_SetDidRecast(true);
 	}
 
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
@@ -70,8 +71,6 @@ void UShadowStrikeVariant2::StartAttack()
 	}*/
 
 	PerformAttack();
-	
-	Server_SetDidRecast(true);
 
 	Super::StartAttack();
 }
