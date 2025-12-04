@@ -19,6 +19,8 @@ void STextSWidget::Construct(const FArguments& InArgs)
 			SNew(STextBlock).Text(TextContent)
 		]
 	];
+	
+	SetVisibility(EVisibility::HitTestInvisible);
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION

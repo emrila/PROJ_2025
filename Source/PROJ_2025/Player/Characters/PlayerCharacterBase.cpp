@@ -418,9 +418,17 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	if (!bShouldUseLookInput || !bIsAlive)
 	{
 		return;
+	}	
+	const FVector2D LookAxisVector = Value.Get<FVector2D>();	
+	
+	if (const APlayerControllerBase* PlayerController = Cast<APlayerControllerBase>(GetController()))
+	{
+		const float MouseSensitivity = PlayerController->GetMouseSensitivity();
+		AddControllerYawInput(LookAxisVector.X * MouseSensitivity);
+		AddControllerPitchInput(LookAxisVector.Y * MouseSensitivity);
+		return;
 	}
-	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-
+	
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
 }

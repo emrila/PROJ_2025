@@ -39,6 +39,18 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetDamageDealt();
 	
+	UFUNCTION(BlueprintPure)
+	float GetMouseSensitivity() const
+	{
+		return MouseSensitivity;
+	}
+	
+	UFUNCTION(BlueprintCallable)
+	void SetMouseSensitivity(const float NewSensitivity)
+	{
+		MouseSensitivity = NewSensitivity;
+	}
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -53,6 +65,9 @@ protected:
 
 	UPROPERTY(Replicated)
 	float DamageDealt = 0.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Custom", Getter, Setter)
+	float MouseSensitivity = 1.f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* ControlledPlayer;
