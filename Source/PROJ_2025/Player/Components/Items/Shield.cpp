@@ -202,13 +202,22 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 	
 	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
 	{
+		AActor* DamageCauser;
+		if (OwnerCharacter)
+		{
+			DamageCauser = OwnerCharacter;
+		}
+		else
+		{
+			DamageCauser = this;
+		}
 		if (bShouldGiveDamage)
 		{
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
 			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
-			this, 
+			DamageCauser,
 			UDamageType::StaticClass()
 			);
 			Durability -= 10.f;
