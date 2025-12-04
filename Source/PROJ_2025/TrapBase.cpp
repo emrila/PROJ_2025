@@ -5,10 +5,9 @@
 
 #include "Net/UnrealNetwork.h"
 
-// Sets default values
 ATrapBase::ATrapBase()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+ 	
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
@@ -20,7 +19,6 @@ void ATrapBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetim
 	DOREPLIFETIME(ATrapBase, Active);
 }
 
-// Called when the game starts or when spawned
 void ATrapBase::BeginPlay()
 {
 	Super::BeginPlay();
