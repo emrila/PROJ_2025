@@ -15,6 +15,12 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownTimerStarted, float, Curr
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCanRecast);
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecast);
+
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDurabilityChanged, float, CurrentDurability, float, MaxDurability);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
@@ -52,6 +58,12 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnCanRecast OnCanRecast;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnRecast OnRecast;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnDurabilityChanged OnDurabilityChanged;
 
 protected:
 	virtual void BeginPlay() override;

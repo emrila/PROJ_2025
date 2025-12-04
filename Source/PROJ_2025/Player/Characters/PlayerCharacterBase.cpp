@@ -4,6 +4,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
+#include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -345,7 +346,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 	
 		GameState->DamageHealth(NewDamageAmount);
-		Cast<APlayerControllerBase>(Controller)->AddDamageTaken(NewDamageAmount);
+		Cast<AWizardPlayerState>(GetPlayerState())->AddDamageTaken(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client
@@ -418,9 +419,17 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	if (!bShouldUseLookInput || !bIsAlive)
 	{
 		return;
+	}	
+	const FVector2D LookAxisVector = Value.Get<FVector2D>();	
+	
+	if (const APlayerControllerBase* PlayerController = Cast<APlayerControllerBase>(GetController()))
+	{
+		const float MouseSensitivity = PlayerController->GetMouseSensitivity();
+		AddControllerYawInput(LookAxisVector.X * MouseSensitivity);
+		AddControllerPitchInput(LookAxisVector.Y * MouseSensitivity);
+		return;
 	}
-	const FVector2D LookAxisVector = Value.Get<FVector2D>();
-
+	
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
 }

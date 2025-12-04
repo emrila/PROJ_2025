@@ -17,6 +17,7 @@ void APlayerHUD::BeginPlay()
 
 void APlayerHUD::InitWidgets_Implementation()
 {
+	AddGameVersionToHUD();
 	if (HUDClass)
 	{
 		HUDWidget = CreateAndAddToViewPort<UUserWidget>(HUDClass);
@@ -25,8 +26,6 @@ void APlayerHUD::InitWidgets_Implementation()
 	{
 		MenuWidget = CreateAndAddToViewPort<UUserWidget>(MenuClass, false);
 	}
-	
-	AddGameVersionToHUD();
 }
 
 void APlayerHUD::ToggleWidget_Implementation(int32 WidgetGroup)
@@ -64,7 +63,8 @@ void APlayerHUD::AddGameVersionToHUD()
 
 void APlayerHUD::CreateAndAdd_Implementation(TSubclassOf<UUserWidget> WidgetClass, bool Visible)
 {
-	CreateAndAddToViewPort<UUserWidget>(WidgetClass, Visible);
+	UUserWidget* Widget = CreateAndAddToViewPort<UUserWidget>(WidgetClass, Visible);
+	
 }
 
 template <typename T>
