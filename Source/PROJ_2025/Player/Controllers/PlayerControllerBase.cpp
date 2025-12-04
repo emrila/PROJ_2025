@@ -15,6 +15,7 @@ void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	//DOREPLIFETIME(APlayerControllerBase, ControlledPlayer);
+	DOREPLIFETIME(APlayerControllerBase, DamageTaken);
 }
 
 void APlayerControllerBase::Tick(float DeltaTime)
@@ -25,6 +26,16 @@ void APlayerControllerBase::Tick(float DeltaTime)
 void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotator& NewRot)
 {
 	SetControlRotation(NewRot);
+}
+
+void APlayerControllerBase::AddDamageTaken_Implementation(float Damage)
+{
+	DamageTaken += Damage;
+}
+
+float APlayerControllerBase::GetDamageTaken()
+{
+	return DamageTaken;
 }
 
 void APlayerControllerBase::BeginPlay()

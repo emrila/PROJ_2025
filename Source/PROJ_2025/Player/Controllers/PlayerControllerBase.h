@@ -26,6 +26,13 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_RegisterModifierClient(URoomModifierBase* Modifier);
+
+	UFUNCTION(Server, Reliable)
+	void AddDamageTaken(float Damage);
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	float GetDamageTaken();
+	
 protected:
 	virtual void BeginPlay() override;
 
@@ -35,6 +42,8 @@ protected:
 
 	virtual void OnPossess(APawn* InPawn) override;
 	
+	UPROPERTY(Replicated)
+	float DamageTaken = 0.f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* ControlledPlayer;
