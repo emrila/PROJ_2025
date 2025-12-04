@@ -2,3 +2,34 @@
 
 
 #include "WizardPlayerState.h"
+
+#include "Net/UnrealNetwork.h"
+
+void AWizardPlayerState::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AWizardPlayerState, DamageTaken);
+	DOREPLIFETIME(AWizardPlayerState, DamageDealt);
+}
+
+void AWizardPlayerState::AddDamageTaken_Implementation(float Damage)
+{
+	DamageTaken += Damage;
+	UE_LOG(LogTemp, Warning, TEXT("Damage Taken: %f"), DamageTaken);
+}
+
+float AWizardPlayerState::GetDamageTaken()
+{
+	return DamageTaken;
+}
+
+void AWizardPlayerState::AddDamageDealt_Implementation(float Damage)
+{
+	DamageDealt += Damage;
+	UE_LOG(LogTemp, Warning, TEXT("Damage Dealt: %f"), DamageDealt);
+}
+
+float AWizardPlayerState::GetDamageDealt()
+{
+	return DamageDealt;
+}
