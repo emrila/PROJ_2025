@@ -14,7 +14,7 @@ AShield::AShield()
 
 	bReplicates = true;
 	
-	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
+	/*CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
 	RootComponent = CollisionBox;
 	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	CollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
@@ -22,12 +22,14 @@ AShield::AShield()
 	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	CollisionBox->SetGenerateOverlapEvents(true);
 
-	CollisionBox->SetIsReplicated(true);
+	CollisionBox->SetIsReplicated(true);*/
 	
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
-	ShieldMesh->SetupAttachment(RootComponent);
+	RootComponent = ShieldMesh;
 	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	ShieldMesh->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	ShieldMesh->SetCollisionObjectType(ECC_EngineTraceChannel3);
+	ShieldMesh->SetCollisionProfileName(TEXT("Shield_Preset"));
+	ShieldMesh->SetGenerateOverlapEvents(true);
 
 	ShieldMesh->SetIsReplicated(true);
 
@@ -51,6 +53,8 @@ void AShield::Server_ActivateShield_Implementation()
 		return;
 	}
 	Multicast_ActivateShield();
+	
+	bIsShieldActive = true;
 
 	// Start durability timer on server
 	if (GetWorld())
@@ -70,7 +74,12 @@ void AShield::Multicast_ActivateShield_Implementation()
 	{
 		return;
 	}
-	if (ShieldMesh && CollisionBox)
+	/*if (ShieldMesh && CollisionBox)
+	{
+		ShieldMesh->SetVisibility(true);
+		SetActorEnableCollision(true);
+	}*/
+	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(true);
 		SetActorEnableCollision(true);
@@ -90,6 +99,7 @@ void AShield::Server_DeactivateShield_Implementation()
 	}
 	
 	Multicast_DeactivateShield();
+	bIsShieldActive = false;
 	if (GetWorld())
 	{
 		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
@@ -107,7 +117,13 @@ void AShield::Multicast_DeactivateShield_Implementation()
 	{
 		return;
 	}
-	if (ShieldMesh && CollisionBox)
+	/*if (ShieldMesh && CollisionBox)
+	{
+		ShieldMesh->SetVisibility(false);
+		SetActorEnableCollision(false);
+	}*/
+	
+	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(false);
 		SetActorEnableCollision(false);
@@ -156,12 +172,25 @@ void AShield::BeginPlay()
 	bReplicates = true;
 	SetReplicateMovement(true);
 	
-	if (HasAuthority() && CollisionBox)
+	/*if (HasAuthority() && CollisionBox)
 	{
 		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
+		CollisionBox->OnComponentHit.AddDynamic(this, &AShield::OnShieldHit);
+	}*/
+	
+	if (HasAuthority() && ShieldMesh)
+	{
+		//ShieldMesh->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
+		ShieldMesh->OnComponentHit.AddDynamic(this, &AShield::OnShieldHit);
 	}
 
-	if (CollisionBox && ShieldMesh)
+	/*if (CollisionBox && ShieldMesh)
+	{
+		ShieldMesh->SetVisibility(false);
+		SetActorEnableCollision(false);
+	}*/
+	
+	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(false);
 		SetActorEnableCollision(false);
@@ -183,7 +212,6 @@ void AShield::TickDurability()
 	{
 		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Durability is:%f , Deactivating the shield."), Durability);
 			ShieldComp->StartAttackCooldown();
 			ShieldComp->DeactivateShield();
 			return;
@@ -251,6 +279,57 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 			ResetShouldGiveDamage();
 		}
 	}
+}
+
+void AShield::OnShieldHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+	
+	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
+	{
+		AActor* DamageCauser;
+		if (OwnerCharacter)
+		{
+			DamageCauser = OwnerCharacter;
+		}
+		else
+		{
+			DamageCauser = this;
+		}
+		
+		if (bShouldGiveDamage)
+		{
+			UGameplayStatics::ApplyDamage(
+			Enemy, 
+			DamageAmount, 
+			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
+			DamageCauser,
+			UDamageType::StaticClass()
+			);
+			Durability -= 10.f;
+			bShouldGiveDamage = false;
+			ResetShouldGiveDamage();
+		}
+	}
+}
+
+float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& DamageEvent,
+	class AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!HasAuthority()) return 0.f;
+	
+	if (!bIsShieldActive) return 0.f;
+	
+	
+	Durability -= 10.f;
+	
+	UE_LOG(LogTemp, Warning, TEXT("Shield took %f damage"), 10.f);
+	
+	return 10.f;
 }
 
 void AShield::ResetShouldGiveDamage()
