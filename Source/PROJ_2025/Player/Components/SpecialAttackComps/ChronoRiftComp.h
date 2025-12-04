@@ -73,7 +73,7 @@ protected:
 	UPROPERTY(Replicated)
 	FVector TargetAreaCenter;
 	
-	float TargetAreaRadius = 200.f;
+	float TargetAreaRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
 

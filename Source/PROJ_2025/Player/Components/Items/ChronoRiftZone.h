@@ -28,6 +28,9 @@ public:
 		);
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_SpawnEffect(const float NewChronoDuration, const float BaseRadius, const float CurrentRadius);
 
 protected:
 	virtual void BeginPlay() override;

@@ -272,5 +272,7 @@ void AChronoRiftZone::Multicast_SpawnEffect_Implementation()
 	}
 	//Set Scale and Duration here before spawning
 	const FVector SpawnLocation = GetActorLocation();
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
+	//UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
+	
+	BP_SpawnEffect(Lifetime, 400.f, Radius);
 }
