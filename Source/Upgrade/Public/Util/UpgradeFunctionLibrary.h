@@ -19,6 +19,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category="Upgrade|Util", meta=(WorldContext="WorldContextObject"))
 	static AUpgradeSpawner* GetLocalUpgradeSpawner(UObject* WorldContextObject);
+
 	UFUNCTION(BlueprintCallable, Category="Upgrade|Util", meta=(WorldContext="WorldContextObject"))
 	static UUpgradeComponent* GetLocalUpgradeComponent(UObject* WorldContextObject);
+	
+	UFUNCTION(BlueprintCallable, Category="Upgrade|Util", meta=(WorldContext="WorldContextObject"))
+	static bool IsLocalPlayer(const AActor* OtherActor);
 };
