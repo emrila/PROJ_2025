@@ -25,6 +25,8 @@ void APlayerHUD::InitWidgets_Implementation()
 	{
 		MenuWidget = CreateAndAddToViewPort<UUserWidget>(MenuClass, false);
 	}
+	
+	AddGameVersionToHUD();
 }
 
 void APlayerHUD::ToggleWidget_Implementation(int32 WidgetGroup)
@@ -55,11 +57,14 @@ void APlayerHUD::AddGameVersionToHUD()
 #else // Just show the version	
 	VersionString = FString::Printf(TEXT("Version: %s"), *ProjectVersion);
 #endif
-
 	
 	BuildVersionSlateWidget = SNew(STextSWidget).InTextContent(FText::FromString(VersionString));	
-	GEngine->GameViewport->AddViewportWidgetContent(SAssignNew(BuildVersionWidget, SWeakWidget).PossiblyNullContent(BuildVersionSlateWidget.ToSharedRef()));
-	
+	GEngine->GameViewport->AddViewportWidgetContent(SAssignNew(BuildVersionWidget, SWeakWidget).PossiblyNullContent(BuildVersionSlateWidget.ToSharedRef()));	
+}
+
+void APlayerHUD::CreateAndAdd_Implementation(TSubclassOf<UUserWidget> WidgetClass, bool Visible)
+{
+	CreateAndAddToViewPort<UUserWidget>(WidgetClass, Visible);
 }
 
 template <typename T>

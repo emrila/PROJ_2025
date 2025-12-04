@@ -18,7 +18,6 @@ protected:
 	virtual void BeginPlay() override;	
 	
 	virtual void InitWidgets_Implementation() override;
-	virtual void ToggleWidget_Implementation(int32 WidgetGroup) override;
 	
 	void AddGameVersionToHUD();
 
@@ -27,6 +26,10 @@ protected:
 
 	template <typename T = UUserWidget>
 	void ToggleMenuWidget(T* Widget);
+
+public:
+	virtual void CreateAndAdd_Implementation(TSubclassOf<UUserWidget> WidgetClass, bool Visible = true) override;
+	virtual void ToggleWidget_Implementation(int32 WidgetGroup) override;
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess=true))
