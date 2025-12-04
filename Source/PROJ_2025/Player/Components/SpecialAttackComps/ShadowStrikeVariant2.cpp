@@ -34,12 +34,19 @@ void UShadowStrikeVariant2::StartAttack()
 
 	if (!bCanAttack)
 	{
-		UE_LOG(ShadowStrikeLog, Warning, TEXT("bCanAttack is false, checking for recast possibility."));
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Cooldown is on, checking if can recast."), *FString(__FUNCTION__));
 		if (!bShouldRecast)
 		{
-			UE_LOG(ShadowStrikeLog, Warning, TEXT("bShouldRecast is false. Returning without attacking."));
+			UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Cannot recast, returning."), *FString(__FUNCTION__));
 			return;
 		}
+	}
+	
+	if (bShouldRecast)
+	{
+		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Recasting. Clearing recast timer and setting can recast to false."), *FString(__FUNCTION__));
+		GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
+		Server_SetShouldRecast(false);
 	}
 
 	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
@@ -54,24 +61,16 @@ void UShadowStrikeVariant2::StartAttack()
 		return;
 	}
 
-	float DistanceToTarget = FVector::Dist(LockedLocation, OwnerCharacter->GetActorLocation());
+	/*float DistanceToTarget = FVector::Dist(LockedLocation, OwnerCharacter->GetActorLocation());
 
 	if (DistanceToTarget <= MinimumDistanceToTarget)
 	{
 		return;
-	}
-	
-	if (bShouldRecast)
-	{
-		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s Attack was recast, resetting recast state."), *FString(__FUNCTION__));
-		if (GetWorld()->GetTimerManager().IsTimerActive(RecastTimerHandle))
-		{
-			GetWorld()->GetTimerManager().ClearTimer(RecastTimerHandle);
-		}
-		ResetRecast();
-	}
+	}*/
 
 	PerformAttack();
+	
+	Server_SetDidRecast(true);
 
 	Super::StartAttack();
 }
@@ -241,6 +240,20 @@ void UShadowStrikeVariant2::Server_SetLockedLocation_Implementation(FVector Loca
 {
 	LockedLocation = Location;
 	SweepStartLocation = SweepStart;
+}
+
+void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNewShouldRecast)
+{
+	bShouldRecast = bNewShouldRecast;
+	if (bShouldRecast)
+	{
+		OnCanRecast.Broadcast();
+	}
+}
+
+void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDidRecast)
+{
+	bDidRecast = BNewDidRecast;
 }
 
 void UShadowStrikeVariant2::HandlePreAttackState()
@@ -659,7 +672,8 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			FCollisionShape::MakeSphere(50.f),
 			Params
 		);
-
+		
+		TSet<AActor*> Enemies;
 		if (bHit)
 		{
 			for (const FHitResult& Hit : HitResults)
@@ -668,76 +682,57 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 				{
 					if (HitActor->IsA(AEnemyBase::StaticClass()))
 					{
-						UGameplayStatics::ApplyDamage(
-							HitActor,
-							GetDamageAmount(),
-							OwnerCharacter->GetController(),
-							OwnerCharacter,
-							UDamageType::StaticClass()
-						);
-						
-						if (!bHitEnemies)
-						{
-							bHitEnemies = true;
-							UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Hit Enemy"), *FString(__FUNCTION__));
-						}
+						Enemies.Add(HitActor);
 					}
-
-
 					if (HitActor->IsA(AShield::StaticClass()))
 					{
-						Server_SetWentThroughShield_Implementation(true);
+						Server_SetWentThroughShield(true);
 					}
 				}
 			}
 		}
-
-		/*if (bWentThroughShield)
+		
+		bHitEnemies = Enemies.Num() > 0;
+		
+		if (bHitEnemies)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s Went through shield, longer I-frames applied."), *FString(__FUNCTION__));
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
+			for (AActor* EnemyActor : Enemies)
+			{
+				if (EnemyActor)
+				{
+					UGameplayStatics::ApplyDamage(
+						EnemyActor,
+						GetDamageAmount(),
+						OwnerCharacter->GetController(),
+						OwnerCharacter,
+						UDamageType::StaticClass()
+					);
+				}
+			}
+			if (bDidRecast) { return;}
+			Server_SetShouldRecast(true);
+			GetWorld()->GetTimerManager().SetTimer(RecastTimerHandle, [this] ()
+			{
+				Server_SetShouldRecast(false);
+			}, RecastDuration, false);
 		}
-		else
-		{
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
-		}*/
+		
 	}
-	if (bHitEnemies)
-	{
-		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, Hit Enemy, Checking if this was a Recast attack."), *FString(__FUNCTION__));
-		if (GetWorld()->GetTimerManager().IsTimerActive(RecastTimerHandle))
-		{
-			UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, It was a Recast attack, cannot recast or attack before cooldown."), *FString(__FUNCTION__));
-			return;
-		}
-		bShouldRecast = true;
-	}
-	else
-	{
-		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, No Hit, Setting bShouldRecast to false"), *FString(__FUNCTION__));
-		bShouldRecast = false;
-	}
-	if (bShouldRecast)
-	{
-		UE_LOG(ShadowStrikeLog, Warning, TEXT("%s, It was not a recast, setting timer for recast attack possibility."), *FString(__FUNCTION__));
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
-		{
-			ResetRecast();
-		}, RecastDuration, false);
-	}
+	
 }
 
 void UShadowStrikeVariant2::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
-	Server_SetLockedTarget_Implementation(nullptr);
-	Server_SetWentThroughShield_Implementation(false);
-	Server_SetLockedLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetLockedTarget(nullptr);
+	Server_SetWentThroughShield(false);
+	Server_SetDidRecast(false);
+	Server_SetLockedLocation(FVector::ZeroVector, FVector::ZeroVector);
 	DisappearLocation = FVector::ZeroVector;
 	AppearLocation = FVector::ZeroVector;
 	bWentThroughShield = false;
 	bShouldRecast = false;
+	bDidRecast = false;
 }
 
 float UShadowStrikeVariant2::GetAttackCooldown() const

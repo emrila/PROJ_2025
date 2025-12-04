@@ -50,6 +50,12 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetWentThroughShield(const bool Value);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetShouldRecast(const bool bNewShouldRecast);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetDidRecast(const bool BNewDidRecast);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
@@ -101,6 +107,8 @@ protected:
 	bool bWentThroughShield = false;
 	
 	bool bShouldRecast = false;
+	
+	bool bDidRecast = false;
 
 	//Handle attack properties
 	float OffsetDistanceBehindTarget = 100.f;

@@ -40,7 +40,6 @@ class PROJ_2025_API AVotingBooth : public AActor
 public:
 
 	FOnVotingFinished OnVotingFinished;
-	// Sets default values for this actor's properties
 	AVotingBooth();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -36,9 +36,6 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, Health);
 	DOREPLIFETIME(AWizardGameState, MaxHealth);
 	DOREPLIFETIME(AWizardGameState, HealthPercent);
-	DOREPLIFETIME(AWizardGameState, MageSelected);
-	DOREPLIFETIME(AWizardGameState, TankSelected);
-	DOREPLIFETIME(AWizardGameState, RogueSelected);
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
 	DOREPLIFETIME(AWizardGameState, CurrentPlayerCount);
 	DOREPLIFETIME(AWizardGameState, PlayersInStartDungeon);

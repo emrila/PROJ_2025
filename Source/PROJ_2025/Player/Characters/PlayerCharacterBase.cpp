@@ -16,6 +16,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
+#include "Player/Controllers/PlayerControllerBase.h"
 #include "Player/UI/PlayerNameTagWidget.h"
 
 
@@ -344,6 +345,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 	
 		GameState->DamageHealth(NewDamageAmount);
+		Cast<APlayerControllerBase>(Controller)->AddDamageTaken(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client

@@ -7,6 +7,8 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class ALantern;
+
 USTRUCT(BlueprintType)
 struct FRoomLoaderState
 {
@@ -48,6 +50,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ParkourTimerWidget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<ALantern> LanternActor;
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);
