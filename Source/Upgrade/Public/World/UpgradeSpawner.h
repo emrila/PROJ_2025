@@ -59,14 +59,9 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_Spawn();	
 
-#if WITH_EDITOR
-	virtual void PostLoad() override;
-#endif
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
 
 	UFUNCTION()
 	void LockUpgradeAlternatives();
@@ -84,13 +79,13 @@ private:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
 	int32 NumberOfSpawnAlternatives = 3;
 	
+	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))
+   	bool bSpawnOnBeginPlay = false;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
 	TSoftClassPtr<AUpgradeAlternative> UpgradeAlternativeClass;
 
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
-	FPlayerUpgradeDisplayEntry PlayerUpgradeDisplayEntry;
-
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, TitleProperty="RowName"))
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, TitleProperty="RowName"))
 	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
 	
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeAlternativePairs)
@@ -106,10 +101,9 @@ public:
 	virtual bool CanInteract_Implementation() override;
 
 private:
-	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))
-	bool bSpawnOnBeginPlay = true;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
+	
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
 	int32 TotalUpgradeNeededForCompletion = 3;
 	
 public:

@@ -115,21 +115,6 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
 
-#if WITH_EDITOR
-void AUpgradeSpawner::PostLoad()
-{
-	Super::PostLoad();
-    
-	if (UpgradeDataArray.IsEmpty() && !PlayerUpgradeDisplayEntry.UpgradeDataArray.IsEmpty())
-	{
-		UpgradeDataArray = PlayerUpgradeDisplayEntry.UpgradeDataArray;
-		UPGRADE_DISPLAY(TEXT("%hs: Migrated data to UpgradeDataArray"), __FUNCTION__);
-		
-		// MarkPackageDirty();
-	}
-}
-#endif
-
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
@@ -155,7 +140,6 @@ void AUpgradeSpawner::LockUpgradeAlternatives()
 void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AUpgradeSpawner, PlayerUpgradeDisplayEntry);
 	DOREPLIFETIME(AUpgradeSpawner, UpgradeAlternativePairs);
 	DOREPLIFETIME(AUpgradeSpawner, bSpawnOnBeginPlay);
 	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
@@ -183,7 +167,7 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 				Completed++;
 			}
 		}
-		if (Completed >= TotalUpgradeNeededForCompletion)
+		if (Completed >= TotalUpgradeNeededForCompletion && OnCompletedAllUpgrades.IsBound() /*Wait for RoomManagerBase*/)
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
 			OnCompletedAllUpgrades.Broadcast();

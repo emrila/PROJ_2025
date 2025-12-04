@@ -6,15 +6,6 @@
 #include "Core/AttributeData.h"
 #include "UpgradeDisplayData.generated.h"
 
-UENUM()
-namespace EUpgradeFlags
-{	
-	enum Type :  uint8
-	{
-		None, Pending, Add, Remove
-	};
-}
-
 USTRUCT(BlueprintType)
 struct FUpgradeDisplayData
 {
@@ -35,9 +26,6 @@ struct FUpgradeDisplayData
 	UPROPERTY(BlueprintReadWrite)
 	FName TargetName = NAME_None;
 	
-	UPROPERTY(BlueprintReadWrite)
-	TEnumAsByte<EUpgradeFlags::Type> UpgradeFlag = EUpgradeFlags::None;	
-	
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
 		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
@@ -46,18 +34,6 @@ struct FUpgradeDisplayData
 	{
 		return !(*this == UpgradeData);
 	}
-};
-
-USTRUCT(BlueprintType)
-struct FPlayerUpgradeDisplayEntry
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName PlayerType = NAME_None;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
 };
 
 USTRUCT(BlueprintType)

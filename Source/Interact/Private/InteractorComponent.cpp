@@ -16,13 +16,14 @@ namespace InteractUtil
 			FVector Start;
 			FRotator ViewRot;
 			Owner->GetActorEyesViewPoint(Start, ViewRot);
-			Start = Owner->GetActorLocation();
+			//Start = Owner->GetActorLocation();
 
 			const FVector End = Start + ViewRot.Vector() * InteractionDistance;
 
 			const ETraceTypeQuery TraceChannel = UEngineTypes::ConvertToTraceType(ECC_GameTraceChannel2); // ECC_GameTraceChannel2 = Interactable		
 			return UKismetSystemLibrary::SphereTraceSingle(Owner, Start, End, InteractionRadius, TraceChannel,false,{Owner}, DebugType,Hit,true);
 		};
+		
 		auto Capsule = [&]()
 		{
 			FVector Start;
@@ -84,7 +85,7 @@ void UInteractorComponent::TraceForInteractable()
 {
 	if (bInteracting)
 	{
-		INTERACT_WARNING( TEXT("Currently interacting, will not trace for interactable"));
+		INTERACT_WARNING(TEXT("Currently interacting, will not trace for interactable"));
 		return;
 	}
 
@@ -106,12 +107,12 @@ void UInteractorComponent::TraceForInteractable()
 	if (InteractUtil::IsInteractable(Hit.GetActor()))
 	{
 		SetTargetInteractable(Hit.GetActor());
-		INTERACT_DISPLAY( TEXT("Found Actor interactable: %s"), *GetNameSafe(Hit.GetActor()));
+		INTERACT_DISPLAY(TEXT("Found Actor interactable: %s"), *GetNameSafe(Hit.GetActor()));
 	}
 	else if (InteractUtil::IsInteractable(Hit.GetComponent()))
 	{
 		SetTargetInteractable(Hit.GetComponent());
-		INTERACT_DISPLAY( TEXT("Found Component interactable: %s"), *GetNameSafe(Hit.GetComponent()));
+		INTERACT_DISPLAY(TEXT("Found Component interactable: %s"), *GetNameSafe(Hit.GetComponent()));
 	}
 }
 
