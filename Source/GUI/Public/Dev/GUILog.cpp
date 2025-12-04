@@ -1,0 +1,3 @@
+﻿#include "GUILog.h"
+
+DEFINE_LOG_CATEGORY(CLogGUI)
