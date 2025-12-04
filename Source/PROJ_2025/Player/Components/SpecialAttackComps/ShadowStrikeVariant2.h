@@ -5,6 +5,7 @@
 #include "ShadowStrikeVariant2.generated.h"
 
 
+class AShadowStrikeRibbon;
 class UNiagaraSystem;
 struct FInputActionInstance;
 
@@ -83,12 +84,21 @@ protected:
 	virtual float GetAttackRange() const;
 	
 	virtual void ResetRecast() {bShouldRecast = false;}
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Properties")
+	bool bShouldLockTarget = false;
 
 	//Handle target
 	bool bHasLockedTarget = false;
 
 	UPROPERTY()
 	AActor* LockedTarget;
+	
+	UPROPERTY()
+	AShadowStrikeRibbon* Ribbon;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	TSubclassOf<AShadowStrikeRibbon> RibbonClass;
 
 	FVector LockedLocation;
 
@@ -96,7 +106,8 @@ protected:
 	
 	float LockOnRange = 1000.f;
 
-	float MinimumDistanceToTarget = 200.f;
+	//Maybe not needed
+	float MinimumDistanceToTarget = 400.f;
 	
 	FTimerHandle LockedTargetTickTimer;
 	

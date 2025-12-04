@@ -42,6 +42,9 @@ public:
 
 	void SetRecoveryRate(const float Value) { RecoveryRate = Value; }
 	
+	void IncreaseDurability(const float AmountToIncrease);
+	void DecreaseDurability(const float AmountToDecrease) ;
+	
 	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
 
 	APlayerCharacterBase* GetOwnerCharacter() const { return OwnerCharacter; }
