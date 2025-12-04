@@ -31,6 +31,7 @@ void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotato
 void APlayerControllerBase::AddDamageTaken_Implementation(float Damage)
 {
 	DamageTaken += Damage;
+	UE_LOG(LogTemp, Warning, TEXT("Damage Taken: %f"), DamageTaken);
 }
 
 float APlayerControllerBase::GetDamageTaken()
@@ -41,6 +42,7 @@ float APlayerControllerBase::GetDamageTaken()
 void APlayerControllerBase::AddDamageDealt_Implementation(float Damage)
 {
 	DamageDealt += Damage;
+	UE_LOG(LogTemp, Warning, TEXT("Damage Dealt: %f"), DamageDealt);
 }
 
 float APlayerControllerBase::GetDamageDealt()
