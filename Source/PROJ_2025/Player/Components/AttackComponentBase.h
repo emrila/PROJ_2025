@@ -12,6 +12,9 @@ class APlayerCharacterBase;
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownTimerStarted, float, CurrentCoolDownTime);
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCanRecast);
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
 {
@@ -46,6 +49,9 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnCooldownTimerStarted OnCooldownTimerStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnCanRecast OnCanRecast;
 
 protected:
 	virtual void BeginPlay() override;
