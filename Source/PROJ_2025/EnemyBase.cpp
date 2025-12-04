@@ -6,6 +6,7 @@
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "WizardPlayerState.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Controllers/PlayerControllerBase.h"
@@ -29,7 +30,7 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 	APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(DamageCauser);
 	if (Player)
 	{
-		Cast<APlayerControllerBase>(Player->GetController())->AddDamageDealt(DamageAmount);
+		Cast<AWizardPlayerState>(Player->GetPlayerState())->AddDamageDealt(DamageAmount);
 	}
 	HandleHit(DamageEvent, DamageCauser);
 	OnRep_Health();
