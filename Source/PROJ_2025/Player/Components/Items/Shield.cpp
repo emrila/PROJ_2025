@@ -112,7 +112,33 @@ void AShield::Multicast_DeactivateShield_Implementation()
 		ShieldMesh->SetVisibility(false);
 		SetActorEnableCollision(false);
 	}
-}	
+}
+
+void AShield::IncreaseDurability(const float AmountToIncrease)
+{
+	Durability += AmountToIncrease;
+	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	{
+		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
+		if (ShieldComp)
+		{
+			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
+		}
+	}
+}
+
+void AShield::DecreaseDurability(const float AmountToDecrease)
+{
+	Durability -= AmountToDecrease;
+	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	{
+		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
+		if (ShieldComp)
+		{
+			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
+		}
+	}
+}
 
 void AShield::SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter)
 {
@@ -202,13 +228,22 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 	
 	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
 	{
+		AActor* DamageCauser;
+		if (OwnerCharacter)
+		{
+			DamageCauser = OwnerCharacter;
+		}
+		else
+		{
+			DamageCauser = this;
+		}
 		if (bShouldGiveDamage)
 		{
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
 			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
-			this, 
+			DamageCauser,
 			UDamageType::StaticClass()
 			);
 			Durability -= 10.f;

@@ -4,6 +4,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
+#include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
@@ -345,7 +346,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 	
 		GameState->DamageHealth(NewDamageAmount);
-		Cast<APlayerControllerBase>(Controller)->AddDamageTaken(NewDamageAmount);
+		Cast<AWizardPlayerState>(GetPlayerState())->AddDamageTaken(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client
