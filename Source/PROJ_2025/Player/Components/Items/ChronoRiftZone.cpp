@@ -221,13 +221,26 @@ void AChronoRiftZone::TickDamage()
 {
 	for (AActor* Enemy : EnemiesToGiveDamage)
 	{
+		AActor* DamageCauser;
+		if (OwnerCharacter)
+		{
+			DamageCauser = OwnerCharacter;
+		}
+		else
+		{
+			DamageCauser = this;
+		}
 		if (IsValid(Enemy))
 		{
+			if (!OwnerCharacter )
+			{
+				
+			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
 			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
-			this, 
+			DamageCauser, 
 			UChronoRiftDamageType::StaticClass()
 			);
 		}
