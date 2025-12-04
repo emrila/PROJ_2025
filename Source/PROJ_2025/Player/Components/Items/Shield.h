@@ -48,6 +48,14 @@ public:
 	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
 
 	APlayerCharacterBase* GetOwnerCharacter() const { return OwnerCharacter; }
+	
+	UFUNCTION()
+	virtual float TakeDamage(
+		float NewDamageAmount, 
+		struct FDamageEvent const& DamageEvent, 
+		class AController* EventInstigator,
+		AActor* DamageCauser
+		) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -65,6 +73,15 @@ protected:
 		bool bFromSweep, 
 		const FHitResult& SweepResult
 		);
+	
+	UFUNCTION()
+	virtual void OnShieldHit(
+		UPrimitiveComponent* HitComp, 
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		FVector NormalImpulse, 
+		const FHitResult& Hit
+		);
 
 	virtual void ResetShouldGiveDamage();
 
@@ -73,8 +90,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* ShieldMesh;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UBoxComponent* CollisionBox;
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UBoxComponent* CollisionBox;*/
 	
 	float DamageAmount = 20.0f;
 
@@ -90,4 +107,6 @@ protected:
 	FTimerHandle RecoveryTimerHandle;
 
 	bool bShouldGiveDamage = true;
+	
+	bool bIsShieldActive = false;
 };

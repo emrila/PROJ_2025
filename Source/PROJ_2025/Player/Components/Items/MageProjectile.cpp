@@ -60,7 +60,7 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 		return;
 	}
 
-	if (OtherActor->ActorHasTag("Shield"))
+	if (OtherActor->IsA(AShield::StaticClass()))
 	{
 		AShield* Shield = Cast<AShield>(OtherActor);
 		if (Shield)
@@ -74,7 +74,6 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 		}
 		
 	}
-	
 }
 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
