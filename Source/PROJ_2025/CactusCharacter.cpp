@@ -6,12 +6,28 @@
 #include "AIController.h"
 #include "EnemySubAttack.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
 void ACactusCharacter::Server_ShootProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
 {
-	AActor* Projectile = GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnLocation, SpawnRotation);
-	Cast<AEnemySubAttack>(Projectile)->DamageMultiplier = DamageMultiplier;
+	AEnemySubAttack* Projectile = Cast<AEnemySubAttack>(
+	UGameplayStatics::BeginDeferredActorSpawnFromClass(
+		this,
+		ProjectileClass,
+		FTransform(SpawnRotation, SpawnLocation),
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+		)
+	);
+	if (Projectile)
+	{
+		Projectile->DamageMultiplier = DamageMultiplier;
+
+		UGameplayStatics::FinishSpawningActor(
+			Projectile,
+			FTransform(SpawnRotation, SpawnLocation)
+		);
+	}
 
 }
 
