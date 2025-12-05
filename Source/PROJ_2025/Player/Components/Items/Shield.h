@@ -87,26 +87,30 @@ protected:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UStaticMeshComponent* ShieldMesh;
 	
 	/*UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UBoxComponent* CollisionBox;*/
 	
+	UPROPERTY(Replicated)
 	float DamageAmount = 20.0f;
 
 	UPROPERTY(Replicated)
 	float Durability = 10.f;
 
+	UPROPERTY(Replicated)
 	float RecoveryRate = 1.f;
 	
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	APlayerCharacterBase* OwnerCharacter;
 	
 	FTimerHandle DurabilityTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
 
+	UPROPERTY(Replicated)
 	bool bShouldGiveDamage = true;
 	
+	UPROPERTY(Replicated)
 	bool bIsShieldActive = false;
 };

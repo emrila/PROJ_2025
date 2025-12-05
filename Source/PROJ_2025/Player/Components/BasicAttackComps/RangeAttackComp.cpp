@@ -3,6 +3,7 @@
 #include "EnhancedInputComponent.h"
 #include "../Items/MageProjectile.h"
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 
 
@@ -55,6 +56,12 @@ void URangeAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInpu
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &URangeAttackComp::OnAttackEnd);
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this, &URangeAttackComp::OnAttackCanceled);
 	}
+}
+
+void URangeAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(URangeAttackComp, ProjectileInstance);
 }
 
 void URangeAttackComp::BeginPlay()
@@ -130,11 +137,39 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	}
 
 	Multicast_SpawnProjectile(SpawnTransform);
+	
+	if (!OwnerCharacter || !ProjectileClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		return;
+	}
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = OwnerCharacter;
+	SpawnParameters.Instigator = OwnerCharacter;
+	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
+		ProjectileClass, SpawnTransform, SpawnParameters);
+	
+	if (!Projectile)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, Projectile is NULL!"));
+		return;
+	}
+	ProjectileInstance = Projectile;
+	
+	if (!ProjectileInstance)
+	{
+		return;
+	}
+	
+	Projectile->SetOwner(OwnerCharacter);
+	Projectile->Server_SetDamageAmount(GetDamageAmount());
+	
+	Projectile->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 
 void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform SpawnTransform)
 {
-	if (!OwnerCharacter || !ProjectileClass)
+	/*if (!OwnerCharacter || !ProjectileClass)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
 		return;
@@ -152,7 +187,7 @@ void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform
 	}
 	
 	Projectile->SetOwner(OwnerCharacter);
-	Projectile->Server_SetDamageAmount(GetDamageAmount());
+	Projectile->Server_SetDamageAmount(GetDamageAmount());*/
 	
 	if (AttackAnimation && OwnerCharacter)
 	{
@@ -165,7 +200,11 @@ void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform
 		UE_LOG(LogTemp, Error, TEXT("%s , PlayerCharacter or ImpactParticles is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
-	Projectile->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
+	if (!ProjectileInstance)
+	{
+		return;
+	}
+	ProjectileInstance->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 
 FTransform URangeAttackComp::GetProjectileTransform()

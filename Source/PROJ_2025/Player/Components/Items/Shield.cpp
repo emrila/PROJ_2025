@@ -1,7 +1,10 @@
 ﻿#include "Shield.h"
 
 #include "EnemyBase.h"
+#include "TrapBase.h"
+#include "TrapDamageType.h"
 #include "Components/BoxComponent.h"
+#include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -324,6 +327,11 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	
 	if (!bIsShieldActive) return 0.f;
 	
+	if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
+	{
+		return 0.f;
+	}
+	
 	
 	Durability -= 10.f;
 	
@@ -342,6 +350,11 @@ void AShield::ResetShouldGiveDamage()
 void AShield::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AShield, Durability)
+	DOREPLIFETIME(AShield, ShieldMesh);
+	DOREPLIFETIME(AShield, DamageAmount);
+	DOREPLIFETIME(AShield, Durability);
+	DOREPLIFETIME(AShield, RecoveryRate);
+	DOREPLIFETIME(AShield, bShouldGiveDamage);
+	DOREPLIFETIME(AShield, bIsShieldActive);
 }
 
