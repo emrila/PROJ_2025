@@ -25,12 +25,22 @@ struct FUpgradeAlternativePair
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FUpgradeDisplayData UpgradeData;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<bool> FocusedByPlayers = {false, false, false};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)	
+	TArray<bool> SelectedByPlayers = {false, false, false};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<bool> LockedForPlayer = {false, false, false};
 };
 
 UCLASS()
 class UPGRADE_API AUpgradeSpawner : public AActor, public IInteractable
 {
 	GENERATED_BODY()
+
 
 public:	
 	AUpgradeSpawner();
@@ -58,7 +68,8 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_Spawn();	
-
+	TArray<FUpgradeAlternativePair>& GetUpgradeAlternativePairs() { return UpgradeAlternativePairs; }
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -66,7 +77,7 @@ protected:
 	UFUNCTION()
 	void LockUpgradeAlternatives();
 
-private:
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USceneComponent> SceneComponent;
 
@@ -100,8 +111,7 @@ public:
 	virtual void OnInteract_Implementation(UObject* Interactor = nullptr) override;
 	virtual bool CanInteract_Implementation() override;
 
-private:
-	
+private:	
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Spawner|Completion", meta=(AllowPrivateAccess=true))
 	int32 TotalUpgradeNeededForCompletion = 3;
@@ -109,5 +119,4 @@ private:
 public:
 	UPROPERTY(BlueprintAssignable, Category="Upgrade Spawner|Events", meta=(AllowPrivateAccess=true))
 	FOnUpgradeEvent OnCompletedAllUpgrades;
-
 };
