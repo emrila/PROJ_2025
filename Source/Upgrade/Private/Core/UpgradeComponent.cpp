@@ -33,7 +33,9 @@ void UUpgradeComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UUpgradeComponent, UpgradeDataTable);
 	DOREPLIFETIME(UUpgradeComponent, bHasAppliedUpgrade);
+	DOREPLIFETIME(UUpgradeComponent, TeamModifierDataTable);
 }
+
 
 void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName PropertyName, const FName RowName)
 {
@@ -88,6 +90,10 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 		}
 		
 		UPGRADE_DISPLAY( TEXT("%hs: Upgraded attribute %s to level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
+		if (NewAttributeRaw->OnAttributeModified.IsBound())
+		{
+			NewAttributeRaw->OnAttributeModified.Broadcast();
+		}
 	});
 	
 	NewAttributeRaw->OnRemoveModifier.AddLambda([NewAttributeRaw, UpgradeData]
@@ -108,6 +114,10 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 		if (NewAttributeRaw->Modify(UpgradeData->GetModifier(Level)))
 		{
 			NewAttributeRaw->CurrentUpgradeLevel = Level;
+		}
+		if (NewAttributeRaw->OnAttributeModified.IsBound())
+		{
+			NewAttributeRaw->OnAttributeModified.Broadcast();
 		}
 	
 	});
@@ -182,6 +192,11 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 		} 
 	}
 	UpgradeDataTable->GetAllRows( __FUNCTION__ ,UpgradeDataArrayCopy);
+
+	UpgradeDataArrayCopy.RemoveAll([](const FAttributeUpgradeData* Attribute)
+	{
+		return Attribute && Attribute->IsMatch(static_cast<int32>(EUpgradeFlag::Solo));
+	});
 
 	for (int i = 1; i <= NumberOfUpgrades; ++i)
 	{
@@ -263,4 +278,3 @@ void UUpgradeComponent::ClearAttributes(const FString& String)
 	AttributesByKey.Empty();
 	AttributesByCategory.Empty();
 }
-

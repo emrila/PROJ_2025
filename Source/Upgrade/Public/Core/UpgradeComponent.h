@@ -26,19 +26,20 @@ public:
 	
 	UFUNCTION(Server, Reliable)
 	void BindAttribute(UObject* Owner, FName PropertyName, FName RowName);
-	
+
 	UFUNCTION(Server, Reliable)
 	void UpgradeByRow(FName RowName);	
 	void DowngradeByRow(FName RowName) const;
 
 	UFUNCTION()
 	void OnUpgradeReceived(FInstancedStruct InstancedStruct);
-	
+
 	UFUNCTION(BlueprintCallable)
 	TArray<FUpgradeDisplayData> GetRandomUpgrades(const int32 NumberOfUpgrades);
-	
-protected:
+
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
+
+protected:
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;
 	
@@ -48,6 +49,9 @@ protected:
 private:
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
 	UDataTable* UpgradeDataTable = nullptr;
+
+	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
+	UDataTable* TeamModifierDataTable = nullptr;
 
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
 	bool bHasAppliedUpgrade = false;
