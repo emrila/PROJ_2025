@@ -88,10 +88,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* SphereComponent;
 	
+	UPROPERTY(Replicated)
 	float Radius = 200;
 	
+	UPROPERTY(Replicated)
 	float Lifetime = 4.f;
 	
+	UPROPERTY(Replicated)
 	float DamageAmount = 2;
 	
 	float EnemyTimeDilationFactor = 0.3f;
