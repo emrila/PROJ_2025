@@ -83,8 +83,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	const float SplineLength = SpawnSplineComponent->GetSplineLength();
    	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
 	
-	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs; //Waiting to trigger OnRep on clients after all alternatives are spawned
-	
+	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs; //Waiting to trigger OnRep on clients after all alternatives are spawned	
 	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
 	{
 		const float Distance = SegmentLength * (i+1);
@@ -110,6 +109,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		}
 		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i]); //Waiting to trigger OnRep on clients after all alternatives are spawned
 		SpawnedAlternative->Index = i;		
+		SpawnedAlternative->OwningSpawner = this;
 		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, i);
 	}
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
@@ -127,11 +127,13 @@ void AUpgradeSpawner::BeginPlay()
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
 {
-	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+	int Index = 0;
+	for (FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
 	{
 		if (UpgradeAlternativePair.Alternative)
 		{
-			UpgradeAlternativePair.Alternative->SetLocked(true);	 
+			UpgradeAlternativePair.Alternative->SetLocked(true);	
+			UpgradeAlternativePair.LockedForPlayer[Index++] = true;			
 			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
 		}		
 	}
@@ -166,12 +168,32 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 			{
 				Completed++;
 			}
-		}
-		if (Completed >= TotalUpgradeNeededForCompletion && OnCompletedAllUpgrades.IsBound() /*Wait for RoomManagerBase*/)
+		}		
+		if (Completed >= TotalUpgradeNeededForCompletion && OnCompletedAllUpgrades.IsBound()/*Wait for RoomManagerBase*/)
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
 			OnCompletedAllUpgrades.Broadcast();
 			SetActorTickEnabled(false);
+		}
+		else
+		{			
+			Completed = 0;
+			for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+			{
+				FString SelectedPlayers;
+				int32 LocalCompleted = 0;
+				for (const bool& Selected : UpgradeAlternativePair.SelectedByPlayers)
+				{
+					if (!Selected)
+					{
+						continue;
+					}
+					LocalCompleted++;
+					SelectedPlayers.Append(Selected ? TEXT("1") : TEXT("0"));
+				}
+				
+				UPGRADE_DISPLAY(TEXT("Selected: %s"), *SelectedPlayers);
+			}
 		}
 	}
 }
