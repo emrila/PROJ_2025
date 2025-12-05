@@ -413,7 +413,12 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 	
 		GameState->DamageHealth(NewDamageAmount);
-		Cast<AWizardPlayerState>(GetPlayerState())->AddDamageTaken(NewDamageAmount);
+		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(GetPlayerState());
+		if (!WizardPlayerState)
+		{
+			return 0.f;
+		}
+		WizardPlayerState->AddDamageTaken(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client
