@@ -9,7 +9,8 @@
 
 struct FAttributeUpgradeData;
 
-#define TABLE_PATH TEXT("/Game/Developer/Emma/DT_UpgradeData.DT_UpgradeData")
+#define UPGRADE_TABLE_PATH TEXT("/Game/Developer/Emma/DT_UpgradeData.DT_UpgradeData")
+#define MODIFIER_TABLE_PATH TEXT("/Game/Developer/Emma/DT_TeamModifierData.DT_TeamModifierData")
 
 UUpgradeComponent::UUpgradeComponent()
 {
@@ -165,16 +166,31 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	}
 	const FString StructCPPName = InstancedStruct.GetScriptStruct()->GetStructCPPName();
 	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
-	const FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>();
-	if (!UpgradeDataPtr)
+	if (const FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>())
 	{
-		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);
-		return;
+		const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;	
+		UpgradeByRow(UpgradeData.RowName);		
+	}	
+	else if (const FTeamModifierData* ModifierData = InstancedStruct.GetMutablePtr<FTeamModifierData>())
+	{
+		for (const FModifierEntry& Modifier : ModifierData->Modifiers)
+		{		
+			for (int i = 0; i < Modifier.TimesToApply; ++i)
+			{
+				if (Modifier.bShouldRemove)
+				{
+					DowngradeByRow(Modifier.RowName);
+					continue;
+				}
+				
+				UpgradeByRow(Modifier.RowName);
+			}
+		} 
 	}
-	
-	const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;
-	
-	UpgradeByRow(UpgradeData.RowName);
+	else
+	{
+		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);		
+	}	
 	
 }
 
@@ -195,7 +211,7 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 
 	UpgradeDataArrayCopy.RemoveAll([](const FAttributeUpgradeData* Attribute)
 	{
-		return Attribute && Attribute->IsMatch(static_cast<int32>(EUpgradeFlag::Solo));
+		return Attribute && Attribute->IsMatch(static_cast<int32>(EUpgradeFlag::Team));
 	});
 
 	for (int i = 1; i <= NumberOfUpgrades; ++i)
@@ -215,6 +231,26 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 	}
 	
 	return OutUpgrades;	
+}
+
+FTeamModifierData UUpgradeComponent::GetTeamModifier(const FName RowName)
+{
+	if (!TeamModifierDataTable)
+	{
+		Server_LoadDataTable();
+		if (!TeamModifierDataTable)
+		{
+			UPGRADE_ERROR(TEXT("%hs: TeamModifierDataTable is null!"), __FUNCTION__);
+			return FTeamModifierData();
+		}
+	}
+	FTeamModifierData* ModifierData = TeamModifierDataTable->FindRow<FTeamModifierData>(RowName, __FUNCTION__);
+	if (!ModifierData)
+	{
+		UPGRADE_ERROR(TEXT("%hs: No team modifier data found for row %s!"), __FUNCTION__, *RowName.ToString());
+		return FTeamModifierData();
+	}
+	return *ModifierData;
 }
 
 FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property) const
@@ -254,23 +290,43 @@ TArray<const FAttributeData*> UUpgradeComponent::GetByRow(FName RowName) const
 
 void UUpgradeComponent::Server_LoadDataTable_Implementation()
 {
-	if (UpgradeDataTable)
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: UpgradeDataTable already loaded."), __FUNCTION__);
-		return;
-	}
-	UpgradeDataTable = LoadObject<UDataTable>(nullptr, TABLE_PATH);
 	if (!UpgradeDataTable)
 	{
-		UPGRADE_ERROR(TEXT("%hs: Failed to load UpgradeDataTable at path: %s"), __FUNCTION__, TABLE_PATH);
+		UpgradeDataTable = LoadObject<UDataTable>(nullptr, UPGRADE_TABLE_PATH);		
+		
+     	if (UpgradeDataTable)
+     	{
+     		UPGRADE_DISPLAY(TEXT("%hs: Successfully loaded UpgradeDataTable."), __FUNCTION__);
+     	}
+     	else
+     	{
+     		UPGRADE_ERROR(TEXT("%hs: Failed to load UpgradeDataTable at path: %s"), __FUNCTION__, UPGRADE_TABLE_PATH);     		
+     	}		
 	}
 	else
 	{
-		UPGRADE_DISPLAY(TEXT("%hs: Successfully loaded UpgradeDataTable."), __FUNCTION__);
+		UPGRADE_DISPLAY(TEXT("%hs: UpgradeDataTable already loaded."), __FUNCTION__);
+	}	
+	
+	if (!TeamModifierDataTable)
+	{
+		TeamModifierDataTable = LoadObject<UDataTable>(nullptr, MODIFIER_TABLE_PATH);
+		if (TeamModifierDataTable)
+		{
+			UPGRADE_DISPLAY(TEXT("%hs: Successfully loaded TeamModifierDataTable."), __FUNCTION__);			
+		}
+		else
+		{
+			UPGRADE_ERROR(TEXT("%hs: Failed to load TeamModifierDataTable at path: %s"), __FUNCTION__, MODIFIER_TABLE_PATH);
+		}
+	}
+	else
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: TeamModifierDataTable already loaded."), __FUNCTION__);
 	}
 }
 
-void UUpgradeComponent::ClearAttributes(const FString& String)
+void UUpgradeComponent::ClearAttributes([[maybe_unused]] const FString& String)
 {
 	UPGRADE_HI_FROM(__FUNCTION__);
 	RegisteredAttributes.Empty();

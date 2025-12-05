@@ -36,6 +36,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<FUpgradeDisplayData> GetRandomUpgrades(const int32 NumberOfUpgrades);
+	
+	UFUNCTION(BlueprintCallable)
+	FTeamModifierData GetTeamModifier(FName RowName);
 
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 
@@ -44,7 +47,7 @@ protected:
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;
 	
 	UFUNCTION(Server, Reliable)
-	void Server_LoadDataTable();
+	void Server_LoadDataTable();	
 
 private:
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Upgrades")
