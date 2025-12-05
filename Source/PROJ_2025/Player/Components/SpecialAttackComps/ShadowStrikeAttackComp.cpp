@@ -660,11 +660,11 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 		if (bWentThroughShield)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%s Went through shield, longer I-frames applied."), *FString(__FUNCTION__));
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
+			//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Green, false, 5.f, 0);
 		}
 		else
 		{
-			DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
+			//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Red, false, 5.f, 0);
 		}
 	}
 }
