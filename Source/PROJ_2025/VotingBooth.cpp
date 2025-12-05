@@ -3,8 +3,10 @@
 
 #include "VotingBooth.h"
 
+#include "Core/UpgradeComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
+#include "Util/UpgradeFunctionLibrary.h"
 
 // Sets default values
 AVotingBooth::AVotingBooth()
@@ -25,6 +27,21 @@ void AVotingBooth::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (HasAuthority())
+	{
+		if (UUpgradeComponent* UpgradeComponent = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this))
+		{
+			for (FCandidate& Candidate : Candidates)
+			{
+				Candidate.ModifierData = UpgradeComponent->GetTeamModifier(Candidate.RowName);
+			}
+			
+			if (!OnVotingFinishedParams.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
+			{
+				OnVotingFinishedParams.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
+			}			
+		}		
+	}	
 }
 
 void AVotingBooth::AttemptVote(FCandidate Candidate)
@@ -73,6 +90,11 @@ void AVotingBooth::CheckResults_Implementation()
 					SpawnInfo
 				);
 				OnVotingFinished.Broadcast();
+				
+				if (OnVotingFinishedParams.IsBound())
+				{
+					OnVotingFinishedParams.Broadcast(FInstancedStruct::Make(CurrentCandidate.ModifierData));
+				}
 
 				//this->Destroy();
 				return;
@@ -90,7 +112,12 @@ void AVotingBooth::CheckResults_Implementation()
 			SpawnInfo
 		);
 		OnVotingFinished.Broadcast();
-
+		
+		if (OnVotingFinishedParams.IsBound())
+		{
+			OnVotingFinishedParams.Broadcast(FInstancedStruct::Make(Candidates[Index].ModifierData));
+		}
+		UE_LOG (LogTemp, Warning, TEXT("No candidate received majority votes. Randomly selected candidate %s"), *Candidates[Index].CandidateClass->GetName());
 		//this->Destroy();
 	}
  }
