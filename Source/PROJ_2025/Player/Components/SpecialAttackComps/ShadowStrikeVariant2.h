@@ -85,6 +85,8 @@ protected:
 	
 	virtual void ResetRecast() {bShouldRecast = false;}
 	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Properties")
 	bool bShouldLockTarget = false;
 
@@ -94,14 +96,16 @@ protected:
 	UPROPERTY()
 	AActor* LockedTarget;
 	
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	AShadowStrikeRibbon* Ribbon;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
 	TSubclassOf<AShadowStrikeRibbon> RibbonClass;
 
+	UPROPERTY(Replicated)
 	FVector LockedLocation;
 
+	UPROPERTY(Replicated)
 	FVector SweepStartLocation;
 	
 	float LockOnRange = 1000.f;
@@ -115,10 +119,13 @@ protected:
 
 	bool bCanTeleport = false;
 
+	UPROPERTY(Replicated)
 	bool bWentThroughShield = false;
 	
+	UPROPERTY(Replicated)
 	bool bShouldRecast = false;
 	
+	UPROPERTY(Replicated)
 	bool bDidRecast = false;
 
 	//Handle attack properties
