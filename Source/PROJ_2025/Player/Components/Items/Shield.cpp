@@ -350,6 +350,11 @@ void AShield::ResetShouldGiveDamage()
 void AShield::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AShield, Durability)
+	DOREPLIFETIME(AShield, ShieldMesh);
+	DOREPLIFETIME(AShield, DamageAmount);
+	DOREPLIFETIME(AShield, Durability);
+	DOREPLIFETIME(AShield, RecoveryRate);
+	DOREPLIFETIME(AShield, bShouldGiveDamage);
+	DOREPLIFETIME(AShield, bIsShieldActive);
 }
 
