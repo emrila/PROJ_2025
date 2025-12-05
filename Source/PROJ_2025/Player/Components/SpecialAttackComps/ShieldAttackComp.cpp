@@ -197,15 +197,14 @@ void UShieldAttackComp::BeginPlay()
 			if (AShield* Shield = Cast<AShield>(Actor))
 			{
 				CurrentShield = Shield;
-				UE_LOG(LogTemp, Warning, TEXT("Shield found in %s"), *FString(__FUNCTION__));
 				break;
 			}
 		}
 
 		if (!CurrentShield)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("No shield found in %s"), *FString(__FUNCTION__));
-			SpawnShield();
+			UE_LOG(LogTemp, Error, TEXT("No shield found in %s"), *FString(__FUNCTION__));
+			//SpawnShield();
 			return;
 		}
 		
