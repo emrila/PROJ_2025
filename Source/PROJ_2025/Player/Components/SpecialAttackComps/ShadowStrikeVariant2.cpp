@@ -720,10 +720,10 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			Params
 		);
 		
-		DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Purple, false, 5.f);
+		//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Purple, false, 5.f);
 		if (Ribbon)
 		{
-			Ribbon->SetActorLocation(OwnerCharacter->GetActorLocation());
+			Ribbon->SetActorLocation(SweepStartLocation);
 			Ribbon->BP_SpawnRibbon(LockedLocation, TeleportDelay);
 		}
 		
