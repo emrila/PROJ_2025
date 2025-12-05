@@ -189,7 +189,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* JumpAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Ability")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
 	UInputAction* FirstAttackAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Ability")

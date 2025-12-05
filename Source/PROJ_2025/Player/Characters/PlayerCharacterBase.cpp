@@ -194,7 +194,7 @@ void APlayerCharacterBase::HandleCameraDetachment()
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FollowCamera is Null"), *FString(__FUNCTION__));
 		return;
 	}
-	StartIFrame();
+	//StartIFrame();
 	
 	bUseControllerRotationYaw = false;
 	bShouldUseLookInput = false;
