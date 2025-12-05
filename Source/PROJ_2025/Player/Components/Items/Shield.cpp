@@ -1,7 +1,10 @@
 ﻿#include "Shield.h"
 
 #include "EnemyBase.h"
+#include "TrapBase.h"
+#include "TrapDamageType.h"
 #include "Components/BoxComponent.h"
+#include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -323,6 +326,11 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	if (!HasAuthority()) return 0.f;
 	
 	if (!bIsShieldActive) return 0.f;
+	
+	if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
+	{
+		return 0.f;
+	}
 	
 	
 	Durability -= 10.f;
