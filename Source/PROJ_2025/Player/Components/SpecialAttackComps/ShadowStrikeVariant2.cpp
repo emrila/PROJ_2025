@@ -9,6 +9,7 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/ShadowStrikeRibbon.h"
@@ -80,12 +81,9 @@ void UShadowStrikeVariant2::SetupOwnerInputBinding(UEnhancedInputComponent* Owne
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this,
-		                           &UShadowStrikeVariant2::OnPrepareForAttack);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this,
-		                           &UShadowStrikeVariant2::OnLockedTarget);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this,
-		                           &UShadowStrikeVariant2::OnAttackCanceled);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UShadowStrikeVariant2::OnPrepareForAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &UShadowStrikeVariant2::OnLockedTarget);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this, &UShadowStrikeVariant2::OnAttackCanceled);
 	}
 }
 
@@ -97,11 +95,14 @@ void UShadowStrikeVariant2::TickComponent(float DeltaTime, enum ELevelTick TickT
 	//Handle indicator here
 	if (bHasLockedTarget && bCanAttack)
 	{
+#if WITH_EDITOR
 		TryLockingTargetOrLocation();
+
 		if (bCanTeleport)
 		{
 			DrawDebugSphere(GetWorld(), LockedLocation, 150.f, 10, FColor::Cyan, false, 0.1f);
 		}
+#endif
 	}
 
 	//Not relevant anymore
@@ -190,11 +191,15 @@ void UShadowStrikeVariant2::PerformAttack()
 
 void UShadowStrikeVariant2::OnPrepareForAttack(const FInputActionInstance& ActionInstance)
 {
+	UE_LOG(LogTemp, Warning, TEXT("OnPrepareForAttack: TriggerEvent=%d Value=%f"),
+		   (int32)ActionInstance.GetTriggerEvent(), ActionInstance.GetValue().GetMagnitude());
 	// Not sure if I need a parameter for this function and to actually compare ETriggerEvent types
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
 	{
 		return;
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s, Started."), *FString(__FUNCTION__));
 
 	bHasLockedTarget = true;
 	PrepareForAttack();
@@ -202,6 +207,8 @@ void UShadowStrikeVariant2::OnPrepareForAttack(const FInputActionInstance& Actio
 
 void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionInstance)
 {
+	UE_LOG(LogTemp, Warning, TEXT("OnLockedTarget: TriggerEvent=%d Value=%f"),
+		   (int32)ActionInstance.GetTriggerEvent(), ActionInstance.GetValue().GetMagnitude());
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
 		return;
@@ -211,6 +218,8 @@ void UShadowStrikeVariant2::OnLockedTarget(const FInputActionInstance& ActionIns
 	{
 		return;
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s, Completed."), *FString(__FUNCTION__));
 
 	if (OwnerCharacter->HasAuthority())
 	{
@@ -235,13 +244,15 @@ void UShadowStrikeVariant2::OnAttackCanceled(const FInputActionInstance& ActionI
 	{
 		return;
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s, Canceled."), *FString(__FUNCTION__));
 
 	bHasLockedTarget = false;
 }
 
 void UShadowStrikeVariant2::PrepareForAttack()
 {
-	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter->IsAlive())
 	{
 		return;
 	}
@@ -305,10 +316,10 @@ void UShadowStrikeVariant2::HandlePostAttackState()
 	OwnerCharacter->HandleCameraReattachment();
 	if (!bWentThroughShield)
 	{
-		GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
+		/*GetWorld()->GetTimerManager().SetTimer(PlayerIFrameTimer, [this]()
 		{
 			OwnerCharacter->ResetIFrame();
-		}, 1.f, false);
+		}, 1.f, false);*/
 		return;
 	}
 
@@ -367,9 +378,17 @@ void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 	{
 		PlayerToCameraVector = OwnerCharacter->GetFollowCamera()->GetComponentLocation() - CurrentPlayerLocation;
 	}
+	
+	if (Ribbon)
+	{
+		Ribbon->SetActorLocation(SweepStartLocation);
+		Ribbon->BP_SpawnRibbon(LockedLocation, TeleportDelay);
+	}
 
 	// Teleport on all clients
 	Multicast_TeleportPlayer(NewTargetLocation);
+	
+	
 
 	// Start camera interpolation relative to player's new location
 	FVector NewCameraLocation = OwnerCharacter->GetActorLocation() + PlayerToCameraVector;
@@ -449,7 +468,7 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
 		OwnerCharacter->SetActorLocation(TeleportLocation, false, nullptr, ETeleportType::ResetPhysics);
 	}
-
+	
 	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
@@ -589,6 +608,8 @@ void UShadowStrikeVariant2::TryLockingTarget(FVector StartLocation, FVector EndL
 				LockedTarget = HitActor;
 				LockedLocation = LockedTarget->GetActorLocation();
 				SweepStartLocation = OwnerCharacter->GetActorLocation();
+				Server_SetLockedTarget(HitActor);
+				Server_SetLockedLocation(HitActor->GetActorLocation(), OwnerCharacter->GetActorLocation());
 			}
 			else
 			{
@@ -672,6 +693,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	{
 		LockedLocation = NewEndLocation;
 		SweepStartLocation = OwnerCharacter->GetActorLocation();
+		Server_SetLockedLocation(NewEndLocation, OwnerCharacter->GetActorLocation());
 	}
 	else
 	{
@@ -719,12 +741,9 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 			Params
 		);
 		
-		//DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Purple, false, 5.f);
-		if (Ribbon)
-		{
-			Ribbon->SetActorLocation(SweepStartLocation);
-			Ribbon->BP_SpawnRibbon(LockedLocation, TeleportDelay);
-		}
+#if WITH_EDITOR
+		DrawDebugSweptSphere(GetWorld(), SweepStartLocation, LockedLocation, 50.f, FColor::Purple, false, 5.f);
+#endif
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -813,4 +832,15 @@ float UShadowStrikeVariant2::GetAttackRange() const
 	//500.f is random atm, TBD later
 	return LockOnRange + (AttackDamageModifier * 500.f);*/
 	return LockOnRange;
+}
+
+void UShadowStrikeVariant2::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UShadowStrikeVariant2, LockedLocation);
+	DOREPLIFETIME(UShadowStrikeVariant2, SweepStartLocation);
+	DOREPLIFETIME(UShadowStrikeVariant2, bShouldRecast);
+	DOREPLIFETIME(UShadowStrikeVariant2, bDidRecast);
+	DOREPLIFETIME(UShadowStrikeVariant2, bWentThroughShield);
+	DOREPLIFETIME(UShadowStrikeVariant2, Ribbon);
 }
