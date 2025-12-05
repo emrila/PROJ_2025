@@ -58,6 +58,9 @@ void AChronoRiftZone::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AChronoRiftZone, ChronoRiftEffect);
+	DOREPLIFETIME(AChronoRiftZone, Radius);
+	DOREPLIFETIME(AChronoRiftZone, Lifetime);
+	DOREPLIFETIME(AChronoRiftZone, DamageAmount);
 }
 
 
