@@ -60,8 +60,6 @@ void UInteractorComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Server_SetInteracting(false);
-	SetTargetInteractable(nullptr);
 	if (const AController* InstController = GetOwner()->GetInstigatorController())
 	{
 		const TObjectPtr<APawn> Pawn = InstController->GetPawn();
@@ -69,6 +67,12 @@ void UInteractorComponent::BeginPlay()
 		{
 			SetComponentTickEnabled(Pawn->IsLocallyControlled());
 			INTERACT_DISPLAY(TEXT("InteractorComponent tick enabled: %s"), Pawn->IsLocallyControlled() ? TEXT("true") : TEXT("false"));
+		}
+
+		if (InstController->IsLocalPlayerController())
+		{
+			Server_SetInteracting(false);
+			SetTargetInteractable(nullptr);
 		}
 	}
 
