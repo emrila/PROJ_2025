@@ -30,7 +30,12 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 	APlayerCharacterBase* Player = Cast<APlayerCharacterBase>(DamageCauser);
 	if (Player)
 	{
-		Cast<AWizardPlayerState>(Player->GetPlayerState())->AddDamageDealt(DamageAmount);
+		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(Player->GetPlayerState());
+		if (!WizardPlayerState)
+		{
+			return 0.f;
+		}
+		WizardPlayerState->AddDamageDealt(DamageAmount);
 	}
 	HandleHit(DamageEvent, DamageCauser);
 	OnRep_Health();

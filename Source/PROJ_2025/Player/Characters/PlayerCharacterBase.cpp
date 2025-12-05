@@ -289,6 +289,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
+	/*
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -301,8 +302,32 @@ void APlayerCharacterBase::BeginPlay()
 		
 		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
 		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
-		
+
+		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+		{
+			const FName MaxHealthPropName = "MaxHealth";
+			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
+
+			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeStealMultiplier"));
+
+			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
+			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
+			{
+				AttributeData->OnAttributeModified.AddWeakLambda(GameState, [GameState]
+				{
+					if (!GameState)
+					{
+						return;
+					}
+					UE_LOG(PlayerBaseLog, Log, TEXT("Updating LifeStealMultiplier to %f"), GameState->MaxHealth);
+					GameState->SetMaxHealth(GameState->MaxHealth);
+				});
+
+			}
+		}
 	}
+	*/
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
@@ -317,6 +342,48 @@ void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+
+	if (UpgradeComponent && IsLocallyControlled())
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+
+		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+		{
+			const FName MaxHealthPropName = "MaxHealth";
+			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
+
+			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+
+			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
+			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
+			{
+				AttributeData->OnAttributeModified.AddWeakLambda(GameState, [GameState]
+				{
+					if (!GameState)
+					{
+						return;
+					}
+					UE_LOG(PlayerBaseLog, Log, TEXT("Updating MaxHealth to %f"), GameState->MaxHealth);
+					GameState->SetMaxHealth(GameState->MaxHealth);
+				});
+
+			}
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
+
+		}
+	}
+
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -346,7 +413,12 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 	
 		GameState->DamageHealth(NewDamageAmount);
-		Cast<AWizardPlayerState>(GetPlayerState())->AddDamageTaken(NewDamageAmount);
+		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(GetPlayerState());
+		if (!WizardPlayerState)
+		{
+			return 0.f;
+		}
+		WizardPlayerState->AddDamageTaken(NewDamageAmount);
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client

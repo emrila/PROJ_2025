@@ -126,7 +126,7 @@ protected:
 
 	float AcceptableAngelDegrees = 10.f;
 	
-	float StrikeDuration = 0.5f;
+	float StrikeDuration = 0.2f;
 	
 	float RecastDuration = 3.0f;
 	
@@ -141,9 +141,9 @@ protected:
 	//Handle camera interpolation
 	float CameraInterpDistanceBehind = 500.f;
 	
-	float CameraInterpDuration = 0.3f;
+	float CameraInterpDuration = 0.2f;
 	
-	float CameraInterpDelay = 0.5f;
+	float CameraInterpDelay = 0.f;
 	
 	//VFX
 	FVector DisappearLocation;

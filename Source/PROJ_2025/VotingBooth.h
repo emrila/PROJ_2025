@@ -3,10 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Core/UpgradeDisplayData.h"
 #include "GameFramework/Actor.h"
+#include "StructUtils/InstancedStruct.h"
 #include "VotingBooth.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnVotingFinished);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnVotingFinishedParams, FInstancedStruct, Data);
 
 USTRUCT(Blueprintable)
 struct FCandidate
@@ -30,6 +33,8 @@ struct FCandidate
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName RowName;
 	
+	UPROPERTY(BlueprintReadWrite)
+	FTeamModifierData ModifierData;
 };
 
 UCLASS()
@@ -40,6 +45,8 @@ class PROJ_2025_API AVotingBooth : public AActor
 public:
 
 	FOnVotingFinished OnVotingFinished;
+	FOnVotingFinishedParams OnVotingFinishedParams;
+	
 	AVotingBooth();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
