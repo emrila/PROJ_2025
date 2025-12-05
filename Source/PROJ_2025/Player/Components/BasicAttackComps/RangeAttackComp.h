@@ -4,6 +4,7 @@
 #include "../AttackComponentBase.h"
 #include "RangeAttackComp.generated.h"
 
+struct FInputActionInstance;
 class AMageProjectile;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -14,10 +15,19 @@ class PROJ_2025_API URangeAttackComp : public UAttackComponentBase
 public:
 	URangeAttackComp();
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void StartAttack() override;
+	
+	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 
 protected:
 	virtual void BeginPlay() override;
+	
+	virtual void OnStartAttack(const FInputActionInstance& Instance);
+	
+	virtual void OnAttackEnd(const FInputActionInstance& Instance);
+	
+	virtual void OnAttackCanceled(const FInputActionInstance& Instance);
 	
 	virtual void PerformAttack() override;
 
@@ -41,4 +51,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackAnimation;
+	
+	bool bIsAttacking = false;
 };
