@@ -47,7 +47,10 @@ void ALobbyGameMode::PostLogin(APlayerController* NewPlayer)
 		return;
 	}
 	AWizardGameState* GS = GetWorld()->GetGameState<AWizardGameState>();
-	GS->CurrentPlayerCount++;
+	if (GS->CurrentPlayerCount < 3)
+	{
+		GS->CurrentPlayerCount++;
+	}
 
 
 	if (GEngine)
