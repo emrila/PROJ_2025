@@ -447,7 +447,7 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 		/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
 			OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius(), OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());*/
 		OwnerCharacter->GetMesh()->SetHiddenInGame(true, true);
-		OwnerCharacter->SetActorLocation(TeleportLocation);
+		OwnerCharacter->SetActorLocation(TeleportLocation, false, nullptr, ETeleportType::ResetPhysics);
 	}
 
 	FTimerDelegate TimerDel = FTimerDelegate::CreateLambda([this]()
@@ -653,7 +653,6 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
 	
 	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
 		HitResult,
