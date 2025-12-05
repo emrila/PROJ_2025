@@ -44,12 +44,14 @@ protected:
 		FVector NormalImpulse,
 		const FHitResult& Hit
 	);
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	
+	UPROPERTY(Replicated)
 	float DamageAmount = 10.0f;
 
 	float GetDamageAmount() const { return DamageAmount; }
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -69,7 +71,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float LifeTime = 5.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UNiagaraSystem* ImpactParticles;
 
 	
