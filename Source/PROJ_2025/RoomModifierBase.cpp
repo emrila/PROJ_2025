@@ -14,6 +14,10 @@ void URoomModifierBase::OnExitsUnlocked()
 {
 }
 
+void URoomModifierBase::OnLootSpawned()
+{
+}
+
 void URoomModifierBase::RegisterClient_Implementation()
 {
 	ClientsReady++;

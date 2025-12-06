@@ -224,6 +224,10 @@ void ARoomManagerBase::SpawnLoot()
 	{
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
+		for (URoomModifierBase* Mod : RoomModifiers)
+		{
+			Mod->OnLootSpawned();
+		}
 	}else
 	{
 		EnableExits();
