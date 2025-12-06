@@ -136,7 +136,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 		UpgradeAlternativePair.LockedForPlayer[Index] = true;
 	}
 	
-	ForceNetUpdate();
+	//ForceNetUpdate();
 
 	if (!bIsInteractor)
 	{
