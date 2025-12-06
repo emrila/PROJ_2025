@@ -104,6 +104,18 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 			}
 			return EBTNodeResult::Failed;
 		}
+	if (PlayerPawns.Num() > 0)
+	{
+		AActor* NewTarget = PlayerPawns[FMath::RandRange(0, PlayerPawns.Num() - 1)];
 
+		if (APlayerCharacterBase* PCB = Cast<APlayerCharacterBase>(NewTarget))
+		{
+			if (PCB->IsAlive())
+			{
+				Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), NewTarget);
+				return EBTNodeResult::Succeeded;
+			}
+		}
+	}
 	return EBTNodeResult::Failed; // Här är det lite rip. Den får försöka igen ig
 }
