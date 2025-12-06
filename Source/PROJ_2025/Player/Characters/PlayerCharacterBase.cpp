@@ -556,6 +556,18 @@ void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInsta
 		return;
 	}
 	
+	if (!HasAuthority())
+	{
+		Server_SetSprint(true);
+		bShouldSprint = true;
+		if (GetCharacterMovement())
+		{
+			CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+			GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+		}
+		return;
+	}
+	
 	bShouldSprint = true;
 	
 	if (GetCharacterMovement())
@@ -573,10 +585,20 @@ void APlayerCharacterBase::OnSprintEnd(const FInputActionInstance& ActionInstanc
 		return;
 	}
 	
+	if (!HasAuthority())
+	{
+		Server_SetSprint(false);
+		if (!bShouldSprint) { return; }
+		bShouldSprint = false;
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+		return;
+	}
+	
 	if (!bShouldSprint) { return; }
-	
 	bShouldSprint = false;
-	
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
@@ -626,6 +648,23 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 
 	}
 	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+}
+
+void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprintState)
+{
+	bShouldSprint = bNewSprintState;
+	if (GetCharacterMovement())
+	{
+		if (bNewSprintState)
+		{
+			CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+			GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+		}
+		else
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
 }
 
 void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)

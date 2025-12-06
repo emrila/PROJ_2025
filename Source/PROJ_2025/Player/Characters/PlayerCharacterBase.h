@@ -190,6 +190,9 @@ protected:
 	
 	bool bShouldSprint = false;
 	
+	UFUNCTION(Server, Reliable)
+	void Server_SetSprint(const bool bNewSprintState);
+	
 	float CurrentMaxWalkSpeed = 0.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (AllowPrivateAccess = true))
