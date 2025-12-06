@@ -7,6 +7,7 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class AFallingCarrot;
 class ALantern;
 
 USTRUCT(BlueprintType)
@@ -51,6 +52,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ParkourTimerWidget;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<AFallingCarrot> FallingCarrotActor;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<ALantern> LanternActor;
 	
