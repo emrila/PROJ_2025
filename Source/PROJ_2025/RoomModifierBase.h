@@ -38,6 +38,9 @@ public:
 	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager);
 
 	virtual void OnExitsUnlocked();
+	
+	virtual void OnLootSpawned();
+	
 
 	UFUNCTION(Server, Reliable)
 	void RegisterClient();
