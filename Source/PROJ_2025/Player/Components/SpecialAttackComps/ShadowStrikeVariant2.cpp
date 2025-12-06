@@ -382,7 +382,7 @@ void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 	if (Ribbon)
 	{
 		Ribbon->SetActorLocation(SweepStartLocation);
-		Ribbon->BP_SpawnRibbon(LockedLocation, TeleportDelay);
+		Ribbon->BP_SpawnRibbon(SweepStartLocation,LockedLocation, TeleportDelay);
 	}
 
 	// Teleport on all clients
