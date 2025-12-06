@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+struct FInputActionInstance;
 class UUpgradeComponent;
 class UCameraComponent;
 class USpringArmComponent;
@@ -168,6 +169,10 @@ protected:
 	virtual void UseFirstAttackComponent();
 
 	virtual void UseSecondAttackComponent();
+	
+	virtual void OnSprintBegin(const FInputActionInstance& ActionInstance);
+	
+	virtual void OnSprintEnd(const FInputActionInstance& ActionInstance);
 
 	virtual void Interact(const FInputActionValue& Value);
 	
@@ -176,26 +181,39 @@ protected:
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
+	bool bShouldUseSprintInput = true;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
+	float SprintSpeedMultiplier = 1.5f;
+	
+	bool bShouldSprint = false;
+	
+	float CurrentMaxWalkSpeed = 0.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Replicated, meta = (AllowPrivateAccess = true))
 	bool bIsAlive = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MoveAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* MouseLookAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Movement")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	UInputAction* JumpAction;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
+	UInputAction* SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
 	UInputAction* FirstAttackAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Ability")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
 	UInputAction* SecondAttackAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Misc")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
 
 	//Handle components
