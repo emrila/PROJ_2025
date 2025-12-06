@@ -82,7 +82,9 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	{
 		// Possibly add visual effects or indicators for I-frames here
 		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
+#if WITH_EDITOR
 		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
+#endif		
 	}
 }
 
@@ -107,6 +109,9 @@ void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
+		
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &APlayerCharacterBase::OnSprintBegin);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::OnSprintEnd);
 
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
 		
@@ -540,6 +545,41 @@ void APlayerCharacterBase::UseSecondAttackComponent()
 	if (bIsAlive)
 	{
 		GetSecondAttackComponent()->StartAttack();
+	}
+}
+
+void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInstance)
+{
+	if (!bShouldUseSprintInput) { return; }
+	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
+	{
+		return;
+	}
+	
+	bShouldSprint = true;
+	
+	if (GetCharacterMovement())
+	{
+		CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+	}
+}
+
+void APlayerCharacterBase::OnSprintEnd(const FInputActionInstance& ActionInstance)
+{
+	if (!bShouldUseSprintInput) { return; }
+	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
+	{
+		return;
+	}
+	
+	if (!bShouldSprint) { return; }
+	
+	bShouldSprint = false;
+	
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
 	}
 }
 
