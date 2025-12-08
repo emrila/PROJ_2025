@@ -314,7 +314,7 @@ void APlayerCharacterBase::BeginPlay()
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
 			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeStealMultiplier"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
