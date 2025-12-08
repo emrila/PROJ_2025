@@ -15,15 +15,12 @@ class GUI_API UClickableBase : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** Called when the clickable element is clicked */
 	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
 	FOnClickableEvent OnClicked;
 
-	/** Called when the clickable element is pressed */
 	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
 	FOnClickableEvent OnPressed;
 
-	/** Called when the clickable element is released */
 	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
 	FOnClickableEvent OnReleased;
 
@@ -32,4 +29,32 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
 	FOnClickableEvent OnUnhovered;
+
+	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
+	FOnClickableEvent OnFocused;
+
+	UPROPERTY(BlueprintAssignable, Category="Events", meta = (IsBindableEvent = true))
+	FOnClickableEvent OnUnfocused;
+
+	// Blueprint-callable wrappers to broadcast the delegates
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnClicked();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnPressed();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnReleased();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnHovered();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnUnhovered();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnFocused();
+
+	UFUNCTION(BlueprintCallable, Category="Events")
+	void CallOnUnfocused();
 };
