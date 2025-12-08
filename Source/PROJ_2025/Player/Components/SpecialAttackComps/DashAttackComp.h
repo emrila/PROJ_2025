@@ -36,8 +36,6 @@ protected:
 	
 	//virtual void OnAttackCanceled(const FInputActionInstance& ActionInstance);
 	
-	void HandlePostAttackState();
-	
 	void PrepareForAttack();
 	
 	void TryLockingTargetLocation();
@@ -70,6 +68,8 @@ protected:
 	
 	UFUNCTION(Server, Reliable)
 	void Server_Dash();
+	
+	void HandlePostAttackState();
 	
 	virtual void ResetAttackCooldown() override;
 	

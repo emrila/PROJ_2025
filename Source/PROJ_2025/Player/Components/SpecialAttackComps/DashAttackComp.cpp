@@ -209,26 +209,6 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 	StartAttack();
 }
 
-void UDashAttackComp::HandlePostAttackState()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-	
-	if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
-	{
-		//OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
-		FTimerHandle MeshvisibilityTimer;
-		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(true, true);
-		}, 0.1f, false);
-		
-	}
-}
-
 void UDashAttackComp::PrepareForAttack()
 {
 	//TODO: Handle before attack animation here 
@@ -319,7 +299,8 @@ void UDashAttackComp::TryLockingTargetLocation()
 		const float ForwardThreshold = 0.1f;
 		if (ForwardDot > ForwardThreshold)
 		{
-			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f; // back off a bit
+			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
+			NewEndLocation.Z += 100.f; // Move up 100 points to 
 		}
 		// else: impact is behind the player (even if in front of camera) -> ignore and keep TraceEnd
 	}
@@ -368,7 +349,6 @@ void UDashAttackComp::Dash()
 	
 		if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
 		{
-			//OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 			OwnerCharacter->GetMesh()->SetVisibility(false, true);
 		}
 	
@@ -377,16 +357,6 @@ void UDashAttackComp::Dash()
 	else
 	{
 		Server_Dash();
-		/*if (bIsDashing) { return; }
-	
-		DashElapsed = 0.0f;
-	
-		if (OwnerCharacter->GetCapsuleComponent())
-		{
-			OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-		}
-	
-		bIsDashing = true;*/
 	}
 }
 
@@ -404,11 +374,30 @@ void UDashAttackComp::Server_Dash_Implementation()
 	
 	if (OwnerCharacter->GetCapsuleComponent())
 	{
-		//OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
 	}
 	
 	bIsDashing = true;
+}
+
+void UDashAttackComp::HandlePostAttackState()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
+	{
+		OwnerCharacter->GetMesh()->SetVisibility(true, true);
+		/*FTimerHandle MeshvisibilityTimer;
+		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()
+		{
+			OwnerCharacter->GetMesh()->SetVisibility(true, true);
+		}, 0.1f, false);*/
+		
+	}
 }
 
 void UDashAttackComp::Server_SetCanDash_Implementation(const bool Value)
