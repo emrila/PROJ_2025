@@ -19,6 +19,12 @@ struct FUpgradeAlternativePair
 
 	FUpgradeAlternativePair() = default;
 	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData) : Alternative(InAlternative), UpgradeData(InUpgradeData)	{}
+	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData, const int32 NumberOfSpawnAlternatives) : Alternative(InAlternative), UpgradeData(InUpgradeData)
+	{
+		FocusedByPlayers.SetNum(NumberOfSpawnAlternatives);
+		SelectedByPlayers.SetNum(NumberOfSpawnAlternatives);
+		LockedForPlayer.SetNum(NumberOfSpawnAlternatives);		
+	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AUpgradeAlternative* Alternative = nullptr;

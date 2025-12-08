@@ -107,7 +107,7 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, i, LocalUpgradeDataArray.Num());
 			break;
 		}
-		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i]); //Waiting to trigger OnRep on clients after all alternatives are spawned
+		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i], NumberOfSpawnAlternatives); //Waiting to trigger OnRep on clients after all alternatives are spawned
 		SpawnedAlternative->Index = i;		
 		SpawnedAlternative->OwningSpawner = this;
 		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, i);
