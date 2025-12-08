@@ -46,6 +46,11 @@ struct FUpgradeDisplayData
 	{
 		return !(*this == UpgradeData);
 	}
+
+	FString ToString() const
+	{
+		return FString::Printf(TEXT("RowName: %s, Title: %s, Description: %s, TargetName: %s"), *RowName.ToString(), *Title.ToString(), *Description.ToString(), *TargetName.ToString());
+	}
 };
 
 USTRUCT(BlueprintType)

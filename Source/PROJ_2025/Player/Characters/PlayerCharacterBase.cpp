@@ -294,7 +294,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-	/*
+
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -332,7 +332,7 @@ void APlayerCharacterBase::BeginPlay()
 			}
 		}
 	}
-	*/
+
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
@@ -348,6 +348,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
+	/*
 	if (UpgradeComponent && IsLocallyControlled())
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -388,6 +389,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 
 		}
 	}
+	*/
 
 }
 

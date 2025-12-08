@@ -101,7 +101,7 @@ void AUpgradeAlternative::Tick(float DeltaTime)
 
 bool AUpgradeAlternative::CanInteract_Implementation()
 {
-	return bFocus && !bSelected && !bLocked;
+	return bFocus && !bSelected&& !bLocked;
 }
 
 void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
@@ -122,8 +122,9 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
 	bSelected = true;
-	UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;	
-	SelectUpgrade();
+    UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
+    SelectUpgrade();
+
 	if (OwningSpawner)
 	{
 		if (!OwningSpawner->GetUpgradeAlternativePairs().IsValidIndex(Index))
@@ -132,10 +133,15 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 			return;
 		}
 		FUpgradeAlternativePair& UpgradeAlternativePair = OwningSpawner->GetUpgradeAlternativePairs()[Index];
+		if (UpgradeAlternativePair.SelectedByPlayers.Contains(true) || UpgradeAlternativePair.LockedForPlayer.Contains(true))
+		{
+			UPGRADE_WARNING(TEXT("%hs: Upgrade alternative already selected or locked for a player!"), __FUNCTION__);
+			return;
+		}
 		UpgradeAlternativePair.SelectedByPlayers[Index] = true;
 		UpgradeAlternativePair.LockedForPlayer[Index] = true;
 	}
-	
+
 	//ForceNetUpdate();
 
 	if (!bIsInteractor)
@@ -163,6 +169,7 @@ void AUpgradeAlternative::SelectUpgrade()
 	if (bSelected && !bLocked)
 	{
 		OnUpgrade.Broadcast(UpgradeDisplayData);
+		SetLocked(true);
 	}
 }
 
@@ -205,6 +212,15 @@ void AUpgradeAlternative::SetFocus(const bool bToggle)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnUpgradeHasFocus(bFocus);
+	}
+}
+
+void AUpgradeAlternative::OnRep_UpgradeDisplayData()
+{
+	UPGRADE_DISPLAY( TEXT("%hs: UpgradeDisplayData replicated %s."), __FUNCTION__, *UpgradeDisplayData.ToString());
+	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+	{
+		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 	}
 }
 
