@@ -7,6 +7,7 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 
 
@@ -37,6 +38,8 @@ AMageProjectile::AMageProjectile()
 void AMageProjectile::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	SetReplicateMovement(true);
 
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
 	CollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
@@ -45,6 +48,10 @@ void AMageProjectile::BeginPlay()
 void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
 {
 	if (!HasAuthority())
+	{
+		return;
+	}
+	if (OtherActor == this)
 	{
 		return;
 	}
@@ -79,7 +86,7 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherComp->IsA(StaticClass()))
+	if (OtherActor && OtherActor->IsA(AMageProjectile::StaticClass()))
 	{
 		return;
 	}
@@ -89,6 +96,13 @@ void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles,Hit.ImpactPoint);
 		Destroy();
 	}
+}
+
+void AMageProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AMageProjectile, DamageAmount);
+	DOREPLIFETIME(AMageProjectile, ImpactParticles);
 }
 
 void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)

@@ -19,6 +19,7 @@ public:
 	virtual void StartAttack() override;
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -45,6 +46,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
+	
+	UPROPERTY(Replicated)
+	AMageProjectile* ProjectileInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProjectileOffsetDistanceInFront = 120.f;

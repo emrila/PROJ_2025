@@ -54,8 +54,14 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Upgrade Alternative|Movement", meta=(AllowPrivateAccess=true))
 	float InterpSpeed;
 
-	UPROPERTY(EditAnywhere, Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	AUpgradeSpawner* OwningSpawner;
+	
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_UpgradeDisplayData, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	FUpgradeDisplayData UpgradeDisplayData;
+
+	UFUNCTION()
+	void OnRep_UpgradeDisplayData();
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	int32 Index = -1;

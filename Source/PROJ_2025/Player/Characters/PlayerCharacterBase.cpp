@@ -82,7 +82,9 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	{
 		// Possibly add visual effects or indicators for I-frames here
 		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
+#if WITH_EDITOR
 		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
+#endif		
 	}
 }
 
@@ -107,7 +109,10 @@ void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &APlayerCharacterBase::Look);
-
+		
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &APlayerCharacterBase::OnSprintBegin);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &APlayerCharacterBase::OnSprintEnd);
+		
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &APlayerCharacterBase::Interact);
 		
 		
@@ -289,7 +294,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-	/*
+
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -309,7 +314,7 @@ void APlayerCharacterBase::BeginPlay()
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
 			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeStealMultiplier"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
@@ -327,7 +332,7 @@ void APlayerCharacterBase::BeginPlay()
 			}
 		}
 	}
-	*/
+
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
@@ -342,6 +347,7 @@ void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+
 
 	if (UpgradeComponent && IsLocallyControlled())
 	{
@@ -383,7 +389,6 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 
 		}
 	}
-
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -543,6 +548,63 @@ void APlayerCharacterBase::UseSecondAttackComponent()
 	}
 }
 
+void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInstance)
+{
+	if (!bShouldUseSprintInput) { return; }
+	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
+	{
+		return;
+	}
+	
+	if (!HasAuthority())
+	{
+		Server_SetSprint(true);
+		bShouldSprint = true;
+		if (GetCharacterMovement())
+		{
+			CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+			GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+		}
+		return;
+	}
+	
+	bShouldSprint = true;
+	
+	if (GetCharacterMovement())
+	{
+		CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+		GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+	}
+}
+
+void APlayerCharacterBase::OnSprintEnd(const FInputActionInstance& ActionInstance)
+{
+	if (!bShouldUseSprintInput) { return; }
+	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
+	{
+		return;
+	}
+	
+	if (!HasAuthority())
+	{
+		Server_SetSprint(false);
+		if (!bShouldSprint) { return; }
+		bShouldSprint = false;
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+		return;
+	}
+	
+	if (!bShouldSprint) { return; }
+	bShouldSprint = false;
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+	}
+}
+
 void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 {
 	if (InteractorComponent && bIsAlive)
@@ -586,6 +648,23 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 
 	}
 	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+}
+
+void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprintState)
+{
+	bShouldSprint = bNewSprintState;
+	if (GetCharacterMovement())
+	{
+		if (bNewSprintState)
+		{
+			CurrentMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+			GetCharacterMovement()->MaxWalkSpeed *= SprintSpeedMultiplier;
+		}
+		else
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
 }
 
 void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)

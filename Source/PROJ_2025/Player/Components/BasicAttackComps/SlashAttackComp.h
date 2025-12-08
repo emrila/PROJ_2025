@@ -5,6 +5,8 @@
 #include "SlashAttackComp.generated.h"
 
 
+struct FInputActionInstance;
+
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API USlashAttackComp : public UAttackComponentBase
 {
@@ -12,6 +14,8 @@ class PROJ_2025_API USlashAttackComp : public UAttackComponentBase
 
 public:
 	USlashAttackComp();
+	
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void StartAttack() override;
 	
@@ -22,6 +26,12 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	
+	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
+	
+	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance);
+	
+	virtual void OnEndAttack(const FInputActionInstance& InputActionInstance);
 
 	virtual void PerformAttack() override;
 
@@ -45,5 +55,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackMontage;
 	
-	float AttackRadius = 200.f;
+	float AttackRadius = 250.f;
+	
+	bool bIsAttacking = false;
 };

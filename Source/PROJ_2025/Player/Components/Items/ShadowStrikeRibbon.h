@@ -13,5 +13,5 @@ class PROJ_2025_API AShadowStrikeRibbon : public AActor
 
 public:
 	UFUNCTION(BlueprintImplementableEvent)
-	void BP_SpawnRibbon(FVector EndLocation, float Duration);
+	void BP_SpawnRibbon(FVector StartLocation, FVector EndLocation, float Duration);
 };

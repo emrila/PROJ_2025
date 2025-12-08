@@ -1,6 +1,7 @@
 ﻿#include "SlashAttackComp.h"
 
 #include "EnemyBase.h"
+#include "EnhancedInputComponent.h"
 #include "../SpecialAttackComps/ShadowStrikeAttackComp.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
@@ -12,6 +13,17 @@ USlashAttackComp::USlashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	DamageAmount = 15.f;
 	AttackCooldown = 0.25f;
+}
+
+void USlashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	
+	if (bIsAttacking)
+	{
+		StartAttack();
+	}
 }
 
 void USlashAttackComp::StartAttack()
@@ -81,6 +93,38 @@ void USlashAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void USlashAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
+{
+	if (OwnerInputComp && OwnerInputAction)
+	{
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &USlashAttackComp::OnStartAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &USlashAttackComp::OnEndAttack);
+	}
+}
+
+void USlashAttackComp::OnStartAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
+	{
+		return;
+	}
+	
+	bIsAttacking = true;
+}
+
+void USlashAttackComp::OnEndAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
+	{
+		return;
+	}
+	if (!bIsAttacking)
+	{
+		return;
+	}
+	bIsAttacking = false;
 }
 
 void USlashAttackComp::PerformAttack()
