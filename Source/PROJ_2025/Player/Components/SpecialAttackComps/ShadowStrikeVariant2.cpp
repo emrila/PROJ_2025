@@ -273,15 +273,30 @@ void UShadowStrikeVariant2::Server_SetLockedLocation_Implementation(FVector Loca
 
 void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNewShouldRecast)
 {
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	bShouldRecast = bNewShouldRecast;
 	if (bShouldRecast)
 	{
 		OnCanRecast.Broadcast();
+		OwnerCharacter->StartIFrame();
+		GetWorld()->GetTimerManager().SetTimer(RecastIFrameTimerHandle, [this]()
+		{
+			OwnerCharacter->ResetIFrame();
+		}, RecastDuration, false);
 	}
 }
 
 void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDidRecast)
 {
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	bDidRecast = BNewDidRecast;
 	if (bDidRecast)
 	{
@@ -635,7 +650,7 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 
 	FVector NewEndLocation = EndLocation;
 
-	FVector Forward = OwnerCharacter->GetActorForwardVector();
+	/*FVector Forward = OwnerCharacter->GetActorForwardVector();
 
 	FVector ToTarget = (EndLocation - StartLocation).GetSafeNormal();
 
@@ -667,6 +682,9 @@ void UShadowStrikeVariant2::TryLockingLocation(FVector StartLocation, FVector En
 	{
 		NewEndLocation = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * LockOnRange;
 	}
+	*/
+	
+	//NewEndLocation = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * LockOnRange;
 	
 	FHitResult HitResult;
 	FCollisionQueryParams Params;
