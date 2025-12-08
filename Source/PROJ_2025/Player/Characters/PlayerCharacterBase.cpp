@@ -52,6 +52,12 @@ APlayerCharacterBase::APlayerCharacterBase()
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
 	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
+
+	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+	{
+		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
+	}
+	
 }
 
 void APlayerCharacterBase::Tick(float DeltaTime)
@@ -295,10 +301,15 @@ void APlayerCharacterBase::BeginPlay()
 	
 	SetUpLocalCustomPlayerName();
 
+	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+	{
+		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
+	}
+	
 	if (UpgradeComponent && IsLocallyControlled())
-	{	
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
-		
+	{
+		//UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		UpgradeComponent->BindAttribute(this, TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 		
@@ -337,6 +348,12 @@ void APlayerCharacterBase::BeginPlay()
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
+
+	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+	{
+		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
+	}
+	
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -348,10 +365,30 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	/*
+	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+	{
+		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
+	}
+	
 	if (UpgradeComponent && IsLocallyControlled())
 	{
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		//UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		UpgradeComponent->BindAttribute(this, TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(this, GetClass()->FindPropertyByName(TEXT("MaxWalkSpeed"))))
+		{
+			AttributeData->OnAttributeModified.AddWeakLambda(this, [this, NewController] 
+			{
+				if (!this || !NewController)
+				{
+					return;
+				}
+				if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
+				{					
+					CharacterMovementComponent->MaxWalkSpeed = MaxWalkSpeed;
+					UE_LOG(PlayerBaseLog, Log, TEXT("%s, Updated MaxWalkSpeed to %f"), *FString(__FUNCTION__), CharacterMovementComponent->MaxWalkSpeed);
+				}
+			});				
+		}
 
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
@@ -401,6 +438,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 	DOREPLIFETIME(APlayerCharacterBase, IFrame);
+	DOREPLIFETIME(APlayerCharacterBase, MaxWalkSpeed);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)

@@ -188,6 +188,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	float SprintSpeedMultiplier = 1.5f;
 	
+	UPROPERTY(Replicated, BlueprintReadOnly, meta=(AllowPrivateAccess = true))
+	float MaxWalkSpeed = 600.f;
+
+	
 	bool bShouldSprint = false;
 	
 	UFUNCTION(Server, Reliable)
