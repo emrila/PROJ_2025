@@ -144,6 +144,7 @@ protected:
 	
 	FTimerHandle PlayerTeleportTimerHandle;
 	FTimerHandle RecastTimerHandle;
+	FTimerHandle RecastIFrameTimerHandle;
 	
 	//Handle camera interpolation
 	float CameraInterpDistanceBehind = 500.f;
