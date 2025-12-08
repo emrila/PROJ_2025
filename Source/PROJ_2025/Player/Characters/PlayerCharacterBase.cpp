@@ -348,7 +348,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-	/*
+
 	if (UpgradeComponent && IsLocallyControlled())
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -389,8 +389,6 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 
 		}
 	}
-	*/
-
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
