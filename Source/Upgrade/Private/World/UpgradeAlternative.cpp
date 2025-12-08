@@ -138,8 +138,14 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 			UPGRADE_WARNING(TEXT("%hs: Upgrade alternative already selected or locked for a player!"), __FUNCTION__);
 			return;
 		}
-		UpgradeAlternativePair.SelectedByPlayers[Index] = true;
-		UpgradeAlternativePair.LockedForPlayer[Index] = true;
+		if (UpgradeAlternativePair.SelectedByPlayers.IsValidIndex(Index))
+		{
+			UpgradeAlternativePair.SelectedByPlayers[Index] = true;
+		}
+		if (UpgradeAlternativePair.LockedForPlayer.IsValidIndex(Index))
+		{
+			UpgradeAlternativePair.LockedForPlayer[Index] = true;
+		}
 	}
 
 	//ForceNetUpdate();
