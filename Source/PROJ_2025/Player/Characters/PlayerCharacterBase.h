@@ -225,11 +225,13 @@ protected:
 	UInputAction* InteractAction;
 
 	//Handle components
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* BasicAttackComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* SpecialAttackComponent;
+	
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
 	TSubclassOf<UAttackComponentBase> BasicAttackComponentClass;

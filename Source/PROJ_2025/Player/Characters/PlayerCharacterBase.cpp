@@ -9,6 +9,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
+#include "Engine/ActorChannel.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -293,27 +294,32 @@ void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	//Create objects for attack components
-	/*if (BasicAttackComponentClass)
+	if (HasAuthority())
 	{
-		BasicAttackComponent = NewObject<UAttackComponentBase>(this, BasicAttackComponentClass);
-		if (BasicAttackComponent)
+		if (BasicAttackComponentClass)
 		{
-			BasicAttackComponent->RegisterComponent();
-			BasicAttackComponent->InitializeComponent();
+			BasicAttackComponent = NewObject<UAttackComponentBase>(this, BasicAttackComponentClass);
+			if (BasicAttackComponent)
+			{
+				BasicAttackComponent->SetIsReplicated(true);
+				BasicAttackComponent->RegisterComponent();
+				BasicAttackComponent->InitializeComponent();
+			}
+		}
+	
+		if (SpecialAttackComponentClass)
+		{
+			SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
+		
+			if (SpecialAttackComponentClass)
+			{
+				SpecialAttackComponent->SetIsReplicated(true);
+				SpecialAttackComponent->RegisterComponent();
+				SpecialAttackComponent->InitializeComponent();
+			}
 		}
 	}
 	
-	if (SpecialAttackComponentClass)
-	{
-		SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
-		
-		if (SpecialAttackComponentClass)
-		{
-			SpecialAttackComponent->RegisterComponent();
-			SpecialAttackComponent->InitializeComponent();
-		}
-	}*/
 	
 	if (FollowCamera)
 	{
@@ -427,6 +433,9 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 	DOREPLIFETIME(APlayerCharacterBase, IFrame);
+	
+	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
+	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -700,6 +709,24 @@ void APlayerCharacterBase::Server_HitFeedback_Implementation()
 void APlayerCharacterBase::Multicast_HitFeedback_Implementation()
 {
 	HitFeedback();
+}
+
+bool APlayerCharacterBase::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
+	FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	
+	if (BasicAttackComponent)
+	{
+		WroteSomething |= Channel->ReplicateSubobject(BasicAttackComponent, *Bunch, *RepFlags);
+	}
+
+	if (SpecialAttackComponent)
+	{
+		WroteSomething |= Channel->ReplicateSubobject(SpecialAttackComponent, *Bunch, *RepFlags);
+	}
+
+	return WroteSomething;
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()
