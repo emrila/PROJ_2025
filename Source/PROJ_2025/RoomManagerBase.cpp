@@ -54,25 +54,29 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
 	TArray<URoomData*> AllRooms;
+	if (GI->RoomLoader->NormalMapPool.Num() <= 4)
+	{
+		GI->RoomLoader->RefreshPool();
+	}
 	if (Room.RoomData->RoomType != ERoomType::Parkour)
 	{
-		AllRooms = GI->NormalMapPool;
+		AllRooms = GI->RoomLoader->NormalMapPool;
 	}else
 	{
-		AllRooms = GI->CombatOnly;
+		AllRooms = GI->RoomLoader->CombatOnly;
 	}
-	bool BossRoom = GI->RollForBossRoom();
+	bool BossRoom = GI->RoomLoader->RollForBossRoom();
 	bool CampExit = false;
 	bool ChoiceRoom = false;
 	if (!BossRoom)
 	{
-		ChoiceRoom = GI->RollForChoiceRoom();
+		ChoiceRoom = GI->RoomLoader->RollForChoiceRoom();
 		if (!ChoiceRoom)
 		{
-			CampExit = GI->RollForCampRoom();
+			CampExit = GI->RoomLoader->RollForCampRoom();
 		}else
 		{
-			GI->RollForCampRoom(true);
+			GI->RoomLoader->RollForCampRoom(true);
 		}
 	}
 
@@ -104,11 +108,11 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 
 	if (CampExit)
 	{
-		ChosenRooms.Add(GI->GetCampRoomData());
+		ChosenRooms.Add(GI->CampRoom);
 	}
 	if (ChoiceRoom)
 	{
-		ChosenRooms.Add(GI->GetChoiceRoomData());
+		ChosenRooms.Add(GI->ChoiceRoom);
 	}
 	if (BossRoom)
 	{

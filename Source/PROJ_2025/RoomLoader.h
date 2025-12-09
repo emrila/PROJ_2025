@@ -27,14 +27,21 @@ class PROJ_2025_API ARoomLoader : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
+
+	void RefreshPool();
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Rooms")
 	FRoomInstance CurrentRoom;
 
+	UPROPERTY()
+	TArray<URoomData*> NormalMapPool;
 
+	UPROPERTY()
+	TArray<URoomData*> CombatOnly;
+	
 	UPROPERTY()
 	FName CurrentLoadedLevelName;
 	
@@ -63,6 +70,16 @@ public:
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	float GetDungeonScaling() const;
+
+	bool RollForCampRoom(bool OnlyIncrementChance = false);
+
+	bool RollForChoiceRoom() const;
+
+	bool RollForBossRoom() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	void RemoveRoomFromPool(URoomData* RoomData);
+	
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void RegisterNextRoom(URoomData* RoomData);
@@ -100,5 +117,9 @@ private:
 	
 	UFUNCTION()
 	void OnPreviousLevelUnloaded();
+
+		
+private:
+	float ChanceForCamp = 0.f;
 
 };

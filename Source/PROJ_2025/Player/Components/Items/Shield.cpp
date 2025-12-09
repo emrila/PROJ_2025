@@ -221,7 +221,7 @@ void AShield::TickDurability()
 		}
 	}
 	const float OldDurability = Durability;
-	Durability -= 10.f;
+	DecreaseDurability(10.f);
 	//UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
 }
 
@@ -245,7 +245,7 @@ void AShield::TickRecovery()
 		}
 	}
 	const float OldDurability = Durability;
-	Durability += 10.f;
+	IncreaseDurability(10.f);
 	//UE_LOG(LogTemp, Warning, TEXT("Durability increased from:%f, to:%f"), OldDurability, Durability);
 }
 
@@ -277,7 +277,7 @@ void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* Other
 			DamageCauser,
 			UDamageType::StaticClass()
 			);
-			Durability -= 10.f;
+			DecreaseDurability(10.f);
 			bShouldGiveDamage = false;
 			ResetShouldGiveDamage();
 		}
@@ -313,7 +313,7 @@ void AShield::OnShieldHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPri
 			DamageCauser,
 			UDamageType::StaticClass()
 			);
-			Durability -= 10.f;
+			DecreaseDurability(10.f);
 			bShouldGiveDamage = false;
 			ResetShouldGiveDamage();
 		}
@@ -333,7 +333,7 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	}
 	
 	
-	Durability -= 10.f;
+	DecreaseDurability(10.f);
 	
 	UE_LOG(LogTemp, Warning, TEXT("Shield took %f damage"), 10.f);
 	
