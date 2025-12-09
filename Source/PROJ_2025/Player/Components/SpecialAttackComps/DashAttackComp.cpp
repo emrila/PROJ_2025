@@ -45,7 +45,7 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 	
 	
-	if (bIsDashing)
+	/*if (bIsDashing)
 	{
 		DashElapsed += DeltaTime;
 		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
@@ -57,7 +57,7 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			bIsDashing = false;
 			HandlePostAttackState();
 		}
-	}
+	}*/
 
 }
 
@@ -262,21 +262,13 @@ void UDashAttackComp::TryLockingTargetLocation()
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 	
-	/*const bool bHit = GetWorld()->SweepSingleByObjectType(
+	const bool bHit = GetWorld()->SweepSingleByObjectType(
 		HitResult,
 		TraceStart,
 		NewEndLocation,
 		FQuat::Identity,
 		ObjectQueryParams,
 		FCollisionShape::MakeSphere(25.f),
-		Params
-	);*/
-	
-	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
-		HitResult,
-		TraceStart,
-		NewEndLocation,
-		ObjectQueryParams,
 		Params
 	);
 	
@@ -301,6 +293,7 @@ void UDashAttackComp::TryLockingTargetLocation()
 			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
 			NewEndLocation.Z += 100.f; // Move up 100 points to avoid narrow collisions
 		}
+		
 	}
 
 	if (OwnerCharacter->HasAuthority())
@@ -341,7 +334,7 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		if (bIsDashing) { return; }
+		/*if (bIsDashing) { return; }
 	
 		DashElapsed = 0.0f;
 	
@@ -350,7 +343,9 @@ void UDashAttackComp::Dash()
 			OwnerCharacter->GetMesh()->SetVisibility(false, true);
 		}
 	
-		bIsDashing = true;
+		bIsDashing = true;*/
+		
+		OwnerCharacter->SetActorLocation(TargetLocation);
 	}
 	else
 	{
@@ -366,7 +361,7 @@ void UDashAttackComp::Server_Dash_Implementation()
 		return;
 	}
 	
-	if (bIsDashing) { return; }
+	/*if (bIsDashing) { return; }
 	
 	DashElapsed = 0.0f;
 	
@@ -375,7 +370,9 @@ void UDashAttackComp::Server_Dash_Implementation()
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
 	}
 	
-	bIsDashing = true;
+	bIsDashing = true;*/
+	
+	OwnerCharacter->SetActorLocation(TargetLocation);
 }
 
 void UDashAttackComp::HandlePostAttackState()
