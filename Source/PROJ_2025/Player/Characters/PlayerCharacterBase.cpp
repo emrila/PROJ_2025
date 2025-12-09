@@ -130,14 +130,14 @@ void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	}
 }
 
-UAttackComponentBase* APlayerCharacterBase::GetFirstAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetBasicAttackComponent() const
 {
-	return FirstAttackComponent;
+	return BasicAttackComponent;
 }
 
-UAttackComponentBase* APlayerCharacterBase::GetSecondAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetSpecialAttackComponent() const
 {
-	return SecondAttackComponent;
+	return SpecialAttackComponent;
 }
 
 FVector APlayerCharacterBase::GetRightHandSocketLocation() const
@@ -287,6 +287,29 @@ void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	//Create objects for attack components
+	if (BasicAttackComponentClass)
+	{
+		BasicAttackComponent = NewObject<UAttackComponentBase>(this, BasicAttackComponentClass);
+		if (BasicAttackComponent)
+		{
+			BasicAttackComponent->RegisterComponent();
+			BasicAttackComponent->InitializeComponent();
+		}
+	}
+	
+	if (SpecialAttackComponentClass)
+	{
+		SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
+		
+		if (SpecialAttackComponentClass)
+		{
+			SpecialAttackComponent->RegisterComponent();
+			SpecialAttackComponent->InitializeComponent();
+		}
+	}
+	
 	if (FollowCamera)
 	{
 		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
@@ -302,11 +325,11 @@ void APlayerCharacterBase::BeginPlay()
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 		
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 		
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
 
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
@@ -356,11 +379,11 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
 
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
@@ -516,7 +539,7 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 
 void APlayerCharacterBase::UseFirstAttackComponent()
 {
-	if (!FirstAttackComponent)
+	if (!BasicAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
 		return;
@@ -524,7 +547,7 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 	if (bIsAlive)
 	{
 		bIsAttacking = true;
-		GetFirstAttackComponent()->StartAttack();
+		GetBasicAttackComponent()->StartAttack();
 		FTimerHandle TimerHandle;
 		GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
@@ -540,14 +563,14 @@ void APlayerCharacterBase::UseFirstAttackComponent()
 
 void APlayerCharacterBase::UseSecondAttackComponent()
 {
-	if (!SecondAttackComponent)
+	if (!SpecialAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
 		return;
 	}
 	if (bIsAlive)
 	{
-		GetSecondAttackComponent()->StartAttack();
+		GetSpecialAttackComponent()->StartAttack();
 	}
 }
 
@@ -624,7 +647,7 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 	}
 	
-	if (!FirstAttackComponent)
+	if (!BasicAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackComp is Null"), *FString(__FUNCTION__));
 		return;
@@ -636,9 +659,9 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 	}
 	
-	FirstAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	BasicAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
 	
-	if (!SecondAttackComponent)
+	if (!SpecialAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackComp is Null"), *FString(__FUNCTION__));
 		return;
@@ -650,7 +673,7 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 
 	}
-	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+	SpecialAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
 }
 
 void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprintState)

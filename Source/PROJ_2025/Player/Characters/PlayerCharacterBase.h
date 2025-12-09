@@ -35,9 +35,11 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	//Handle components
-	UAttackComponentBase* GetFirstAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetBasicAttackComponent() const;
 
-	UAttackComponentBase* GetSecondAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetSpecialAttackComponent() const;
 	
 	//Handle sockets
 	FVector GetRightHandSocketLocation() const;
@@ -221,10 +223,16 @@ protected:
 
 	//Handle components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* FirstAttackComponent;
+	UAttackComponentBase* BasicAttackComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* SecondAttackComponent;
+	UAttackComponentBase* SpecialAttackComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
+	TSubclassOf<UAttackComponentBase> BasicAttackComponentClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
+	TSubclassOf<UAttackComponentBase> SpecialAttackComponentClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
