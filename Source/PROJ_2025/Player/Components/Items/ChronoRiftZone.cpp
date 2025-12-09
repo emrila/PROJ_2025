@@ -40,14 +40,12 @@ void AChronoRiftZone::SetOwnerCharacter(ACharacter* NewOwnerCharacter)
 
 void AChronoRiftZone::SetInitialValues(const float NewRadius, const float NewLifetime, const float NewDamageAmount)
 {
-	if (OwnerCharacter && OwnerCharacter->GetController())
+	/*if (!OwnerCharacter)
 	{
-		SetOwner(OwnerCharacter->GetController()); //Must be done for network replication to work
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		return;
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is not set"), *FString(__FUNCTION__));
-	}
+	SetOwner(OwnerCharacter);*/
 	Radius = NewRadius;
 	Lifetime = NewLifetime;
 	DamageAmount = NewDamageAmount;
