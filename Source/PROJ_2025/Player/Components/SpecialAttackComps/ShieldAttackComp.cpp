@@ -52,7 +52,6 @@ void UShieldAttackComp::StartAttack()
 		ActivateShield();
 		return;
 	}
-
 	DeactivateShield();
 	//Server_DeactivateShield();
 }
@@ -129,7 +128,28 @@ float UShieldAttackComp::GetRecoveryRate()
 
 void UShieldAttackComp::ActivateShield()
 {
-	if (!OwnerCharacter || !CurrentShield)
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (!CurrentShield)
+	{
+		TArray<AActor*> ShieldActors;
+		OwnerCharacter->GetAllChildActors(ShieldActors);
+
+		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
+
+		for (AActor* Actor : ShieldActors)
+		{
+			if (AShield* Shield = Cast<AShield>(Actor))
+			{
+				CurrentShield = Shield;
+				break;
+			}
+		}
+	}
+	
+	if (!CurrentShield)
 	{
 		return;
 	}
@@ -182,8 +202,6 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	//Server_SpawnShield();
-	//SpawnShield();
 
 	if (OwnerCharacter)
 	{
@@ -204,7 +222,6 @@ void UShieldAttackComp::BeginPlay()
 		if (!CurrentShield)
 		{
 			UE_LOG(LogTemp, Error, TEXT("No shield found in %s"), *FString(__FUNCTION__));
-			//SpawnShield();
 			return;
 		}
 		
