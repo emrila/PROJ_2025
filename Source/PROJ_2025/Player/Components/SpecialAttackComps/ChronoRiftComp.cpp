@@ -92,21 +92,6 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 void UChronoRiftComp::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (ChronoRiftIndicatorClass)
-	{
-		LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
-		
-		if (LovesMesh)
-		{
-			InitialIndicatorScale = LovesMesh->GetActorScale3D();
-			if (OwnerCharacter && OwnerCharacter->HasAuthority())
-			{
-				SetIndicatorHidden(true);
-			}
-			
-		}
-	}
 }
 
 void UChronoRiftComp::PerformAttack()
@@ -199,6 +184,22 @@ void UChronoRiftComp::OnStartLockingTargetArea(const FInputActionInstance& Input
 	if (!bCanAttack)
 	{
 		return;
+	}
+	if (!LovesMesh)
+	{
+		if (ChronoRiftIndicatorClass)
+		{
+			LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
+			UE_LOG(LogTemp, Log, TEXT("LovesMesh Spawned at %s"), *TargetAreaCenter.ToString());
+		
+			if (LovesMesh)
+			{
+				if (OwnerCharacter && OwnerCharacter->HasAuthority())
+				{
+					SetIndicatorHidden(true);
+				}
+			}
+		}
 	}
 	
 	bIsLockingTargetArea = true;
@@ -318,8 +319,7 @@ void UChronoRiftComp::SetIndicatorHidden(bool bIsHidden)
 				const float ScaleFactor = DesiredDiameter / CurrentWorldDiameterXY;
 				const FVector NewScale = MeshComp->GetComponentScale() * ScaleFactor;
 				MeshComp->SetWorldScale3D(NewScale);
-
-				// Keep Z scale small so plane stays flat
+				
 				MeshComp->SetWorldScale3D(FVector(NewScale.X, NewScale.Y, 1.0f));
 			}
 		}

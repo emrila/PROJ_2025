@@ -42,8 +42,13 @@ public:
 
 	void SetRecoveryRate(const float Value) { RecoveryRate = Value; }
 	
-	void IncreaseDurability(const float AmountToIncrease);
-	void DecreaseDurability(const float AmountToDecrease) ;
+	void ChangeDurability(bool bIncrease, const float AmountToChange);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_BroadcastDurability(const float NewDurability);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_BroadcastDurability(const float NewDurability);
 	
 	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
 
@@ -63,16 +68,6 @@ protected:
 	virtual void TickDurability();
 
 	virtual void TickRecovery();
-
-	UFUNCTION()
-	virtual void OnShieldOverlap(
-		UPrimitiveComponent* OverlappedComp, 
-		AActor* OtherActor, 
-		UPrimitiveComponent* OtherComp, 
-		int32 OtherBodyIndex, 
-		bool bFromSweep, 
-		const FHitResult& SweepResult
-		);
 	
 	UFUNCTION()
 	virtual void OnShieldHit(
