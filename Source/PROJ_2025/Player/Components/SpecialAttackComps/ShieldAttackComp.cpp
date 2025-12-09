@@ -52,7 +52,6 @@ void UShieldAttackComp::StartAttack()
 		ActivateShield();
 		return;
 	}
-
 	DeactivateShield();
 	//Server_DeactivateShield();
 }
