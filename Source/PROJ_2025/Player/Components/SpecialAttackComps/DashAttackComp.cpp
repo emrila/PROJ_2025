@@ -45,19 +45,19 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 	
 	
-	if (bIsDashing)
+	/*if (bIsDashing)
 	{
 		DashElapsed += DeltaTime;
 		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
 		const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-		OwnerCharacter->SetActorLocation(NewLocation, false);
+		OwnerCharacter->SetActorLocation(NewLocation);
 		
 		if (DashAlpha >= 1.0f)
 		{
 			bIsDashing = false;
 			HandlePostAttackState();
 		}
-	}
+	}*/
 
 }
 
@@ -262,28 +262,20 @@ void UDashAttackComp::TryLockingTargetLocation()
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 	
-	/*const bool bHit = GetWorld()->SweepSingleByObjectType(
+	const bool bHit = GetWorld()->SweepSingleByObjectType(
 		HitResult,
 		TraceStart,
 		NewEndLocation,
 		FQuat::Identity,
 		ObjectQueryParams,
-		FCollisionShape::MakeSphere(50.f),
-		Params
-	);*/
-	
-	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
-		HitResult,
-		TraceStart,
-		NewEndLocation,
-		ObjectQueryParams,
+		FCollisionShape::MakeSphere(25.f),
 		Params
 	);
 	
 #if WITH_EDITOR
 	if (bDrawDebug)
 	{
-		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 5.f);
+		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 0.1f);
 	}
 #endif
 	
@@ -294,15 +286,14 @@ void UDashAttackComp::TryLockingTargetLocation()
 		
 		const FVector ToImpact = HitResult.ImpactPoint - PlayerLocation;
 		const float ForwardDot = FVector::DotProduct(ToImpact.GetSafeNormal(), PlayerForward);
-
-		// Accept impact only if it's in front of the player. Small threshold avoids borderline cases.
+		
 		const float ForwardThreshold = 0.1f;
 		if (ForwardDot > ForwardThreshold)
 		{
 			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
-			NewEndLocation.Z += 100.f; // Move up 100 points to 
+			NewEndLocation.Z += 100.f; // Move up 100 points to avoid narrow collisions
 		}
-		// else: impact is behind the player (even if in front of camera) -> ignore and keep TraceEnd
+		
 	}
 
 	if (OwnerCharacter->HasAuthority())
@@ -343,7 +334,7 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		if (bIsDashing) { return; }
+		/*if (bIsDashing) { return; }
 	
 		DashElapsed = 0.0f;
 	
@@ -352,7 +343,9 @@ void UDashAttackComp::Dash()
 			OwnerCharacter->GetMesh()->SetVisibility(false, true);
 		}
 	
-		bIsDashing = true;
+		bIsDashing = true;*/
+		
+		OwnerCharacter->SetActorLocation(TargetLocation);
 	}
 	else
 	{
@@ -368,7 +361,7 @@ void UDashAttackComp::Server_Dash_Implementation()
 		return;
 	}
 	
-	if (bIsDashing) { return; }
+	/*if (bIsDashing) { return; }
 	
 	DashElapsed = 0.0f;
 	
@@ -377,7 +370,9 @@ void UDashAttackComp::Server_Dash_Implementation()
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
 	}
 	
-	bIsDashing = true;
+	bIsDashing = true;*/
+	
+	OwnerCharacter->SetActorLocation(TargetLocation);
 }
 
 void UDashAttackComp::HandlePostAttackState()
