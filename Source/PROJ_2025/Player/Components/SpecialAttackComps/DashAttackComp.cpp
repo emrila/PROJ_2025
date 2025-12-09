@@ -17,7 +17,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 4.f;
+	AttackCooldown = 10.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -45,19 +45,19 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	}
 	
 	
-	/*if (bIsDashing)
+	if (bIsDashing)
 	{
 		DashElapsed += DeltaTime;
 		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
 		const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-		OwnerCharacter->SetActorLocation(NewLocation);
+		OwnerCharacter->SetActorLocation(NewLocation, true, nullptr, ETeleportType::TeleportPhysics);
 		
 		if (DashAlpha >= 1.0f)
 		{
 			bIsDashing = false;
 			HandlePostAttackState();
 		}
-	}*/
+	}
 
 }
 
@@ -193,7 +193,7 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 		return;
 	}
 
-	if (OwnerCharacter->HasAuthority())
+	/*if (OwnerCharacter->HasAuthority())
 	{
 		TargetLocation = FVector::ZeroVector;
 		StartLocation = FVector::ZeroVector;
@@ -203,7 +203,7 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 		Server_SetStartAndTargetLocation(FVector::ZeroVector, FVector::ZeroVector);
 		TargetLocation = FVector::ZeroVector;
 		StartLocation = FVector::ZeroVector;
-	}
+	}*/
 
 	bHasLockedTargetLocation = false;
 	StartAttack();
@@ -334,8 +334,8 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		/*if (bIsDashing) { return; }
-	
+		if (bIsDashing) { return; }
+		OwnerCharacter->SetInputActive(false);
 		DashElapsed = 0.0f;
 	
 		if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
@@ -343,9 +343,9 @@ void UDashAttackComp::Dash()
 			OwnerCharacter->GetMesh()->SetVisibility(false, true);
 		}
 	
-		bIsDashing = true;*/
+		bIsDashing = true;
 		
-		OwnerCharacter->SetActorLocation(TargetLocation);
+		//OwnerCharacter->SetActorLocation(TargetLocation);
 	}
 	else
 	{
@@ -361,8 +361,8 @@ void UDashAttackComp::Server_Dash_Implementation()
 		return;
 	}
 	
-	/*if (bIsDashing) { return; }
-	
+	if (bIsDashing) { return; }
+	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
 	if (OwnerCharacter->GetCapsuleComponent())
@@ -370,9 +370,9 @@ void UDashAttackComp::Server_Dash_Implementation()
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
 	}
 	
-	bIsDashing = true;*/
+	bIsDashing = true;
 	
-	OwnerCharacter->SetActorLocation(TargetLocation);
+	//OwnerCharacter->SetActorLocation(TargetLocation);
 }
 
 void UDashAttackComp::HandlePostAttackState()
@@ -385,6 +385,7 @@ void UDashAttackComp::HandlePostAttackState()
 	
 	if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
 	{
+		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
 		/*FTimerHandle MeshvisibilityTimer;
 		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()

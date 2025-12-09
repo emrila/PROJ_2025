@@ -100,5 +100,5 @@ protected:
 	float AttackDamageModifier = 1.f;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	bool bDrawDebug = false;
+	bool bDrawDebug = true;
 };
