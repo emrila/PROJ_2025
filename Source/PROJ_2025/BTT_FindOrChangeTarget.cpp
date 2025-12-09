@@ -117,5 +117,13 @@ EBTNodeResult::Type UBTT_FindOrChangeTarget::ExecuteTask(UBehaviorTreeComponent&
 			}
 		}
 	}
+	
+	if (APlayerCharacterBase* PCB = Cast<APlayerCharacterBase>(CurrentTarget))
+	{
+		if (!PCB->IsAlive())
+		{
+			Blackboard->SetValueAsObject(GetSelectedBlackboardKey(), nullptr);
+		}
+	}
 	return EBTNodeResult::Failed; // Här är det lite rip. Den får försöka igen ig
 }
