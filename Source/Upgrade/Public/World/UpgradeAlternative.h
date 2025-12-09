@@ -57,8 +57,11 @@ protected:
 	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	AUpgradeSpawner* OwningSpawner;
 	
-	UPROPERTY(EditAnywhere, Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_UpgradeDisplayData, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	FUpgradeDisplayData UpgradeDisplayData;
+
+	UFUNCTION()
+	void OnRep_UpgradeDisplayData();
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	int32 Index = -1;

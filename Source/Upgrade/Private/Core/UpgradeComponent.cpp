@@ -37,7 +37,6 @@ void UUpgradeComponent::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 	DOREPLIFETIME(UUpgradeComponent, TeamModifierDataTable);
 }
 
-
 void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName PropertyName, const FName RowName)
 {
 	UPGRADE_HI_FROM(__FUNCTION__);
@@ -132,10 +131,14 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 
 void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
 {
-	if (bHasAppliedUpgrade)
+	/*if (bHasAppliedUpgrade)
 	{
+		UPGRADE_DISPLAY( TEXT("%hs: Upgrade already applied this frame, skipping."), __FUNCTION__);
 		return;
 	}
+	*/
+	
+	UPGRADE_DISPLAY(TEXT("%hs: Upgrading by row %s. Found %d Attributes"), __FUNCTION__, *RowName.ToString(), GetByRow(RowName).Num());
 	for (const FAttributeData* TargetAttribute : GetByRow(RowName))
 	{
 		const int32 CurrentUpgradeLevel = TargetAttribute->CurrentUpgradeLevel;
@@ -147,7 +150,7 @@ void UUpgradeComponent::UpgradeByRow_Implementation(FName RowName)
 		}
 	}
 	
-	bHasAppliedUpgrade = true;
+//	bHasAppliedUpgrade = true;
 }
 
 void UUpgradeComponent::DowngradeByRow(FName RowName) const
@@ -168,11 +171,13 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	UPGRADE_DISPLAY(TEXT("%hs: Received upgrade struct of type %s."), __FUNCTION__, *StructCPPName);
 	if (const FUpgradeDisplayData* UpgradeDataPtr = InstancedStruct.GetMutablePtr<FUpgradeDisplayData>())
 	{
+		UPGRADE_DISPLAY(TEXT("%hs: Applying upgrade %s."), __FUNCTION__, *UpgradeDataPtr->ToString());
 		const FUpgradeDisplayData& UpgradeData = *UpgradeDataPtr;	
 		UpgradeByRow(UpgradeData.RowName);		
 	}	
 	else if (const FTeamModifierData* ModifierData = InstancedStruct.GetMutablePtr<FTeamModifierData>())
 	{
+		UPGRADE_DISPLAY(TEXT("%hs: Applying team modifier %s."), __FUNCTION__, *ModifierData->Title.ToString());
 		for (const FModifierEntry& Modifier : ModifierData->Modifiers)
 		{		
 			for (int i = 0; i < Modifier.TimesToApply; ++i)

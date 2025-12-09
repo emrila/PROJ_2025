@@ -294,7 +294,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-	/*
+
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -314,7 +314,7 @@ void APlayerCharacterBase::BeginPlay()
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
 			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeStealMultiplier"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
@@ -332,7 +332,7 @@ void APlayerCharacterBase::BeginPlay()
 			}
 		}
 	}
-	*/
+
 	if (InteractorComponent && !InteractorComponent->OnFinishedInteraction.IsAlreadyBound(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived))
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
@@ -347,6 +347,7 @@ void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
+
 
 	if (UpgradeComponent && IsLocallyControlled())
 	{
@@ -388,7 +389,6 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 
 		}
 	}
-
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
