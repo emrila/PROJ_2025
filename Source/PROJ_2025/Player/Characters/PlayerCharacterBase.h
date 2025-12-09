@@ -53,6 +53,11 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
+	//Handle Input
+	virtual void SetInputActive(const bool bNewInputActive);
+	
+	virtual bool IsInputActive() const { return bIsInputActive; }
+	
 	//Handle Damage
 	virtual void StartIFrame();
 	
@@ -167,10 +172,6 @@ protected:
 	virtual void Move(const FInputActionValue& Value);
 
 	virtual void Look(const FInputActionValue& Value);
-
-	virtual void UseFirstAttackComponent();
-
-	virtual void UseSecondAttackComponent();
 	
 	virtual void OnSprintBegin(const FInputActionInstance& ActionInstance);
 	
@@ -183,6 +184,8 @@ protected:
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
+	
+	bool bIsInputActive = true;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	bool bShouldUseSprintInput = true;
@@ -213,10 +216,10 @@ protected:
 	UInputAction* SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* FirstAttackAction;
+	UInputAction* BasicAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* SecondAttackAction;
+	UInputAction* SpecialAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;

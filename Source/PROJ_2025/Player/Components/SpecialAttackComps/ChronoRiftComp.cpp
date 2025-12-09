@@ -269,7 +269,18 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 	
 	if (ChronoRiftZoneClass)
 	{
-		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator);
+		FActorSpawnParameters Params;
+		Params.Owner = OwnerCharacter;
+
+		if (!OwnerCharacter->GetInstigator())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("OwnerCharacter's Instigator is NULL in %s"), *FString(__FUNCTION__));
+			return;
+		}
+	
+		Params.Instigator = OwnerCharacter->GetInstigator();
+		
+		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator, Params);
 		
 		if (CurrentChronoRiftZone)
 		{
