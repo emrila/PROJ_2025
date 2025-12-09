@@ -50,7 +50,7 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		DashElapsed += DeltaTime;
 		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
 		const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-		OwnerCharacter->SetActorLocation(NewLocation, false);
+		OwnerCharacter->SetActorLocation(NewLocation);
 		
 		if (DashAlpha >= 1.0f)
 		{
@@ -268,7 +268,7 @@ void UDashAttackComp::TryLockingTargetLocation()
 		NewEndLocation,
 		FQuat::Identity,
 		ObjectQueryParams,
-		FCollisionShape::MakeSphere(50.f),
+		FCollisionShape::MakeSphere(25.f),
 		Params
 	);*/
 	
@@ -283,7 +283,7 @@ void UDashAttackComp::TryLockingTargetLocation()
 #if WITH_EDITOR
 	if (bDrawDebug)
 	{
-		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 5.f);
+		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 0.1f);
 	}
 #endif
 	
@@ -294,15 +294,13 @@ void UDashAttackComp::TryLockingTargetLocation()
 		
 		const FVector ToImpact = HitResult.ImpactPoint - PlayerLocation;
 		const float ForwardDot = FVector::DotProduct(ToImpact.GetSafeNormal(), PlayerForward);
-
-		// Accept impact only if it's in front of the player. Small threshold avoids borderline cases.
+		
 		const float ForwardThreshold = 0.1f;
 		if (ForwardDot > ForwardThreshold)
 		{
 			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
-			NewEndLocation.Z += 100.f; // Move up 100 points to 
+			NewEndLocation.Z += 100.f; // Move up 100 points to avoid narrow collisions
 		}
-		// else: impact is behind the player (even if in front of camera) -> ignore and keep TraceEnd
 	}
 
 	if (OwnerCharacter->HasAuthority())
