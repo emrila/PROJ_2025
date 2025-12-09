@@ -237,6 +237,11 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
+void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
+{
+	bIsInputActive = bNewInputActive;
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -504,7 +509,7 @@ void APlayerCharacterBase::InterpolateCamera(FVector& TargetLocation, const floa
 
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
-	if (!bShouldUseMoveInput || !bIsAlive)
+	if (!bShouldUseMoveInput || !bIsAlive || !bIsInputActive)
 	{
 		return;
 	}
@@ -519,7 +524,7 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
-	if (!bShouldUseLookInput)
+	if (!bShouldUseLookInput || !bIsInputActive)
 	{
 		return;
 	}	
@@ -537,46 +542,9 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void APlayerCharacterBase::UseFirstAttackComponent()
-{
-	if (!BasicAttackComponent)
-	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
-		return;
-	}
-	if (bIsAlive)
-	{
-		bIsAttacking = true;
-		GetBasicAttackComponent()->StartAttack();
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&APlayerCharacterBase::EndIsAttacking,
-		0.1f,
-		false
-		);
-	}
-
-	
-}
-
-void APlayerCharacterBase::UseSecondAttackComponent()
-{
-	if (!SpecialAttackComponent)
-	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
-		return;
-	}
-	if (bIsAlive)
-	{
-		GetSpecialAttackComponent()->StartAttack();
-	}
-}
-
 void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInstance)
 {
-	if (!bShouldUseSprintInput) { return; }
+	if (!bShouldUseSprintInput || !bIsInputActive) { return; }
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
 	{
 		return;
@@ -605,7 +573,7 @@ void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInsta
 
 void APlayerCharacterBase::OnSprintEnd(const FInputActionInstance& ActionInstance)
 {
-	if (!bShouldUseSprintInput) { return; }
+	if (!bShouldUseSprintInput || !bIsInputActive) { return; }
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
 		return;
@@ -653,13 +621,13 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 	}
 	
-	if (!FirstAttackAction)
+	if (!BasicAttackAction)
 	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackAction is Null"), *FString(__FUNCTION__));
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, BasicAttackAction is Null"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	BasicAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	BasicAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, BasicAttackAction);
 	
 	if (!SpecialAttackComponent)
 	{
@@ -667,13 +635,13 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 	}
 	
-	if (!SecondAttackAction)
+	if (!SpecialAttackAction)
 	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackAction is Null"), *FString(__FUNCTION__));
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SpecialAttackAction is Null"), *FString(__FUNCTION__));
 		return;
 
 	}
-	SpecialAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+	SpecialAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SpecialAttackAction);
 }
 
 void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprintState)
