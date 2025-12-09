@@ -294,7 +294,7 @@ void APlayerCharacterBase::BeginPlay()
 	Super::BeginPlay();
 	
 	//Create objects for attack components
-	if (BasicAttackComponentClass)
+	/*if (BasicAttackComponentClass)
 	{
 		BasicAttackComponent = NewObject<UAttackComponentBase>(this, BasicAttackComponentClass);
 		if (BasicAttackComponent)
@@ -313,7 +313,7 @@ void APlayerCharacterBase::BeginPlay()
 			SpecialAttackComponent->RegisterComponent();
 			SpecialAttackComponent->InitializeComponent();
 		}
-	}
+	}*/
 	
 	if (FollowCamera)
 	{
