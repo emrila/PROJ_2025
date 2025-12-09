@@ -136,9 +136,9 @@ void AShield::Multicast_DeactivateShield_Implementation()
 void AShield::IncreaseDurability(const float AmountToIncrease)
 {
 	Durability += AmountToIncrease;
-	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	if (OwnerCharacter && OwnerCharacter->GetSpecialAttackComponent())
 	{
-		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
+		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent());
 		if (ShieldComp)
 		{
 			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
@@ -149,9 +149,9 @@ void AShield::IncreaseDurability(const float AmountToIncrease)
 void AShield::DecreaseDurability(const float AmountToDecrease)
 {
 	Durability -= AmountToDecrease;
-	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	if (OwnerCharacter && OwnerCharacter->GetSpecialAttackComponent())
 	{
-		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
+		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent());
 		if (ShieldComp)
 		{
 			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
@@ -172,7 +172,7 @@ void AShield::BeginPlay()
 {
 	Super::BeginPlay();
 
-	bReplicates = true;
+	SetReplicates(true);
 	SetReplicateMovement(true);
 	
 	/*if (HasAuthority() && CollisionBox)
@@ -213,7 +213,7 @@ void AShield::TickDurability()
 	}
 	if (Durability <= 0.f)
 	{
-		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
+		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
 		{
 			ShieldComp->StartAttackCooldown();
 			ShieldComp->DeactivateShield();
@@ -235,7 +235,7 @@ void AShield::TickRecovery()
 	{
 		return;
 	}
-	if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
+	if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
 	{
 		if (Durability >= ShieldComp->GetDurability())
 		{
