@@ -221,7 +221,7 @@ void AShield::TickDurability()
 		}
 	}
 	const float OldDurability = Durability;
-	Durability -= 10.f;
+	DecreaseDurability(10.f);
 	//UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
 }
 
