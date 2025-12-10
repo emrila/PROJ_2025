@@ -35,9 +35,11 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	//Handle components
-	UAttackComponentBase* GetFirstAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetBasicAttackComponent() const;
 
-	UAttackComponentBase* GetSecondAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetSpecialAttackComponent() const;
 	
 	//Handle sockets
 	FVector GetRightHandSocketLocation() const;
@@ -50,6 +52,11 @@ public:
 	virtual void HandleCameraDetachment();
 	
 	virtual void HandleCameraReattachment();
+	
+	//Handle Input
+	virtual void SetInputActive(const bool bNewInputActive);
+	
+	virtual bool IsInputActive() const { return bIsInputActive; }
 	
 	//Handle Damage
 	virtual void StartIFrame();
@@ -165,10 +172,6 @@ protected:
 	virtual void Move(const FInputActionValue& Value);
 
 	virtual void Look(const FInputActionValue& Value);
-
-	virtual void UseFirstAttackComponent();
-
-	virtual void UseSecondAttackComponent();
 	
 	virtual void OnSprintBegin(const FInputActionInstance& ActionInstance);
 	
@@ -181,6 +184,8 @@ protected:
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
+	
+	bool bIsInputActive = true;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	bool bShouldUseSprintInput = true;
@@ -215,20 +220,28 @@ protected:
 	UInputAction* SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* FirstAttackAction;
+	UInputAction* BasicAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* SecondAttackAction;
+	UInputAction* SpecialAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
 
 	//Handle components
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* FirstAttackComponent;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
+	UAttackComponentBase* BasicAttackComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
+	UAttackComponentBase* SpecialAttackComponent;
+	
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* SecondAttackComponent;
+	TSubclassOf<UAttackComponentBase> BasicAttackComponentClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
+	TSubclassOf<UAttackComponentBase> SpecialAttackComponentClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;

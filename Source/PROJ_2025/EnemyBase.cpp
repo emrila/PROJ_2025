@@ -35,7 +35,11 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 		{
 			return 0.f;
 		}
-		WizardPlayerState->AddDamageDealt(DamageAmount);
+		
+		if (Health > 0.f)
+		{
+			WizardPlayerState->AddDamageDealt(DamageAmount);
+		}
 	}
 	HandleHit(DamageEvent, DamageCauser);
 	OnRep_Health();

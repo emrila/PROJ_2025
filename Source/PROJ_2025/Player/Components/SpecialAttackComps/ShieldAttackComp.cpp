@@ -10,8 +10,8 @@ UShieldAttackComp::UShieldAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	DamageAmount = 10.f;
-	AttackCooldown = 20.f;
+	DamageAmount = 5.f;
+	AttackCooldown = 5.f;
 	BaseDurability = 200.f;
 	BaseRecoveryRate = 1.f;
 }
@@ -52,7 +52,6 @@ void UShieldAttackComp::StartAttack()
 		ActivateShield();
 		return;
 	}
-
 	DeactivateShield();
 	//Server_DeactivateShield();
 }
@@ -129,7 +128,28 @@ float UShieldAttackComp::GetRecoveryRate()
 
 void UShieldAttackComp::ActivateShield()
 {
-	if (!OwnerCharacter || !CurrentShield)
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (!CurrentShield)
+	{
+		TArray<AActor*> ShieldActors;
+		OwnerCharacter->GetAllChildActors(ShieldActors);
+
+		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
+
+		for (AActor* Actor : ShieldActors)
+		{
+			if (AShield* Shield = Cast<AShield>(Actor))
+			{
+				CurrentShield = Shield;
+				break;
+			}
+		}
+	}
+	
+	if (!CurrentShield)
 	{
 		return;
 	}
@@ -173,6 +193,7 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 	if (CurrentShield)
 	{
 		CurrentShield->SetDurability(GetDurability());
+		//OnDurabilityChanged.Broadcast(GetDurability(), GetDurability());
 	}
 	
 	FTimerHandle TimerHandle;
@@ -182,8 +203,6 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	//Server_SpawnShield();
-	//SpawnShield();
 
 	if (OwnerCharacter)
 	{
@@ -204,7 +223,6 @@ void UShieldAttackComp::BeginPlay()
 		if (!CurrentShield)
 		{
 			UE_LOG(LogTemp, Error, TEXT("No shield found in %s"), *FString(__FUNCTION__));
-			//SpawnShield();
 			return;
 		}
 		
@@ -230,6 +248,17 @@ void UShieldAttackComp::OnPlayerDied(bool bNewIsAlive)
 		DeactivateShield();
 		ResetAttackCooldown();
 	}
+}
+
+void UShieldAttackComp::ResetAttackCooldown()
+{
+	if (!CurrentShield)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, CurrentShield is NULL"), *FString(__FUNCTION__));
+		return;
+	}
+	Super::ResetAttackCooldown();
+	DeactivateShield();
 }
 
 

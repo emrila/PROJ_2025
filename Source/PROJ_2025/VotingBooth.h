@@ -22,7 +22,7 @@ struct FCandidate
 	}
 	
 	UPROPERTY(BlueprintReadWrite)
-	int NumberOfVotes;
+	int NumberOfVotes = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> CandidateClass;
