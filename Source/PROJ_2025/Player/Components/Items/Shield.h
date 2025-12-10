@@ -62,9 +62,6 @@ public:
 		AActor* DamageCauser
 		) override;
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void UpdateDurabilityBar(float NewDurability, float MaxDurability);
-
 protected:
 	virtual void BeginPlay() override;
 
@@ -103,7 +100,6 @@ protected:
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* OwnerCharacter;
 	
-	FTimerHandle DurabilityTimerHandle;
 	FTimerHandle RecoveryTimerHandle;
 
 	UPROPERTY(Replicated)
