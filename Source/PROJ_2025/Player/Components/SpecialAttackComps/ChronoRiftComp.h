@@ -64,7 +64,10 @@ protected:
 
 	virtual float GetDamageAmount() const override;
 	
-	UPROPERTY(Replicated)
+	UFUNCTION(Client, Reliable)
+	void Client_SpawnChronoRiftIndicator();
+	
+	UPROPERTY()
 	AActor* LovesMesh;
 	
 	UPROPERTY(editAnywhere, BlueprintReadWrite)

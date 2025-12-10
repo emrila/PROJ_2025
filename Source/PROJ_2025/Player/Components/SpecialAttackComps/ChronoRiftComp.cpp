@@ -29,11 +29,7 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		TryLockingTargetArea();
 		if (TargetAreaCenter != FVector::ZeroVector)
 		{
-			if (LovesMesh)
-			{
-				FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
-				LovesMesh->SetActorLocation(SpawnLocation);
-			}
+			Client_SpawnChronoRiftIndicator();
 		}
 	}
 }
@@ -85,7 +81,7 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
-	DOREPLIFETIME(UChronoRiftComp, LovesMesh);
+	//DOREPLIFETIME(UChronoRiftComp, LovesMesh);
 	DOREPLIFETIME(UChronoRiftComp, CurrentChronoRiftZone);
 }
 
@@ -353,6 +349,15 @@ float UChronoRiftComp::GetDamageAmount() const
 		return Super::GetDamageAmount();
 	}
 	return Super::GetDamageAmount() + AttackDamageModifier;
+}
+
+void UChronoRiftComp::Client_SpawnChronoRiftIndicator_Implementation()
+{
+	if (LovesMesh)
+	{
+		FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
+		LovesMesh->SetActorLocation(SpawnLocation);
+	}
 }
 
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
