@@ -50,6 +50,8 @@ protected:
 	UFUNCTION()
 	virtual void OnPlayerDied(bool bNewIsAlive);
 	
+	virtual void ResetAttackCooldown() override;
+	
 	bool bIsShieldActive = false;
 	
 	UPROPERTY(EditDefaultsOnly)

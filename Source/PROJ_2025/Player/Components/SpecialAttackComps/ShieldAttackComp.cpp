@@ -10,8 +10,8 @@ UShieldAttackComp::UShieldAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	DamageAmount = 10.f;
-	AttackCooldown = 20.f;
+	DamageAmount = 5.f;
+	AttackCooldown = 5.f;
 	BaseDurability = 200.f;
 	BaseRecoveryRate = 1.f;
 }
@@ -193,6 +193,7 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 	if (CurrentShield)
 	{
 		CurrentShield->SetDurability(GetDurability());
+		//OnDurabilityChanged.Broadcast(GetDurability(), GetDurability());
 	}
 	
 	FTimerHandle TimerHandle;
@@ -247,6 +248,17 @@ void UShieldAttackComp::OnPlayerDied(bool bNewIsAlive)
 		DeactivateShield();
 		ResetAttackCooldown();
 	}
+}
+
+void UShieldAttackComp::ResetAttackCooldown()
+{
+	if (!CurrentShield)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, CurrentShield is NULL"), *FString(__FUNCTION__));
+		return;
+	}
+	Super::ResetAttackCooldown();
+	DeactivateShield();
 }
 
 
