@@ -135,13 +135,13 @@ void UShadowStrikeAttackComp::PerformAttack()
 	/*FTimerHandle AttackTimer;
 	GetWorld()->GetTimerManager().SetTimer(AttackTimer, [this, PlayerCharacter]()
 	{
-		if (!PlayerCharacter->GetFirstAttackComponent())
+		if (!PlayerCharacter->GetBasicAttackComponent())
 		{
-			UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter's FirstAttackComponent is Null."), *FString(__FUNCTION__));
+			UE_LOG(LogTemp, Error, TEXT("%s PlayerCharacter's BasicAttackComponent is Null."), *FString(__FUNCTION__));
 			return;
 		}
-		PlayerCharacter->GetFirstAttackComponent()->SetCanAttack(true);
-		PlayerCharacter->GetFirstAttackComponent()->StartAttack(this->GetDamageAmount(), 1.f);
+		PlayerCharacter->GetBasicAttackComponent()->SetCanAttack(true);
+		PlayerCharacter->GetBasicAttackComponent()->StartAttack(this->GetDamageAmount(), 1.f);
 	}, StrikeDelay, false);*/
 
 	FTimerHandle CameraReattachmentTimer;

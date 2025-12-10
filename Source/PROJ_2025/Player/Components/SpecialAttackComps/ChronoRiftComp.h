@@ -89,6 +89,4 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
-	
-	FVector InitialIndicatorScale;
 };

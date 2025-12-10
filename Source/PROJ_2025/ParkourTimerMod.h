@@ -28,6 +28,8 @@ class PROJ_2025_API UParkourTimerMod : public URoomModifierBase
 	UFUNCTION()
 	void OnRep_PlayersThatMadeIt() const;
 
+	virtual void OnRoomEntered(ARoomManagerBase* InRoomManager) override;
+
 	virtual void OnAllClientsReady() override;
 
 	virtual void OnExitsUnlocked() override;
@@ -36,8 +38,7 @@ class PROJ_2025_API UParkourTimerMod : public URoomModifierBase
 	void Multicast_RemoveTimerWidget();
 
 	virtual void BeginReplication() override;
-
-	UFUNCTION(NetMulticast, Reliable)
+	
 	void Multicast_AddTimerWidget(float Timer);
 
 	void DealDamageToPlayers();
