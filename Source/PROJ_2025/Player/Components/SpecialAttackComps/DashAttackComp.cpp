@@ -5,6 +5,7 @@
 #include "KismetTraceUtils.h"
 #include "ShadowStrikeVariant2.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
@@ -335,12 +336,16 @@ void UDashAttackComp::Dash()
 	if (OwnerCharacter->HasAuthority())
 	{
 		if (bIsDashing) { return; }
+		BP_TriggerRibbon(true);
 		OwnerCharacter->SetInputActive(false);
 		DashElapsed = 0.0f;
 	
-		if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
+		if (OwnerCharacter->GetMesh() &&
+			OwnerCharacter->GetCharacterMovement())
 		{
 			OwnerCharacter->GetMesh()->SetVisibility(false, true);
+			OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
+			OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
 		}
 	
 		bIsDashing = true;
@@ -362,12 +367,16 @@ void UDashAttackComp::Server_Dash_Implementation()
 	}
 	
 	if (bIsDashing) { return; }
+	BP_TriggerRibbon(true);
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
-	if (OwnerCharacter->GetCapsuleComponent())
+	if (OwnerCharacter->GetMesh() &&
+			OwnerCharacter->GetCharacterMovement())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
+		OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
+		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
 	}
 	
 	bIsDashing = true;
@@ -383,10 +392,13 @@ void UDashAttackComp::HandlePostAttackState()
 		return;
 	}
 	
-	if (OwnerCharacter->GetCapsuleComponent() && OwnerCharacter->GetMesh())
+	if (OwnerCharacter->GetMesh() && OwnerCharacter->GetCharacterMovement())
 	{
+		BP_TriggerRibbon(false);
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
+		OwnerCharacter->GetCharacterMovement()->GroundFriction = 8.f;
+		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 2.f;
 		/*FTimerHandle MeshvisibilityTimer;
 		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()
 		{
@@ -485,11 +497,11 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		}
 #endif
 		
-		if (Ribbon)
+		/*if (Ribbon)
 		{
 			Ribbon->SetActorLocation(StartLocation);
 			Ribbon->BP_SpawnRibbon(StartLocation, TargetLocation, DashDuration);
-		}
+		}*/
 		
 		TSet<AActor*> Enemies;
 		if (bHit)

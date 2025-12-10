@@ -77,6 +77,9 @@ protected:
 	
 	virtual float GetDamageAmount() const override;
 	
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_TriggerRibbon(const bool bShouldActivate);
+	
 	UPROPERTY(Replicated)
 	AShadowStrikeRibbon* Ribbon;
 	
