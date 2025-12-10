@@ -50,9 +50,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input|Custom", Getter, Setter)
 	float MouseSensitivity = 1.f;
-	
-	UPROPERTY(Replicated)
-	APlayerCharacterBase* ControlledPlayer;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Input")
 	UInputMappingContext* PlayerBaseMappingContext;
