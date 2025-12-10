@@ -141,6 +141,7 @@ void AShield::Server_BroadcastDurability_Implementation(const float NewDurabilit
 	{
 		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
 		Multicast_BroadcastDurability(Durability);
+		UpdateDurabilityBar(NewDurability, ShieldComp->GetDurability());
 	}
 	
 }
@@ -151,6 +152,7 @@ void AShield::Multicast_BroadcastDurability_Implementation(const float NewDurabi
 	if (ShieldComp)
 	{
 		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
+		UpdateDurabilityBar(NewDurability, ShieldComp->GetDurability());
 	}
 }
 

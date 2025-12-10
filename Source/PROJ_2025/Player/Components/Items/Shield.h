@@ -62,6 +62,9 @@ public:
 		AActor* DamageCauser
 		) override;
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void UpdateDurabilityBar(float NewDurability, float MaxDurability);
+
 protected:
 	virtual void BeginPlay() override;
 
