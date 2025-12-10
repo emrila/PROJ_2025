@@ -52,12 +52,12 @@ void AShield::Server_ActivateShield_Implementation()
 	// Start durability timer on server
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+		//GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
 		// Clear any existing timer to avoid having multiples running
 		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
 
-		GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle, this, &AShield::TickDurability, 1.f, true);
+		//GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle, this, &AShield::TickDurability, 1.f, true);
 	}
 }
 
@@ -91,7 +91,7 @@ void AShield::Server_DeactivateShield_Implementation()
 	bIsShieldActive = false;
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+		//GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
 		// Clear any existing timer to avoid having multiples running
 		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
@@ -123,6 +123,16 @@ void AShield::ChangeDurability(bool bIncrease, const float AmountToChange)
 	else
 	{
 		Durability -= AmountToChange;
+		if (Durability <= 0.f)
+		{
+			if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
+			{
+				ShieldComp->StartAttackCooldown();
+				ShieldComp->DeactivateShield();
+				Durability = 0.f;
+				return;
+			}
+		}
 	}
 	
 	Server_BroadcastDurability(Durability);
@@ -141,7 +151,6 @@ void AShield::Server_BroadcastDurability_Implementation(const float NewDurabilit
 	{
 		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
 		Multicast_BroadcastDurability(Durability);
-		UpdateDurabilityBar(NewDurability, ShieldComp->GetDurability());
 	}
 	
 }
@@ -152,7 +161,6 @@ void AShield::Multicast_BroadcastDurability_Implementation(const float NewDurabi
 	if (ShieldComp)
 	{
 		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
-		UpdateDurabilityBar(NewDurability, ShieldComp->GetDurability());
 	}
 }
 
@@ -276,10 +284,10 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	
 	if (!bIsShieldActive) return 0.f;
 	
-	if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
+	/*if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
 	{
 		return 0.f;
-	}
+	}*/
 	
 	
 	ChangeDurability(false, 10.f);
