@@ -38,12 +38,15 @@ public:
 
 	UPROPERTY()
 	TArray<URoomData*> NormalMapPool;
-
+	
 	UPROPERTY()
 	TArray<URoomData*> CombatOnly;
 	
 	UPROPERTY()
 	FName CurrentLoadedLevelName;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool IsDevTest = false;
 	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Rooms")
 	void LoadNextRoom(const FRoomInstance& NextRoomData);
