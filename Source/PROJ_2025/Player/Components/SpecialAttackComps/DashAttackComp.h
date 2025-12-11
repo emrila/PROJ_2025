@@ -62,6 +62,9 @@ protected:
 	void Server_SetHasLockedTargetLocation(const bool bNewHasLockedTargetLocation);
 	
 	UFUNCTION(Server, Reliable)
+	void Server_SetTargetSweepLocation(const FVector& TargetCenter);
+	
+	UFUNCTION(Server, Reliable)
 	void Server_PerformSweep();
 	
 	void Dash();
@@ -98,6 +101,9 @@ protected:
 	UPROPERTY(Replicated)
 	FVector StartLocation;
 	
+	FVector IndicatorLocation;
+	FVector TargetSweepLocation;
+	
 	//
 	float DashRange = 1000.f;
 	
@@ -125,7 +131,6 @@ protected:
 	UPROPERTY(Replicated)
 	bool bHasLockedTargetLocation = false;
 	
-	FTimerHandle DashTimer;
 	FTimerHandle RecastTimer;
 	FTimerHandle IFrameTimer;
 };
