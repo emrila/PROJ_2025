@@ -29,7 +29,6 @@ void URangeAttackComp::StartAttack()
 {
 	if (!bCanAttack)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Starting attack."));
 		return;
 	}
 	Super::StartAttack();
