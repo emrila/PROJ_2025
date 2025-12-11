@@ -18,7 +18,11 @@ class UAttackComponentBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDash);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
 
 UCLASS()
@@ -71,6 +75,9 @@ public:
 
 	FOnPlayerDied OnPlayerDied;
 	FOnIFrameChanged OnIFrameStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnDash OnDash;
 	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(

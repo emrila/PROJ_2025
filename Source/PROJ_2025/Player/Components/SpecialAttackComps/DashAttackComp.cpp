@@ -4,7 +4,6 @@
 #include "EnhancedInputComponent.h"
 #include "KismetTraceUtils.h"
 #include "ShadowStrikeVariant2.h"
-#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -18,7 +17,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 2.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -115,11 +114,18 @@ void UDashAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (GetOwner())
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s Owner is %s"), *FString(__FUNCTION__), *(GetOwner()->GetName()));
+	}
+	
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("%s Owner Character is %s"), *FString(__FUNCTION__), *OwnerCharacter->GetName());
 	
 	if (!Ribbon)
 	{
@@ -336,7 +342,7 @@ void UDashAttackComp::Dash()
 	if (OwnerCharacter->HasAuthority())
 	{
 		if (bIsDashing) { return; }
-		BP_TriggerRibbon(true);
+		OwnerCharacter->OnDash.Broadcast();
 		OwnerCharacter->SetInputActive(false);
 		DashElapsed = 0.0f;
 	
@@ -360,14 +366,19 @@ void UDashAttackComp::Dash()
 
 void UDashAttackComp::Server_Dash_Implementation()
 {
-	if (!OwnerCharacter) 
+	Multicast_Dash();
+}
+
+void UDashAttackComp::Multicast_Dash_Implementation()
+{
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
 	
 	if (bIsDashing) { return; }
-	BP_TriggerRibbon(true);
+	OwnerCharacter->OnDash.Broadcast();
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
@@ -392,19 +403,34 @@ void UDashAttackComp::HandlePostAttackState()
 		return;
 	}
 	
+	if (OwnerCharacter->HasAuthority())
+	{
+		Multicast_HandlePostAttackState();
+	}
+	else
+	{
+		Server_HandlePostAttackState();
+	}
+}
+
+void UDashAttackComp::Server_HandlePostAttackState_Implementation()
+{
+	Multicast_HandlePostAttackState();
+}
+
+void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	if (OwnerCharacter->GetMesh() && OwnerCharacter->GetCharacterMovement())
 	{
-		BP_TriggerRibbon(false);
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
 		OwnerCharacter->GetCharacterMovement()->GroundFriction = 8.f;
 		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 2.f;
-		/*FTimerHandle MeshvisibilityTimer;
-		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(true, true);
-		}, 0.1f, false);*/
-		
 	}
 }
 
