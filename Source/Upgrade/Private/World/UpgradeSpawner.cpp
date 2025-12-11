@@ -56,22 +56,28 @@ void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativ
 		}
 		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
 
-		if (!UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
+		if (UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
 		{
-			UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
+			UpgradeAlternative->OnPostUpgrade.RemoveDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
 		}
-
+		UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
 		UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
 	}
 }
 
 void AUpgradeSpawner::Server_Spawn_Implementation()
 {
-	if (!SpawnSplineComponent || NumberOfSpawnAlternatives <= 0 || !UpgradeAlternativePairs.IsEmpty())
+	if (!SpawnSplineComponent || NumberOfSpawnAlternatives <= 0 )
 	{
 		return;
 	}
 
+	if (!UpgradeAlternativePairs.IsEmpty())
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Clearing existing upgrade alternatives before spawning new ones."), __FUNCTION__);
+		Server_ClearAll();
+	}
+	
 	UClass* AlternativeClass = UpgradeAlternativeClass.LoadSynchronous();
 	if (!AlternativeClass)
 	{
@@ -115,6 +121,26 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
 
+void AUpgradeSpawner::Server_ClearAll_Implementation()
+{
+	if (UpgradeAlternativePairs.IsEmpty())
+	{
+		UPGRADE_WARNING( TEXT("%hs: No upgrade alternatives to clear."), __FUNCTION__);
+		return;
+	}
+	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+	{
+		if (UpgradeAlternativePair.Alternative)
+		{
+			UPGRADE_DISPLAY( TEXT("%hs: Cleared upgrade alternative."), __FUNCTION__);
+			UpgradeAlternativePair.Alternative->Destroy();
+		}
+	}
+	
+	UpgradeAlternativePairs.Empty();
+	UPGRADE_DISPLAY(TEXT("%hs: All upgrade alternatives cleared."), __FUNCTION__);
+}
+
 void AUpgradeSpawner::BeginPlay()
 {
 	Super::BeginPlay();
@@ -122,7 +148,8 @@ void AUpgradeSpawner::BeginPlay()
 	if (bSpawnOnBeginPlay) 
 	{
 		TriggerSpawn();
-	}	
+	}
+	SetActorTickEnabled(HasAuthority());
 }
 
 void AUpgradeSpawner::LockUpgradeAlternatives()
@@ -176,8 +203,7 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 			SetActorTickEnabled(false);
 		}
 		else
-		{			
-			Completed = 0;
+		{
 			for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
 			{
 				FString SelectedPlayers;
@@ -191,10 +217,16 @@ void AUpgradeSpawner::Tick(float DeltaSeconds)
 					LocalCompleted++;
 					SelectedPlayers.Append(Selected ? TEXT("1") : TEXT("0"));
 				}
-				
-				UPGRADE_DISPLAY(TEXT("Selected: %s"), *SelectedPlayers);
+				if (!SelectedPlayers.IsEmpty())
+				{
+					UPGRADE_DISPLAY(TEXT("Selected: %s"), *SelectedPlayers);
+				}
 			}
 		}
+	}
+	else
+	{
+		UPGRADE_WARNING(TEXT("%hs: Tick called on client!?"), __FUNCTION__);
 	}
 }
 

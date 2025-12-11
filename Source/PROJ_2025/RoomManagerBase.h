@@ -57,13 +57,14 @@ public:
 	
 	UFUNCTION()
 	virtual void EnableExits();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	class AUpgradeSpawner* LootSpawnLocation;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
 	
 	

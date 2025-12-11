@@ -73,7 +73,11 @@ public:
 	}
 
 	UFUNCTION(Server, Reliable)
-	void Server_Spawn();	
+	void Server_Spawn();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ClearAll();	
+	
 	TArray<FUpgradeAlternativePair>& GetUpgradeAlternativePairs() { return UpgradeAlternativePairs; }
 	
 protected:
@@ -93,7 +97,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ClampMin = 0))
 	int32 NumberOfSpawnAlternatives = 3;
 	
 	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))

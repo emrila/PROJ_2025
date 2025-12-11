@@ -3,11 +3,9 @@
 
 #include "RoomManagerBase.h"
 
-#include "LootSpawnLocation.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
-#include "Chaos/ChaosPerfTest.h"
 #include "RoomExit.h"
 #include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
@@ -230,16 +228,24 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 void ARoomManagerBase::SpawnLoot()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
+	if (!LootSpawnLocation)
+	{
+		LootSpawnLocation = Cast<AUpgradeSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass()));
+		UE_LOG(LogTemp, Warning, TEXT("🔮Found Loot Spawn Location: %s"), LootSpawnLocation ? TEXT("True") : TEXT("False"));
+	}
 	if (LootSpawnLocation)
 	{
+		LootSpawnLocation->Server_ClearAll();
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
+		UE_LOG(LogTemp, Warning, TEXT("🔮OnCompletedAllUpgrades.AddDynamic!"));
 		for (URoomModifierBase* Mod : RoomModifiers)
 		{
 			Mod->OnLootSpawned();
 		}
 	}else
 	{
+		UE_LOG (LogTemp, Error, TEXT("🔮No Loot Spawn Location found in room!"));
 		EnableExits();
 	}
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
@@ -265,10 +271,13 @@ void ARoomManagerBase::EnableExits()
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
+		LootSpawnLocation->Server_ClearAll();
+		UE_LOG(LogTemp, Warning, TEXT("🔮OnCompletedAllUpgrades.RemoveDynamic"));
 	}
 
 	for (URoomModifierBase* Mod : RoomModifiers)
 	{
+		UE_LOG (LogTemp, Warning, TEXT("🔮 Mod OnExitsUnlocked called"));
 		Mod->OnExitsUnlocked();
 	}
 	
@@ -278,8 +287,16 @@ void ARoomManagerBase::EnableExits()
 		{
 			Exit->CanExit = true;
 			Exit->EnableExit();
+			UE_LOG (LogTemp, Warning, TEXT(" 🔮Exits Enabled!") );
 		}
 	}
+}
+
+void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
+	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
 }
 
 
