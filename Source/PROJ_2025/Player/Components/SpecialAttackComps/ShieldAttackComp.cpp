@@ -1,6 +1,7 @@
 ﻿#include "ShieldAttackComp.h"
 
 #include "EnhancedInputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
@@ -50,9 +51,12 @@ void UShieldAttackComp::StartAttack()
 	{
 		//Server_ActivateShield();
 		ActivateShield();
+		CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
+		HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
 		return;
 	}
 	DeactivateShield();
+	HandleOwnerMovement(CurrentMoveSpeed);
 	//Server_DeactivateShield();
 }
 
@@ -259,6 +263,41 @@ void UShieldAttackComp::ResetAttackCooldown()
 	}
 	Super::ResetAttackCooldown();
 	DeactivateShield();
+}
+
+void UShieldAttackComp::HandleOwnerMovement(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	
+	if (OwnerCharacter->HasAuthority())
+	{
+		OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
+	}
+	else
+	{
+		Server_HandleOwnerMovement(NewMoveSpeed);
+	}
+}
+
+void UShieldAttackComp::Server_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	Multicast_HandleOwnerMovement(NewMoveSpeed);
+}
+
+void UShieldAttackComp::Multicast_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
 }
 
 
