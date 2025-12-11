@@ -77,7 +77,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> StaticCombatOnly;
 
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> StaticDevMapPool;
+	
 	//LAN stuff
 	virtual void Init() override;
 	
