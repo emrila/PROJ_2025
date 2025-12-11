@@ -69,16 +69,22 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_Dash();
 	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Dash();
+	
 	void HandlePostAttackState();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_HandlePostAttackState();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HandlePostAttackState();
 	
 	virtual void ResetAttackCooldown() override;
 	
 	virtual float GetAttackCooldown() const override;
 	
 	virtual float GetDamageAmount() const override;
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	void BP_TriggerRibbon(const bool bShouldActivate);
 	
 	UPROPERTY(Replicated)
 	AShadowStrikeRibbon* Ribbon;
