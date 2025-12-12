@@ -102,6 +102,8 @@ protected:
 	FVector StartLocation;
 	
 	FVector IndicatorLocation;
+	
+	UPROPERTY(Replicated)
 	FVector TargetSweepLocation;
 	
 	//
