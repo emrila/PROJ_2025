@@ -284,10 +284,10 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	
 	if (!bIsShieldActive) return 0.f;
 	
-	/*if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
+	if (DamageEvent.DamageTypeClass == UTrapDamageType::StaticClass())
 	{
 		return 0.f;
-	}*/
+	}
 	
 	
 	ChangeDurability(false, 10.f);
