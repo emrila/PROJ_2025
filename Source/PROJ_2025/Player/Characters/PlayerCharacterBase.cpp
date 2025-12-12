@@ -2,19 +2,18 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "PlayerLoginSystem.h"
+#include "TrapDamageType.h"
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -243,6 +242,27 @@ void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
 	bIsInputActive = bNewInputActive;
 }
 
+void APlayerCharacterBase::SetShouldUseSprintInput(const bool bNewShouldUseInput)
+{
+	bShouldUseSprintInput = bNewShouldUseInput;
+	
+	if (!bShouldUseSprintInput)
+	{
+		EndSprint();
+	}
+}
+
+void APlayerCharacterBase::EndSprint()
+{
+	if (CurrentMaxWalkSpeed > 0.f)
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -444,6 +464,17 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	{
 		return 0.f;
 	}
+	
+	UE_LOG(PlayerBaseLog, Log, TEXT("%s, Damage Causer: %s"), *FString(__FUNCTION__), *GetNameSafe(DamageCauser));
+	
+	if (DamageEvent.DamageTypeClass != UTrapDamageType::StaticClass())
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		}
+	}
+	
 	const float NewDamageAmount = DamageAmount * DefenceStat;
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
@@ -455,6 +486,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 		
 		GameState->DamageHealth(NewDamageAmount);
+		
 		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(GetPlayerState());
 		if (!WizardPlayerState)
 		{
