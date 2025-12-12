@@ -4,9 +4,9 @@
 
 
 UDataTable* FLootPicker::ItemDataTable = nullptr;
-TArray<const FItemDataRow*> FLootPicker::CommonPool;
-TArray<const FItemDataRow*> FLootPicker::RarePool;
-TArray<const FItemDataRow*> FLootPicker::LegendaryPool;
+TArray<FItemDataRow*> FLootPicker::CommonPool;
+TArray<FItemDataRow*> FLootPicker::RarePool;
+TArray<FItemDataRow*> FLootPicker::LegendaryPool;
 
 void FLootPicker::Initialize(UDataTable* InDataTable)
 {
@@ -31,7 +31,7 @@ void FLootPicker::InitPools()
 
     for (const FName& RowName : ItemDataTable->GetRowNames())
     {
-        const FItemDataRow* Row = ItemDataTable->FindRow<FItemDataRow>(RowName, TEXT("FLootPicker InitPools"));
+        FItemDataRow* Row = ItemDataTable->FindRow<FItemDataRow>(RowName, TEXT("FLootPicker InitPools"));
         if (!Row || !Row->ItemClass)
             continue;
         
@@ -50,13 +50,13 @@ void FLootPicker::InitPools()
         CommonPool.Num(), RarePool.Num(), LegendaryPool.Num());
 }
 
-const FItemDataRow* FLootPicker::PickLoot()
+FItemDataRow* FLootPicker::PickLoot()
 {
     if (!ItemDataTable)
         return nullptr;
 
     const float TierRoll = FMath::FRand();
-    TArray<const FItemDataRow*>* Pool = nullptr;
+    TArray<FItemDataRow*>* Pool = nullptr;
 
     if (TierRoll < 0.7f)
         Pool = &CommonPool;        // 70% common
@@ -72,7 +72,7 @@ const FItemDataRow* FLootPicker::PickLoot()
     }
 
     const int32 Index = FMath::RandRange(0, Pool->Num() - 1);
-    const FItemDataRow* Row = (*Pool)[Index];
+    FItemDataRow* Row = (*Pool)[Index];
     
     return Row;
 }

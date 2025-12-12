@@ -10,14 +10,14 @@ public:
 	static void Initialize(UDataTable* InDataTable);
 
 
-	static const FItemDataRow* PickLoot();
+	static FItemDataRow* PickLoot();
 
 private:
 	static void InitPools();
 
 	static UDataTable* ItemDataTable;
 
-	static TArray<const FItemDataRow*> CommonPool;
-	static TArray<const FItemDataRow*> RarePool;
-	static TArray<const FItemDataRow*> LegendaryPool;
+	static TArray<FItemDataRow*> CommonPool;
+	static TArray<FItemDataRow*> RarePool;
+	static TArray<FItemDataRow*> LegendaryPool;
 };

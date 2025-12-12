@@ -3,6 +3,9 @@
 
 #include "RoomManagerBase.h"
 
+#include "DroppedItem.h"
+#include "ItemBase.h"
+#include "LootPicker.h"
 #include "LootSpawnLocation.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
@@ -237,6 +240,15 @@ void ARoomManagerBase::SpawnLoot()
 		for (URoomModifierBase* Mod : RoomModifiers)
 		{
 			Mod->OnLootSpawned();
+		}
+		if (RoomModifiers.Num() > 0)
+		{
+			UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+			FItemDataRow* RandomLoot = FLootPicker::PickLoot();
+			UItemBase* ItemInstance = NewObject<UItemBase>(this,RandomLoot->ItemClass);
+			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation());
+			DroppedItem->ItemMesh->SetStaticMesh(RandomLoot->DroppedMesh);
+			DroppedItem->ItemData = ItemInstance;
 		}
 	}else
 	{

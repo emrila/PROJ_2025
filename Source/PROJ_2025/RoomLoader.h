@@ -67,6 +67,10 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<ALantern> LanternActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<ADroppedItem> DroppedItemClass;
+	
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);
