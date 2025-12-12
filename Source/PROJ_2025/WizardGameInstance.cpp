@@ -4,6 +4,7 @@
 #include "WizardGameInstance.h"
 
 #include "LobbyGameMode.h"
+#include "LootPicker.h"
 #include "RoomLoader.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Kismet/GameplayStatics.h"
@@ -13,7 +14,10 @@
 void UWizardGameInstance::Init()
 {
 	Super::Init();
-	
+	if (ItemDataTable)
+	{
+		FLootPicker::Initialize(ItemDataTable);
+	}
 	InitDelay();
 }
 
