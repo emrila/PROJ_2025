@@ -51,8 +51,7 @@ void UShieldAttackComp::StartAttack()
 	{
 		//Server_ActivateShield();
 		ActivateShield();
-		CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
-		HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
+		
 		return;
 	}
 	DeactivateShield();
@@ -165,6 +164,8 @@ void UShieldAttackComp::ActivateShield()
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
 	//CurrentShield->ActivateShield();
 	CurrentShield->RequestActivateShield();
+	CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
+	HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
 }
 
 void UShieldAttackComp::DeactivateShield()
@@ -175,7 +176,8 @@ void UShieldAttackComp::DeactivateShield()
 	}
 	bIsShieldActive = false;
 	//CurrentShield->DeactivateShield();
-
+	
+	HandleOwnerMovement(CurrentMoveSpeed);
 	CurrentShield->RequestDeactivateShield();
 }
 
