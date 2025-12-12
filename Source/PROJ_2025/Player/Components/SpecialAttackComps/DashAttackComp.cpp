@@ -4,6 +4,7 @@
 #include "EnhancedInputComponent.h"
 #include "KismetTraceUtils.h"
 #include "ShadowStrikeVariant2.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -17,7 +18,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 2.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -52,6 +53,11 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
 	
 	FHitResult HitResult;
+	
+	if (OwnerCharacter->GetCharacterMovement())
+	{
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	}
 		
 	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
 	
@@ -332,20 +338,6 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		/*if (bIsDashing) { return; }
-		OwnerCharacter->OnDash.Broadcast();
-		OwnerCharacter->SetInputActive(false);
-		DashElapsed = 0.0f;
-	
-		if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(false, true);
-			OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
-			OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
-		}
-		bIsDashing = true;*/
-		
 		Multicast_Dash();
 	}
 	else
@@ -373,9 +365,11 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	DashElapsed = 0.0f;
 	
 	if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
+			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	}
 	
 	bIsDashing = true;
@@ -415,6 +409,7 @@ void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
 	{
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	}
 }
 
