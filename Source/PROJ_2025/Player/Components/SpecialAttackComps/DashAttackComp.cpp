@@ -57,15 +57,16 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	
 	if (HitResult.bBlockingHit)
 	{
-		if (OwnerCharacter->HasAuthority())
-		{
-			TargetSweepLocation = HitResult.ImpactPoint;
-			bIsDashing = false;
-		}
-		else
+		if (!OwnerCharacter->HasAuthority())
 		{
 			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
 			Server_SetIsDashing(false);
+		}
+		else
+		{
+			bIsDashing = false;
+			TargetSweepLocation = HitResult.ImpactPoint;
+			
 		}
 		Server_PerformSweep();
 		HandlePostAttackState();
@@ -77,12 +78,11 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (OwnerCharacter->HasAuthority())
 		{
 			bIsDashing = false;
-			TargetSweepLocation = TargetLocation;
 		}else
 		{
 			Server_SetIsDashing(false);
-			Server_SetTargetSweepLocation(TargetLocation);
 		}
+		Server_SetTargetSweepLocation(TargetLocation);
 		Server_PerformSweep();
 		HandlePostAttackState();
 	}
@@ -184,6 +184,7 @@ void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME(UDashAttackComp, bCanDash);
 	DOREPLIFETIME(UDashAttackComp, bIsDashing);
 	DOREPLIFETIME(UDashAttackComp, bHasLockedTargetLocation);
+	DOREPLIFETIME(UDashAttackComp, TargetSweepLocation);
 }
 
 void UDashAttackComp::PerformAttack()
@@ -367,7 +368,7 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	}
 	
 	if (bIsDashing) { return; }
-	OwnerCharacter->OnDash.Broadcast();
+	//OwnerCharacter->OnDash.Broadcast();
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
@@ -469,7 +470,7 @@ void UDashAttackComp::Server_SetDidRecast_Implementation(const bool bNewDidRecas
 
 void UDashAttackComp::Server_PerformSweep_Implementation()
 {
-	if (TargetLocation.IsNearlyZero())
+	if (TargetSweepLocation.IsNearlyZero())
 	{
 		return;
 	}
@@ -506,11 +507,10 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		}
 #endif
 		
-		/*if (Ribbon)
+		if (Ribbon)
 		{
-			Ribbon->SetActorLocation(StartLocation);
-			Ribbon->BP_SpawnRibbon(StartLocation, TargetLocation, DashDuration);
-		}*/
+			Ribbon->BP_SpawnRibbon(StartLocation, TargetSweepLocation, DashDuration);
+		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -561,6 +561,7 @@ void UDashAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetStartAndTargetLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetTargetSweepLocation(FVector::ZeroVector);
 	Server_SetShouldRecast(false);
 	Server_SetDidRecast(false);
 	Server_SetWentThroughShield(false);
