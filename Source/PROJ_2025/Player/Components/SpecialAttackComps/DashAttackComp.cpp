@@ -17,7 +17,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 2.f;
+	AttackCooldown = 10.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -33,30 +33,58 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	{
 		TryLockingTargetLocation();
 		
-		if (!TargetLocation.IsNearlyZero())
+		if (!IndicatorLocation.IsNearlyZero())
 		{
 #if WITH_EDITOR
 	if (bDrawDebug)
 	{
-		DrawDebugSphere(GetWorld(), TargetLocation, 50.f, 10, FColor::Green, false, 0.1f);
+		DrawDebugSphere(GetWorld(), IndicatorLocation, 50.f, 10, FColor::Green, false, 0.1f);
 	}
 #endif
 		}
 	}
 	
 	
-	if (bIsDashing)
-	{
-		DashElapsed += DeltaTime;
-		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
-		const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-		OwnerCharacter->SetActorLocation(NewLocation, true, nullptr, ETeleportType::TeleportPhysics);
+	if (!bIsDashing) { return; }
+	
+	DashElapsed += DeltaTime;
+	const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
+	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
+	
+	FHitResult HitResult;
 		
-		if (DashAlpha >= 1.0f)
+	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
+	
+	if (HitResult.bBlockingHit)
+	{
+		if (OwnerCharacter->HasAuthority())
+		{
+			TargetSweepLocation = HitResult.ImpactPoint;
+			bIsDashing = false;
+		}
+		else
+		{
+			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
+			Server_SetIsDashing(false);
+		}
+		Server_PerformSweep();
+		HandlePostAttackState();
+		return;
+	}
+		
+	if (DashAlpha >= 1.0f)
+	{
+		if (OwnerCharacter->HasAuthority())
 		{
 			bIsDashing = false;
-			HandlePostAttackState();
+			TargetSweepLocation = TargetLocation;
+		}else
+		{
+			Server_SetIsDashing(false);
+			Server_SetTargetSweepLocation(TargetLocation);
 		}
+		Server_PerformSweep();
+		HandlePostAttackState();
 	}
 
 }
@@ -172,9 +200,6 @@ void UDashAttackComp::PerformAttack()
 	}
 	
 	Dash();
-	Server_PerformSweep();
-	
-	//handle post attack
 }
 
 void UDashAttackComp::OnPrepareForAttack(const FInputActionInstance& ActionInstance)
@@ -255,63 +280,23 @@ void UDashAttackComp::TryLockingTargetLocation()
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
 	
 	FVector PlayerLocation = OwnerCharacter->GetActorLocation();
-	FVector PlayerForward = OwnerCharacter->GetActorForwardVector();
 	
-	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = CameraLocation + (CameraRotation.Vector() * DashRange);
+	float NewDashRange = (CameraLocation - PlayerLocation).Size() + DashRange;
+	FVector TraceEnd = CameraLocation + (CameraRotation.Vector() * NewDashRange);
 	
-	FVector NewEndLocation = TraceEnd;
+	IndicatorLocation = TraceEnd;
 	
-	FHitResult HitResult;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(OwnerCharacter);
-	
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-	
-	const bool bHit = GetWorld()->SweepSingleByObjectType(
-		HitResult,
-		TraceStart,
-		NewEndLocation,
-		FQuat::Identity,
-		ObjectQueryParams,
-		FCollisionShape::MakeSphere(25.f),
-		Params
-	);
-	
-#if WITH_EDITOR
-	if (bDrawDebug)
-	{
-		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 0.1f);
-	}
-#endif
-	
-	if (bHit && HitResult.GetActor())
-	{
-		FVector TraceDir = (TraceEnd - TraceStart).GetSafeNormal();
-		if (TraceDir.IsNearlyZero()) { TraceDir = CameraRotation.Vector(); }
-		
-		const FVector ToImpact = HitResult.ImpactPoint - PlayerLocation;
-		const float ForwardDot = FVector::DotProduct(ToImpact.GetSafeNormal(), PlayerForward);
-		
-		const float ForwardThreshold = 0.1f;
-		if (ForwardDot > ForwardThreshold)
-		{
-			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
-			NewEndLocation.Z += 100.f; // Move up 100 points to avoid narrow collisions
-		}
-		
-	}
+	if (TraceEnd.Z < PlayerLocation.Z + 20.f) { TraceEnd.Z = PlayerLocation.Z + 5.f; }
 
 	if (OwnerCharacter->HasAuthority())
 	{
-		TargetLocation = NewEndLocation;
+		TargetLocation = TraceEnd;
 		StartLocation = PlayerLocation;
 	}
 	else
 	{
-		Server_SetStartAndTargetLocation(PlayerLocation, NewEndLocation);
-		TargetLocation = NewEndLocation;
+		Server_SetStartAndTargetLocation(PlayerLocation, TraceEnd);
+		TargetLocation = TraceEnd;
 		StartLocation = PlayerLocation;
 	}
 	
@@ -331,6 +316,11 @@ void UDashAttackComp::Server_SetHasLockedTargetLocation_Implementation(const boo
 	bHasLockedTargetLocation = bNewHasLockedTargetLocation;
 }
 
+void UDashAttackComp::Server_SetTargetSweepLocation_Implementation(const FVector& TargetCenter)
+{
+	TargetSweepLocation = TargetCenter;
+}
+
 void UDashAttackComp::Dash()
 {
 	if (!OwnerCharacter)
@@ -341,7 +331,7 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		if (bIsDashing) { return; }
+		/*if (bIsDashing) { return; }
 		OwnerCharacter->OnDash.Broadcast();
 		OwnerCharacter->SetInputActive(false);
 		DashElapsed = 0.0f;
@@ -353,10 +343,9 @@ void UDashAttackComp::Dash()
 			OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
 			OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
 		}
-	
-		bIsDashing = true;
+		bIsDashing = true;*/
 		
-		//OwnerCharacter->SetActorLocation(TargetLocation);
+		Multicast_Dash();
 	}
 	else
 	{
@@ -386,13 +375,9 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 			OwnerCharacter->GetCharacterMovement())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
-		OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
-		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
 	}
 	
 	bIsDashing = true;
-	
-	//OwnerCharacter->SetActorLocation(TargetLocation);
 }
 
 void UDashAttackComp::HandlePostAttackState()
@@ -425,12 +410,10 @@ void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	if (OwnerCharacter->GetMesh() && OwnerCharacter->GetCharacterMovement())
+	if (OwnerCharacter->GetMesh())
 	{
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
-		OwnerCharacter->GetCharacterMovement()->GroundFriction = 8.f;
-		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 2.f;
 	}
 }
 
@@ -509,7 +492,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		bool bHit = GetWorld()->SweepMultiByObjectType(
 			HitResults,
 			StartLocation,
-			TargetLocation,
+			TargetSweepLocation,
 			FQuat::Identity,
 			ObjectQueryParams,
 			FCollisionShape::MakeSphere(50.f),
@@ -519,7 +502,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 #if WITH_EDITOR
 		if (bDrawDebug)
 		{
-			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetLocation, 50.f, FColor::Red, false, 5.f);
+			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetSweepLocation, 50.f, FColor::Red, false, 5.f);
 		}
 #endif
 		
