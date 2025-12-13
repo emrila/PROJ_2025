@@ -53,6 +53,7 @@ public:
 
 	virtual void OnRoomInitialized(const FRoomInstance& Room);
 
+	UFUNCTION(BlueprintCallable)
 	void SpawnLoot();
 	
 	UFUNCTION()

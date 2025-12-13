@@ -35,6 +35,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
+	UFUNCTION(BlueprintImplementableEvent)
+	void Death();
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, ReplicatedUsing=OnRep_Health, Category="Stats")
 	float Health;
 

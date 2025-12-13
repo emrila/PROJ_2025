@@ -68,6 +68,7 @@ void AEnemyBase::OnRep_Health() const
 void AEnemyBase::FinishDeath()
 {
 	SpawnDeathEffect();
+	Death();
 	Destroy();
 }
 
@@ -121,12 +122,14 @@ void AEnemyBase::HandleDeath()
 			}else
 			{
 				SpawnDeathEffect();
+				Death();
 				Destroy();
 			}
 		}
 		return;
 	}
 	SpawnDeathEffect();
+	Death();
 	Destroy();
 }
 
