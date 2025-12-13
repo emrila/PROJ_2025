@@ -14,17 +14,17 @@ UAttackComponentBase::UAttackComponentBase()
 
 void UAttackComponentBase::StartAttack()
 {
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
 	}
-
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
+		return;
+	}
+	
 	bCanAttack = false;
 
 
@@ -44,14 +44,14 @@ void UAttackComponentBase::StartAttack()
 
 void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
+		return;
+	}
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
 		return;
 	}
 	

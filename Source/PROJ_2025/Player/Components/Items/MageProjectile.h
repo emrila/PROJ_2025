@@ -26,7 +26,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnProjectileOverlap(
 		UPrimitiveComponent* OverlappedComponent,
 		AActor* OtherActor,
@@ -36,7 +36,7 @@ protected:
 		const FHitResult& SweepResult
 	);
 
-	UFUNCTION(blueprintCallable)
+	UFUNCTION()
 	void OnProjectileHit(
 		UPrimitiveComponent* HitComponent,
 		AActor* OtherActor,
@@ -52,8 +52,7 @@ protected:
 	void SetDamageAmount(const float Value) { DamageAmount = Value; }
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USphereComponent* CollisionComponent;
 
