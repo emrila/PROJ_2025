@@ -4,6 +4,7 @@
 #include "EnhancedInputComponent.h"
 #include "KismetTraceUtils.h"
 #include "ShadowStrikeVariant2.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -17,7 +18,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 2.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -52,20 +53,26 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
 	
 	FHitResult HitResult;
+	
+	if (OwnerCharacter->GetCharacterMovement())
+	{
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	}
 		
 	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
 	
 	if (HitResult.bBlockingHit)
 	{
-		if (OwnerCharacter->HasAuthority())
-		{
-			TargetSweepLocation = HitResult.ImpactPoint;
-			bIsDashing = false;
-		}
-		else
+		if (!OwnerCharacter->HasAuthority())
 		{
 			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
 			Server_SetIsDashing(false);
+		}
+		else
+		{
+			bIsDashing = false;
+			TargetSweepLocation = HitResult.ImpactPoint;
+			
 		}
 		Server_PerformSweep();
 		HandlePostAttackState();
@@ -77,12 +84,11 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		if (OwnerCharacter->HasAuthority())
 		{
 			bIsDashing = false;
-			TargetSweepLocation = TargetLocation;
 		}else
 		{
 			Server_SetIsDashing(false);
-			Server_SetTargetSweepLocation(TargetLocation);
 		}
+		Server_SetTargetSweepLocation(TargetLocation);
 		Server_PerformSweep();
 		HandlePostAttackState();
 	}
@@ -184,6 +190,7 @@ void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME(UDashAttackComp, bCanDash);
 	DOREPLIFETIME(UDashAttackComp, bIsDashing);
 	DOREPLIFETIME(UDashAttackComp, bHasLockedTargetLocation);
+	DOREPLIFETIME(UDashAttackComp, TargetSweepLocation);
 }
 
 void UDashAttackComp::PerformAttack()
@@ -331,20 +338,6 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		/*if (bIsDashing) { return; }
-		OwnerCharacter->OnDash.Broadcast();
-		OwnerCharacter->SetInputActive(false);
-		DashElapsed = 0.0f;
-	
-		if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(false, true);
-			OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
-			OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
-		}
-		bIsDashing = true;*/
-		
 		Multicast_Dash();
 	}
 	else
@@ -367,14 +360,16 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	}
 	
 	if (bIsDashing) { return; }
-	OwnerCharacter->OnDash.Broadcast();
+	//OwnerCharacter->OnDash.Broadcast();
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
 	if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
+			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	}
 	
 	bIsDashing = true;
@@ -414,6 +409,7 @@ void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
 	{
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	}
 }
 
@@ -469,7 +465,7 @@ void UDashAttackComp::Server_SetDidRecast_Implementation(const bool bNewDidRecas
 
 void UDashAttackComp::Server_PerformSweep_Implementation()
 {
-	if (TargetLocation.IsNearlyZero())
+	if (TargetSweepLocation.IsNearlyZero())
 	{
 		return;
 	}
@@ -506,11 +502,10 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		}
 #endif
 		
-		/*if (Ribbon)
+		if (Ribbon)
 		{
-			Ribbon->SetActorLocation(StartLocation);
-			Ribbon->BP_SpawnRibbon(StartLocation, TargetLocation, DashDuration);
-		}*/
+			Ribbon->BP_SpawnRibbon(StartLocation, TargetSweepLocation, DashDuration);
+		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -561,6 +556,7 @@ void UDashAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetStartAndTargetLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetTargetSweepLocation(FVector::ZeroVector);
 	Server_SetShouldRecast(false);
 	Server_SetDidRecast(false);
 	Server_SetWentThroughShield(false);

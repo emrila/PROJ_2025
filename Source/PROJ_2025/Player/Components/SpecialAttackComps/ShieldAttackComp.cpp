@@ -49,15 +49,10 @@ void UShieldAttackComp::StartAttack()
 	
 	if (!bIsShieldActive)
 	{
-		//Server_ActivateShield();
 		ActivateShield();
-		CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
-		HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
 		return;
 	}
 	DeactivateShield();
-	HandleOwnerMovement(CurrentMoveSpeed);
-	//Server_DeactivateShield();
 }
 
 void UShieldAttackComp::SpawnShield()
@@ -159,11 +154,13 @@ void UShieldAttackComp::ActivateShield()
 	}
 
 	bIsShieldActive = true;
+	OwnerCharacter->SetShouldUseSprintInput(false);
 
 	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
 	CurrentShield->SetDamageAmount(GetDamageAmount());
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
-	//CurrentShield->ActivateShield();
+	CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
+	HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
 	CurrentShield->RequestActivateShield();
 }
 
@@ -174,8 +171,9 @@ void UShieldAttackComp::DeactivateShield()
 		return;
 	}
 	bIsShieldActive = false;
-	//CurrentShield->DeactivateShield();
-
+	OwnerCharacter->SetShouldUseSprintInput(true);
+	
+	HandleOwnerMovement(CurrentMoveSpeed);
 	CurrentShield->RequestDeactivateShield();
 }
 
@@ -197,8 +195,8 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 	if (CurrentShield)
 	{
 		CurrentShield->SetDurability(GetDurability());
-		//OnDurabilityChanged.Broadcast(GetDurability(), GetDurability());
 	}
+	HandleOwnerMovement(CurrentMoveSpeed);
 	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
