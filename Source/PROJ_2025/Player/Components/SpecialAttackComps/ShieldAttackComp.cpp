@@ -160,7 +160,7 @@ void UShieldAttackComp::ActivateShield()
 	CurrentShield->SetDamageAmount(GetDamageAmount());
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
 	CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
-	HandleOwnerMovement(CurrentMoveSpeed * 0.5f); // Reduce movement speed by 50% when the shield is active
+	HandleOwnerMovement(CurrentMoveSpeed * CurrentShield->GetPlayerMovementSpeedMultiplier());
 	CurrentShield->RequestActivateShield();
 }
 
