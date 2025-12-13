@@ -54,16 +54,22 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
 	TArray<URoomData*> AllRooms;
-	if (GI->RoomLoader->NormalMapPool.Num() <= 4)
+	if (!GI->RoomLoader->IsDevTest)
 	{
-		GI->RoomLoader->RefreshPool();
-	}
-	if (Room.RoomData->RoomType != ERoomType::Parkour)
-	{
-		AllRooms = GI->RoomLoader->NormalMapPool;
+		if (GI->RoomLoader->NormalMapPool.Num() <= 4)
+		{
+			GI->RoomLoader->RefreshPool();
+		}
+		if (Room.RoomData->RoomType != ERoomType::Parkour)
+		{
+			AllRooms = GI->RoomLoader->NormalMapPool;
+		}else
+		{
+			AllRooms = GI->RoomLoader->CombatOnly;
+		}
 	}else
 	{
-		AllRooms = GI->RoomLoader->CombatOnly;
+		AllRooms = GI->StaticDevMapPool;
 	}
 	bool BossRoom = GI->RoomLoader->RollForBossRoom();
 	bool CampExit = false;

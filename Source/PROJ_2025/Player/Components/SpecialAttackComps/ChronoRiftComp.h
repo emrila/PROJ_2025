@@ -39,8 +39,6 @@ protected:
 	
 	virtual void OnTargetAreaLocked(const FInputActionInstance& InputActionInstance);
 	
-	virtual void OnStartLockingCanceled(const FInputActionInstance& InputActionInstance);
-	
 	virtual void PrepareForLaunch();
 	
 	virtual void ResetAttackCooldown() override;
@@ -54,18 +52,20 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
 
-	virtual void SetIndicatorHidden(bool bIsHidden);
+	virtual void SetIndicatorHidden(const bool bIsHidden);
+	
+	void UpdateIndicatorScale();
 
 	virtual float GetChronoDuration() const;
 
-	virtual float GetAttackRadius() const;
+	virtual float GetAttackRadius();
 
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
 	
-	UFUNCTION(Client, Reliable)
-	void Client_SpawnChronoRiftIndicator();
+	UFUNCTION(Server, Reliable)
+	void Server_SetIndicatorRadius(const float NewRadius);
 	
 	UPROPERTY()
 	AActor* LovesMesh;
@@ -77,6 +77,9 @@ protected:
 	FVector TargetAreaCenter;
 	
 	float TargetAreaRadius = 400.f;
+	
+	UPROPERTY(Replicated)
+	float IndicatorRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
 

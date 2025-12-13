@@ -2,19 +2,18 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "PlayerLoginSystem.h"
+#include "TrapDamageType.h"
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
 #include "Engine/ActorChannel.h"
+#include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -60,6 +59,14 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	TickNotLocal();
 	
+	if (IFrame)
+	{
+		// Possibly add visual effects or indicators for I-frames with delegate OnIFrameChanged
+#if WITH_EDITOR
+		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
+#endif		
+	}
+	
 	if (bIsInterpolatingCamera && FollowCamera)
 	{
 		CameraInterpElapsed += DeltaTime;
@@ -77,15 +84,6 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		{
 			bIsInterpolatingCamera = false;
 		}
-	}
-
-	if (IFrame)
-	{
-		// Possibly add visual effects or indicators for I-frames here
-		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
-#if WITH_EDITOR
-		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
-#endif		
 	}
 }
 
@@ -243,6 +241,27 @@ void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
 	bIsInputActive = bNewInputActive;
 }
 
+void APlayerCharacterBase::SetShouldUseSprintInput(const bool bNewShouldUseInput)
+{
+	bShouldUseSprintInput = bNewShouldUseInput;
+	
+	if (!bShouldUseSprintInput)
+	{
+		EndSprint();
+	}
+}
+
+void APlayerCharacterBase::EndSprint()
+{
+	if (CurrentMaxWalkSpeed > 0.f)
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -257,7 +276,6 @@ void APlayerCharacterBase::ResetIFrame()
 
 void APlayerCharacterBase::SetIsAlive(const bool NewIsAlive)
 {
-	UE_LOG(PlayerBaseLog, Log, TEXT("%s, NewIsAlive: %d"), *FString(__FUNCTION__), NewIsAlive);
 	bIsAlive = NewIsAlive;
 	OnPlayerDied.Broadcast(bIsAlive);
 }
@@ -371,6 +389,8 @@ void APlayerCharacterBase::BeginPlay()
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
+	
+	DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -1.f);
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -444,6 +464,15 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 	{
 		return 0.f;
 	}
+	
+	if (DamageEvent.DamageTypeClass != UTrapDamageType::StaticClass())
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		}
+	}
+	
 	const float NewDamageAmount = DamageAmount * DefenceStat;
 	if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>(); !IFrame)
 	{
@@ -455,6 +484,7 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 		}
 		
 		GameState->DamageHealth(NewDamageAmount);
+		
 		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(GetPlayerState());
 		if (!WizardPlayerState)
 		{
@@ -549,6 +579,14 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	
 	AddControllerYawInput(LookAxisVector.X);
 	AddControllerPitchInput(LookAxisVector.Y);
+}
+
+void APlayerCharacterBase::Jump()
+{
+	if (bIsAlive)
+	{
+		Super::Jump();
+	}
 }
 
 void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInstance)
@@ -687,14 +725,6 @@ void APlayerCharacterBase::StartSuddenDeath()
 void APlayerCharacterBase::EndSuddenDeath()
 {
 	SuddenDeath = false;
-}
-
-void APlayerCharacterBase::Jump()
-{
-	if (bIsAlive)
-	{
-		Super::Jump();
-	}
 }
 
 void APlayerCharacterBase::Server_HitFeedback_Implementation()

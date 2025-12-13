@@ -62,6 +62,9 @@ protected:
 	void Server_SetHasLockedTargetLocation(const bool bNewHasLockedTargetLocation);
 	
 	UFUNCTION(Server, Reliable)
+	void Server_SetTargetSweepLocation(const FVector& TargetCenter);
+	
+	UFUNCTION(Server, Reliable)
 	void Server_PerformSweep();
 	
 	void Dash();
@@ -69,16 +72,22 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_Dash();
 	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_Dash();
+	
 	void HandlePostAttackState();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_HandlePostAttackState();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HandlePostAttackState();
 	
 	virtual void ResetAttackCooldown() override;
 	
 	virtual float GetAttackCooldown() const override;
 	
 	virtual float GetDamageAmount() const override;
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	void BP_TriggerRibbon(const bool bShouldActivate);
 	
 	UPROPERTY(Replicated)
 	AShadowStrikeRibbon* Ribbon;
@@ -91,6 +100,11 @@ protected:
 	
 	UPROPERTY(Replicated)
 	FVector StartLocation;
+	
+	FVector IndicatorLocation;
+	
+	UPROPERTY(Replicated)
+	FVector TargetSweepLocation;
 	
 	//
 	float DashRange = 1000.f;
@@ -119,7 +133,6 @@ protected:
 	UPROPERTY(Replicated)
 	bool bHasLockedTargetLocation = false;
 	
-	FTimerHandle DashTimer;
 	FTimerHandle RecastTimer;
 	FTimerHandle IFrameTimer;
 };

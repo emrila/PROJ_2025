@@ -67,4 +67,14 @@ protected:
 	float BaseDurability = 200.f;
 
 	float BaseRecoveryRate = 1.f;
+	
+	float CurrentMoveSpeed = 0.f;
+	
+	void HandleOwnerMovement(const float NewMoveSpeed);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_HandleOwnerMovement(const float NewMoveSpeed);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_HandleOwnerMovement(const float NewMoveSpeed);
 };

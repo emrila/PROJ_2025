@@ -61,6 +61,8 @@ public:
 		class AController* EventInstigator,
 		AActor* DamageCauser
 		) override;
+	
+	float GetPlayerMovementSpeedMultiplier() const { return PlayerMovementSpeedMultiplier; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -96,6 +98,9 @@ protected:
 
 	UPROPERTY(Replicated)
 	float RecoveryRate = 1.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float PlayerMovementSpeedMultiplier = 0.5f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* OwnerCharacter;

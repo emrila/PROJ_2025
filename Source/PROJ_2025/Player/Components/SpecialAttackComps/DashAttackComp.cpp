@@ -18,7 +18,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 20.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 2.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -34,30 +34,63 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	{
 		TryLockingTargetLocation();
 		
-		if (!TargetLocation.IsNearlyZero())
+		if (!IndicatorLocation.IsNearlyZero())
 		{
 #if WITH_EDITOR
 	if (bDrawDebug)
 	{
-		DrawDebugSphere(GetWorld(), TargetLocation, 50.f, 10, FColor::Green, false, 0.1f);
+		DrawDebugSphere(GetWorld(), IndicatorLocation, 50.f, 10, FColor::Green, false, 0.1f);
 	}
 #endif
 		}
 	}
 	
 	
-	if (bIsDashing)
+	if (!bIsDashing) { return; }
+	
+	DashElapsed += DeltaTime;
+	const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
+	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
+	
+	FHitResult HitResult;
+	
+	if (OwnerCharacter->GetCharacterMovement())
 	{
-		DashElapsed += DeltaTime;
-		const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
-		const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-		OwnerCharacter->SetActorLocation(NewLocation, true, nullptr, ETeleportType::TeleportPhysics);
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	}
 		
-		if (DashAlpha >= 1.0f)
+	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
+	
+	if (HitResult.bBlockingHit)
+	{
+		if (!OwnerCharacter->HasAuthority())
+		{
+			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
+			Server_SetIsDashing(false);
+		}
+		else
 		{
 			bIsDashing = false;
-			HandlePostAttackState();
+			TargetSweepLocation = HitResult.ImpactPoint;
+			
 		}
+		Server_PerformSweep();
+		HandlePostAttackState();
+		return;
+	}
+		
+	if (DashAlpha >= 1.0f)
+	{
+		if (OwnerCharacter->HasAuthority())
+		{
+			bIsDashing = false;
+		}else
+		{
+			Server_SetIsDashing(false);
+		}
+		Server_SetTargetSweepLocation(TargetLocation);
+		Server_PerformSweep();
+		HandlePostAttackState();
 	}
 
 }
@@ -115,11 +148,18 @@ void UDashAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	if (GetOwner())
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s Owner is %s"), *FString(__FUNCTION__), *(GetOwner()->GetName()));
+	}
+	
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
+	
+	UE_LOG(LogTemp, Log, TEXT("%s Owner Character is %s"), *FString(__FUNCTION__), *OwnerCharacter->GetName());
 	
 	if (!Ribbon)
 	{
@@ -150,6 +190,7 @@ void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	DOREPLIFETIME(UDashAttackComp, bCanDash);
 	DOREPLIFETIME(UDashAttackComp, bIsDashing);
 	DOREPLIFETIME(UDashAttackComp, bHasLockedTargetLocation);
+	DOREPLIFETIME(UDashAttackComp, TargetSweepLocation);
 }
 
 void UDashAttackComp::PerformAttack()
@@ -166,9 +207,6 @@ void UDashAttackComp::PerformAttack()
 	}
 	
 	Dash();
-	Server_PerformSweep();
-	
-	//handle post attack
 }
 
 void UDashAttackComp::OnPrepareForAttack(const FInputActionInstance& ActionInstance)
@@ -249,63 +287,23 @@ void UDashAttackComp::TryLockingTargetLocation()
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
 	
 	FVector PlayerLocation = OwnerCharacter->GetActorLocation();
-	FVector PlayerForward = OwnerCharacter->GetActorForwardVector();
 	
-	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = CameraLocation + (CameraRotation.Vector() * DashRange);
+	float NewDashRange = (CameraLocation - PlayerLocation).Size() + DashRange;
+	FVector TraceEnd = CameraLocation + (CameraRotation.Vector() * NewDashRange);
 	
-	FVector NewEndLocation = TraceEnd;
+	IndicatorLocation = TraceEnd;
 	
-	FHitResult HitResult;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(OwnerCharacter);
-	
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-	
-	const bool bHit = GetWorld()->SweepSingleByObjectType(
-		HitResult,
-		TraceStart,
-		NewEndLocation,
-		FQuat::Identity,
-		ObjectQueryParams,
-		FCollisionShape::MakeSphere(25.f),
-		Params
-	);
-	
-#if WITH_EDITOR
-	if (bDrawDebug)
-	{
-		//DrawDebugSweptSphere(GetWorld(), TraceStart, TraceEnd, 50.f, FColor::Purple, false, 0.1f);
-	}
-#endif
-	
-	if (bHit && HitResult.GetActor())
-	{
-		FVector TraceDir = (TraceEnd - TraceStart).GetSafeNormal();
-		if (TraceDir.IsNearlyZero()) { TraceDir = CameraRotation.Vector(); }
-		
-		const FVector ToImpact = HitResult.ImpactPoint - PlayerLocation;
-		const float ForwardDot = FVector::DotProduct(ToImpact.GetSafeNormal(), PlayerForward);
-		
-		const float ForwardThreshold = 0.1f;
-		if (ForwardDot > ForwardThreshold)
-		{
-			NewEndLocation = HitResult.ImpactPoint - TraceDir * 20.f;// back off a little
-			NewEndLocation.Z += 100.f; // Move up 100 points to avoid narrow collisions
-		}
-		
-	}
+	if (TraceEnd.Z < PlayerLocation.Z + 20.f) { TraceEnd.Z = PlayerLocation.Z + 5.f; }
 
 	if (OwnerCharacter->HasAuthority())
 	{
-		TargetLocation = NewEndLocation;
+		TargetLocation = TraceEnd;
 		StartLocation = PlayerLocation;
 	}
 	else
 	{
-		Server_SetStartAndTargetLocation(PlayerLocation, NewEndLocation);
-		TargetLocation = NewEndLocation;
+		Server_SetStartAndTargetLocation(PlayerLocation, TraceEnd);
+		TargetLocation = TraceEnd;
 		StartLocation = PlayerLocation;
 	}
 	
@@ -325,6 +323,11 @@ void UDashAttackComp::Server_SetHasLockedTargetLocation_Implementation(const boo
 	bHasLockedTargetLocation = bNewHasLockedTargetLocation;
 }
 
+void UDashAttackComp::Server_SetTargetSweepLocation_Implementation(const FVector& TargetCenter)
+{
+	TargetSweepLocation = TargetCenter;
+}
+
 void UDashAttackComp::Dash()
 {
 	if (!OwnerCharacter)
@@ -335,22 +338,7 @@ void UDashAttackComp::Dash()
 	
 	if (OwnerCharacter->HasAuthority())
 	{
-		if (bIsDashing) { return; }
-		BP_TriggerRibbon(true);
-		OwnerCharacter->SetInputActive(false);
-		DashElapsed = 0.0f;
-	
-		if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(false, true);
-			OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
-			OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
-		}
-	
-		bIsDashing = true;
-		
-		//OwnerCharacter->SetActorLocation(TargetLocation);
+		Multicast_Dash();
 	}
 	else
 	{
@@ -360,28 +348,31 @@ void UDashAttackComp::Dash()
 
 void UDashAttackComp::Server_Dash_Implementation()
 {
-	if (!OwnerCharacter) 
+	Multicast_Dash();
+}
+
+void UDashAttackComp::Multicast_Dash_Implementation()
+{
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
 	
 	if (bIsDashing) { return; }
-	BP_TriggerRibbon(true);
+	//OwnerCharacter->OnDash.Broadcast();
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
 	if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement())
+			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
-		OwnerCharacter->GetCharacterMovement()->GroundFriction = 0.f;
-		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 0.f;
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	}
 	
 	bIsDashing = true;
-	
-	//OwnerCharacter->SetActorLocation(TargetLocation);
 }
 
 void UDashAttackComp::HandlePostAttackState()
@@ -392,19 +383,33 @@ void UDashAttackComp::HandlePostAttackState()
 		return;
 	}
 	
-	if (OwnerCharacter->GetMesh() && OwnerCharacter->GetCharacterMovement())
+	if (OwnerCharacter->HasAuthority())
 	{
-		BP_TriggerRibbon(false);
+		Multicast_HandlePostAttackState();
+	}
+	else
+	{
+		Server_HandlePostAttackState();
+	}
+}
+
+void UDashAttackComp::Server_HandlePostAttackState_Implementation()
+{
+	Multicast_HandlePostAttackState();
+}
+
+void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	if (OwnerCharacter->GetMesh())
+	{
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
-		OwnerCharacter->GetCharacterMovement()->GroundFriction = 8.f;
-		OwnerCharacter->GetCharacterMovement()->BrakingFrictionFactor = 2.f;
-		/*FTimerHandle MeshvisibilityTimer;
-		GetWorld()->GetTimerManager().SetTimer(MeshvisibilityTimer, [this]()
-		{
-			OwnerCharacter->GetMesh()->SetVisibility(true, true);
-		}, 0.1f, false);*/
-		
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
 	}
 }
 
@@ -460,7 +465,7 @@ void UDashAttackComp::Server_SetDidRecast_Implementation(const bool bNewDidRecas
 
 void UDashAttackComp::Server_PerformSweep_Implementation()
 {
-	if (TargetLocation.IsNearlyZero())
+	if (TargetSweepLocation.IsNearlyZero())
 	{
 		return;
 	}
@@ -483,7 +488,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		bool bHit = GetWorld()->SweepMultiByObjectType(
 			HitResults,
 			StartLocation,
-			TargetLocation,
+			TargetSweepLocation,
 			FQuat::Identity,
 			ObjectQueryParams,
 			FCollisionShape::MakeSphere(50.f),
@@ -493,15 +498,14 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 #if WITH_EDITOR
 		if (bDrawDebug)
 		{
-			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetLocation, 50.f, FColor::Red, false, 5.f);
+			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetSweepLocation, 50.f, FColor::Red, false, 5.f);
 		}
 #endif
 		
-		/*if (Ribbon)
+		if (Ribbon)
 		{
-			Ribbon->SetActorLocation(StartLocation);
-			Ribbon->BP_SpawnRibbon(StartLocation, TargetLocation, DashDuration);
-		}*/
+			Ribbon->BP_SpawnRibbon(StartLocation, TargetSweepLocation, DashDuration);
+		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -552,6 +556,7 @@ void UDashAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetStartAndTargetLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetTargetSweepLocation(FVector::ZeroVector);
 	Server_SetShouldRecast(false);
 	Server_SetDidRecast(false);
 	Server_SetWentThroughShield(false);

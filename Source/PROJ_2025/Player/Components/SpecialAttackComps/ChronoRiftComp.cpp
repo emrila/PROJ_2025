@@ -11,11 +11,9 @@
 UChronoRiftComp::UChronoRiftComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	
-	SetIsReplicatedByDefault(true);
 
 	DamageAmount = 2.f;
-	AttackCooldown = 15.f;
+	AttackCooldown = 2.f;
 
 	// ...
 }
@@ -29,7 +27,11 @@ void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		TryLockingTargetArea();
 		if (TargetAreaCenter != FVector::ZeroVector)
 		{
-			Client_SpawnChronoRiftIndicator();
+			if (LovesMesh)
+			{
+				const FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
+				LovesMesh->SetActorLocation(SpawnLocation);
+			}
 		}
 	}
 }
@@ -42,8 +44,6 @@ void UChronoRiftComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInput
 								   &UChronoRiftComp::OnStartLockingTargetArea);
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this,
 								   &UChronoRiftComp::OnTargetAreaLocked);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this,
-								   &UChronoRiftComp::OnStartLockingCanceled);
 	}
 }
 
@@ -64,8 +64,6 @@ void UChronoRiftComp::StartAttack()
 	{
 		return;
 	}
-
-	SetIndicatorHidden(true);
 	
 	TryLockingTargetArea();
 
@@ -81,8 +79,8 @@ void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
-	//DOREPLIFETIME(UChronoRiftComp, LovesMesh);
 	DOREPLIFETIME(UChronoRiftComp, CurrentChronoRiftZone);
+	DOREPLIFETIME(UChronoRiftComp, IndicatorRadius);
 }
 
 void UChronoRiftComp::BeginPlay()
@@ -186,18 +184,10 @@ void UChronoRiftComp::OnStartLockingTargetArea(const FInputActionInstance& Input
 		if (ChronoRiftIndicatorClass)
 		{
 			LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
-			UE_LOG(LogTemp, Log, TEXT("LovesMesh Spawned at %s"), *TargetAreaCenter.ToString());
-		
-			if (LovesMesh)
-			{
-				if (OwnerCharacter && OwnerCharacter->HasAuthority())
-				{
-					SetIndicatorHidden(true);
-				}
-			}
+			SetIndicatorHidden(true);
 		}
 	}
-	
+	UpdateIndicatorScale();
 	bIsLockingTargetArea = true;
 	PrepareForLaunch();
 }
@@ -214,19 +204,9 @@ void UChronoRiftComp::OnTargetAreaLocked(const FInputActionInstance& InputAction
 		return;
 	}
 	
-	
 	bIsLockingTargetArea = false;
+	SetIndicatorHidden(true);
 	StartAttack();
-}
-
-void UChronoRiftComp::OnStartLockingCanceled(const FInputActionInstance& InputActionInstance)
-{
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Canceled)
-	{
-		return;
-	}
-
-	bIsLockingTargetArea = false;
 }
 
 void UChronoRiftComp::PrepareForLaunch()
@@ -235,7 +215,6 @@ void UChronoRiftComp::PrepareForLaunch()
 	{
 		return;
 	}
-	//Handle animation and spawning the circle here
 	SetIndicatorHidden(false);
 }
 
@@ -291,33 +270,62 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 	}
 }
 
-void UChronoRiftComp::SetIndicatorHidden(bool bIsHidden)
+void UChronoRiftComp::SetIndicatorHidden(const bool bIsHidden)
 {
 	if (!LovesMesh)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("No Mesh"));
 		return;
 	}
-	LovesMesh->SetActorHiddenInGame(bIsHidden);
 	
-	if (!bIsHidden)
+	LovesMesh->SetActorHiddenInGame(bIsHidden);
+}
+
+void UChronoRiftComp::UpdateIndicatorScale()
+{
+	if (!LovesMesh)
 	{
-		FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
-		LovesMesh->SetActorLocation(SpawnLocation);
-		
-		const float DesiredDiameter = GetAttackRadius() * 2.0f;
+		UE_LOG(LogTemp, Warning, TEXT("%s, No Mesh"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("%s, Updating Indicator Scale"), *FString(__FUNCTION__));
 
-		if (UStaticMeshComponent* MeshComp = LovesMesh->FindComponentByClass<UStaticMeshComponent>())
+	if (UStaticMeshComponent* MeshComp = LovesMesh->FindComponentByClass<UStaticMeshComponent>())
+	{
+		if (!MeshComp->IsRegistered())
 		{
-			const float CurrentWorldDiameterXY = FMath::Max(MeshComp->Bounds.BoxExtent.X, MeshComp->Bounds.BoxExtent.Y) * 2.0f;
+			MeshComp->RegisterComponent();
+		}
+		
+		FVector AssetExtent = FVector::ZeroVector;
+		if (MeshComp->GetStaticMesh())
+		{
+			AssetExtent = MeshComp->GetStaticMesh()->GetBounds().BoxExtent;
+		}
 
-			if (CurrentWorldDiameterXY > KINDA_SMALL_NUMBER)
-			{
-				const float ScaleFactor = DesiredDiameter / CurrentWorldDiameterXY;
-				const FVector NewScale = MeshComp->GetComponentScale() * ScaleFactor;
-				MeshComp->SetWorldScale3D(NewScale);
-				
-				MeshComp->SetWorldScale3D(FVector(NewScale.X, NewScale.Y, 1.0f));
-			}
+		float CurrentWorldDiameterXY;
+
+		if (!AssetExtent.IsNearlyZero())
+		{
+			const FVector CompScale = MeshComp->GetComponentScale();
+			const float WorldExtentX = AssetExtent.X * CompScale.X;
+			const float WorldExtentY = AssetExtent.Y * CompScale.Y;
+			CurrentWorldDiameterXY = FMath::Max(WorldExtentX, WorldExtentY) * 2.0f;
+		}
+		else
+		{
+			CurrentWorldDiameterXY = FMath::Max(MeshComp->Bounds.BoxExtent.X, MeshComp->Bounds.BoxExtent.Y) * 2.0f;
+		}
+
+		if (CurrentWorldDiameterXY > KINDA_SMALL_NUMBER)
+		{
+			GetAttackRadius();
+			const float NewIndicatorRadius = IndicatorRadius * 2.0f;
+			const float DesiredDiameter = NewIndicatorRadius;
+			const float ScaleFactor = DesiredDiameter / CurrentWorldDiameterXY;
+			const FVector NewScale = MeshComp->GetComponentScale() * ScaleFactor;
+			MeshComp->SetWorldScale3D(FVector(NewScale.X, NewScale.Y, 1.0f));
 		}
 	}
 }
@@ -327,14 +335,15 @@ float UChronoRiftComp::GetChronoDuration() const
 	return ChronoDuration;
 }
 
-float UChronoRiftComp::GetAttackRadius() const
+float UChronoRiftComp::GetAttackRadius()
 {
-	if (AttackDamageModifier == 1.f)
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f))
 	{
 		return TargetAreaRadius;
 	}
-	
-	return TargetAreaRadius + (AttackDamageModifier * 50.f);
+	float NewRadius = TargetAreaRadius + (AttackDamageModifier * 50.f);
+	Server_SetIndicatorRadius(NewRadius);
+	return NewRadius;
 }
 
 float UChronoRiftComp::GetAttackCooldown() const
@@ -344,27 +353,22 @@ float UChronoRiftComp::GetAttackCooldown() const
 
 float UChronoRiftComp::GetDamageAmount() const
 {
-	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
+	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f))
 	{
 		return Super::GetDamageAmount();
 	}
 	return Super::GetDamageAmount() + AttackDamageModifier;
 }
 
-void UChronoRiftComp::Client_SpawnChronoRiftIndicator_Implementation()
+void UChronoRiftComp::Server_SetIndicatorRadius_Implementation(const float NewRadius)
 {
-	if (LovesMesh)
-	{
-		FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
-		LovesMesh->SetActorLocation(SpawnLocation);
-	}
+	IndicatorRadius = NewRadius;
 }
 
 void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
 {
 	if (TargetCenter.IsNearlyZero())
 	{
-		//UE_LOG(LogTemp, Error, TEXT("%s TargetCenter is Zero."), *FString(__FUNCTION__));
 		TargetAreaCenter = FVector::ZeroVector;
 		return;
 	}
