@@ -154,7 +154,7 @@ void UShieldAttackComp::ActivateShield()
 	}
 
 	bIsShieldActive = true;
-	OwnerCharacter->SetShouldUseSprintInput(false);
+	//OwnerCharacter->SetShouldUseSprintInput(false);
 
 	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
 	CurrentShield->SetDamageAmount(GetDamageAmount());
@@ -171,7 +171,7 @@ void UShieldAttackComp::DeactivateShield()
 		return;
 	}
 	bIsShieldActive = false;
-	OwnerCharacter->SetShouldUseSprintInput(true);
+	//OwnerCharacter->SetShouldUseSprintInput(true);
 	
 	HandleOwnerMovement(CurrentMoveSpeed);
 	CurrentShield->RequestDeactivateShield();

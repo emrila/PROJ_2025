@@ -55,18 +55,6 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 	{
 		return;
 	}
-	AActor* DamageCauser = GetOwner() ? GetOwner() : this;
-	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
-
-		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
-
-		Destroy();
-		return;
-	}
-
 	if (OtherActor->IsA(AShield::StaticClass()))
 	{
 		AShield* Shield = Cast<AShield>(OtherActor);
@@ -79,7 +67,17 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 
 			UE_LOG(LogTemp, Warning, TEXT("Damage boosted from %f: to:%f"), OldDamageAmount, DamageAmount);
 		}
-		
+	}
+	
+	AActor* DamageCauser = GetOwner() ? GetOwner() : this;
+	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
+
+		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
+
+		Destroy();
 	}
 }
 

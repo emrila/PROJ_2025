@@ -3,10 +3,13 @@
 
 #include "RoomManagerBase.h"
 
+#include "DroppedItem.h"
+#include "ItemBase.h"
+#include "LootPicker.h"
+#include "RoomExit.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
-#include "RoomExit.h"
 #include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -69,10 +72,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		AllRooms = GI->StaticDevMapPool;
 	}
-	bool BossRoom = GI->RoomLoader->RollForBossRoom();
+	int BossRoom = GI->RoomLoader->RollForBossRoom();
 	bool CampExit = false;
 	bool ChoiceRoom = false;
-	if (!BossRoom)
+	if (BossRoom == -1)
 	{
 		ChoiceRoom = GI->RoomLoader->RollForChoiceRoom();
 		if (!ChoiceRoom)
@@ -95,13 +98,13 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom)
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -118,9 +121,9 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		ChosenRooms.Add(GI->ChoiceRoom);
 	}
-	if (BossRoom)
+	if (BossRoom != -1)
 	{
-		ChosenRooms.Add(GI->BossRoom);
+		ChosenRooms.Add(GI->BossRooms[BossRoom]);
 	}
 
 	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
@@ -243,6 +246,21 @@ void ARoomManagerBase::SpawnLoot()
 		{
 			Mod->OnLootSpawned();
 		}
+		if (RoomModifiers.Num() > 0)
+		{
+			UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+			ELootTier Tier;
+			FItemDataRow* RandomLoot = FLootPicker::PickLoot(Tier);
+			UItemBase* ItemInstance = NewObject<UItemBase>(this,RandomLoot->ItemClass);
+			ItemInstance->LootTier = Tier;
+			ItemInstance->DroppedMesh = RandomLoot->DroppedMesh;
+			ItemInstance->Icon = RandomLoot->Icon;
+			ItemInstance->Initialize();
+			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation());
+			DroppedItem->ItemMesh->SetStaticMesh(RandomLoot->DroppedMesh);
+			DroppedItem->ItemData = ItemInstance;
+			DroppedItem->Initialize();
+		}
 	}else
 	{
 		UE_LOG (LogTemp, Error, TEXT("🔮No Loot Spawn Location found in room!"));
@@ -296,7 +314,7 @@ void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
-	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
+	//DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
 }
 
 

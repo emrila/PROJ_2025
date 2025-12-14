@@ -211,13 +211,17 @@ bool ARoomLoader::RollForChoiceRoom() const
 	return false;
 }
 
-bool ARoomLoader::RollForBossRoom() const
+int ARoomLoader::RollForBossRoom() const
 {
 	if (ClearedRooms == 9)
 	{
-		return true;
+		return 0;
 	}
-	return false;
+	if (ClearedRooms == 19)
+	{
+		return 1;
+	}
+	return -1;
 }
 
 void ARoomLoader::RemoveRoomFromPool(URoomData* RoomData)

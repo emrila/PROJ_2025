@@ -61,6 +61,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	UDataTable* ItemDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	URoomData* CampRoom;
@@ -69,7 +71,7 @@ public:
 	URoomData* ChoiceRoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	URoomData* BossRoom;
+	TArray<URoomData*> BossRooms;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> StaticNormalMapPool;

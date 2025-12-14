@@ -27,14 +27,9 @@ void URangeAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void URangeAttackComp::StartAttack()
 {
-	if (!bCanAttack)
+	if (!OwnerCharacter)
 	{
-		return;
-	}
-	Super::StartAttack();
-	
-	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
-	{
+		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
 	
@@ -43,7 +38,13 @@ void URangeAttackComp::StartAttack()
 		UE_LOG(LogTemp, Warning, TEXT("MageFirstAttackComp, StartAttack, ProjectileClass is NULL!"));
 		return;
 	}
-
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
+		return;
+	}
+	
+	Super::StartAttack();
 	PerformAttack();
 }
 
@@ -53,14 +54,13 @@ void URangeAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInpu
 	{
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &URangeAttackComp::OnStartAttack);
 		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &URangeAttackComp::OnAttackEnd);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Canceled, this, &URangeAttackComp::OnAttackCanceled);
 	}
 }
 
 void URangeAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(URangeAttackComp, ProjectileInstance);
+	DOREPLIFETIME(URangeAttackComp, ProjectileSpawnTransform);
 }
 
 void URangeAttackComp::BeginPlay()
@@ -74,9 +74,6 @@ void URangeAttackComp::OnStartAttack(const FInputActionInstance& Instance)
 	{
 		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s, Attacking."), *FString(__FUNCTION__));
-
 	bIsAttacking = true;
 }
 
@@ -90,36 +87,50 @@ void URangeAttackComp::OnAttackEnd(const FInputActionInstance& Instance)
 	{
 		return;
 	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s, Completing attack."), *FString(__FUNCTION__));
 	bIsAttacking = false;
 }
-
-void URangeAttackComp::OnAttackCanceled(const FInputActionInstance& Instance)
-{
-	if (Instance.GetTriggerEvent() != ETriggerEvent::Canceled)
-	{
-		return;
-	}
-	UE_LOG(LogTemp, Warning, TEXT("%s, Canceling attack."), *FString(__FUNCTION__));
-	bIsAttacking = false;
-}
-
 
 void URangeAttackComp::PerformAttack()
 {
-	//Super::PerformAttack();
-	//const FVector SpawnLocation = GetProjectileSpawnLocation();
-
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, PerformAttack, OwnerCharacter is NULL!"));
 		return;
 	}
 	
+	PlayAttackAnim();
+	
 	const FTransform SpawnTransform = GetProjectileTransform();
 	
-	Server_SpawnProjectile(SpawnTransform);
+	SpawnProjectile(SpawnTransform);
+}
+
+void URangeAttackComp::SpawnProjectile(const FTransform SpawnTransform)
+{
+	if (!OwnerCharacter || !ProjectileClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		return;
+	}
+	if (OwnerCharacter->HasAuthority())
+	{
+		ProjectileSpawnTransform = SpawnTransform;
+		FActorSpawnParameters SpawnParameters;
+		SpawnParameters.Owner = OwnerCharacter;
+		SpawnParameters.Instigator = OwnerCharacter;
+		AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
+			ProjectileClass, SpawnTransform, SpawnParameters);
+	
+		if (Projectile)
+		{
+			Projectile->Server_SetDamageAmount(GetDamageAmount());
+			Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
+		}
+	}
+	else
+	{
+		Server_SpawnProjectile(SpawnTransform);
+	}
 }
 
 void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform SpawnTransform)
@@ -129,109 +140,68 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
 		return;
 	}
-
-	if (!OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-
-	Multicast_SpawnProjectile(SpawnTransform);
 	
-	if (!OwnerCharacter || !ProjectileClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
-		return;
-	}
+	ProjectileSpawnTransform = SpawnTransform;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
 	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
 		ProjectileClass, SpawnTransform, SpawnParameters);
 	
-	if (!Projectile)
+	if (Projectile)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, Projectile is NULL!"));
-		return;
+		Projectile->Server_SetDamageAmount(GetDamageAmount());
+		Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
 	}
-	ProjectileInstance = Projectile;
-	
-	if (!ProjectileInstance)
-	{
-		return;
-	}
-	
-	Projectile->SetOwner(OwnerCharacter);
-	Projectile->Server_SetDamageAmount(GetDamageAmount());
-	
-	Projectile->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 
-void URangeAttackComp::Multicast_SpawnProjectile_Implementation(const FTransform SpawnTransform)
+void URangeAttackComp::PlayAttackAnim()
 {
-	/*if (!OwnerCharacter || !ProjectileClass)
+	if (OwnerCharacter && OwnerCharacter->HasAuthority())
 	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
-		return;
+		Multicast_PlayAttackAnim();
 	}
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = OwnerCharacter;
-	SpawnParameters.Instigator = OwnerCharacter;
-	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
-		ProjectileClass, SpawnTransform, SpawnParameters);
-	
-	if (!Projectile)
+	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, Projectile is NULL!"));
-		return;
+		Server_PlayAttackAnim();
 	}
-	
-	Projectile->SetOwner(OwnerCharacter);
-	Projectile->Server_SetDamageAmount(GetDamageAmount());*/
-	
+}
+
+void URangeAttackComp::Server_PlayAttackAnim_Implementation()
+{
+	Multicast_PlayAttackAnim();
+}
+
+void URangeAttackComp::Multicast_PlayAttackAnim_Implementation()
+{
 	if (AttackAnimation && OwnerCharacter)
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnimation);
+		float PlayRate = 1.f;
+		if (AttackAnimation->GetPlayLength() > GetAttackCooldown())
+		{
+			const float AnimLength = AttackAnimation->GetPlayLength();
+			PlayRate = AnimLength / GetAttackCooldown();
+		}
+		OwnerCharacter->PlayAnimMontage(AttackAnimation, PlayRate);
 	}
-	
-	APlayerCharacterBase* PlayerCharacter= Cast<APlayerCharacterBase>(OwnerCharacter);
-	if (!PlayerCharacter || !PlayerCharacter->ImpactParticles)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s , PlayerCharacter or ImpactParticles is NULL!"), *FString(__FUNCTION__));
-		return;
-	}
-	if (!ProjectileInstance)
-	{
-		return;
-	}
-	ProjectileInstance->SetImpactParticle(Cast<APlayerCharacterBase>(GetOwner())->ImpactParticles);
 }
 
 FTransform URangeAttackComp::GetProjectileTransform()
 {
 	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnTransform, OwnerCharacter is NULL!"));
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return FTransform::Identity;
 	}
 
-	/*const USkeletalMeshComponent* MeshComp = OwnerCharacter->GetMesh();
-
-	if (!MeshComp || !MeshComp->DoesSocketExist(ProjectileSpawnSocketName))
+	if (!OwnerCharacter->IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, GetProjectileSpawnTransform, MeshComp is NULL or Socket does not exist!"));
+		UE_LOG(LogTemp, Warning, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
+			   *FString(__FUNCTION__));
 		return FTransform::Identity;
-	}*/
-	
-	//FVector SpawnLocation = MeshComp->GetSocketLocation(ProjectileSpawnSocketName);
-	//FRotator SpawnRotation = MeshComp->GetSocketRotation(ProjectileSpawnSocketName);
-	/*const FVector OwnerLocation = OwnerCharacter->GetActorLocation();
-	const FVector OwnerForwardVector = OwnerCharacter->GetActorForwardVector();
-	const FVector OwnerCharacterRightVector = OwnerCharacter->GetActorRightVector();
+	}
 
-	FVector SpawnLocation;
-	FRotator SpawnRotation = GetProjectileSpawnRotation();*/
 	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
-
 	if (!PC)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
