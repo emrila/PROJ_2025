@@ -2,6 +2,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Inventory.h"
 #include "PlayerLoginSystem.h"
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
@@ -49,6 +50,7 @@ APlayerCharacterBase::APlayerCharacterBase()
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
 	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	Inventory = CreateDefaultSubobject<UInventory>(TEXT("Inventory"));
 	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
