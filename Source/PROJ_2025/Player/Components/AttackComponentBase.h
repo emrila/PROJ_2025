@@ -99,6 +99,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
 	float AttackDamageModifier = 1.f;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Debug")
 	bool bDrawDebug = false;
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_Debug();
 };

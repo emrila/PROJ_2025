@@ -70,11 +70,6 @@ void AChronoRiftZone::BeginPlay()
 	EnemiesSLowedDown.Empty();
 	
 	GetWorld()->GetTimerManager().SetTimer(TickDamageTimerHandle, this, &AChronoRiftZone::TickDamage, 1.f, true);
-	/*MakeInitialSphereSweep();
-	Server_SpawnEffect();
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
-	DestroySelf();*/
 	FTimerHandle InitialDelayTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		InitialDelayTimerHandle,
@@ -116,19 +111,13 @@ void AChronoRiftZone::DestroySelf()
 		TimerHandle,
 		[this] ()
 		{
+			GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+			EnemiesToGiveDamage.Empty();
+	
+			Server_ResetEnemiesPreEnd();
 			Destroy();
 		},
 		Lifetime + 0.2f, false);
-}
-
-void AChronoRiftZone::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	Super::EndPlay(EndPlayReason);
-	
-	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	EnemiesToGiveDamage.Empty();
-	
-	Server_ResetEnemiesPreEnd();
 }
 
 void AChronoRiftZone::Server_SlowEnemy_Implementation(AActor* Enemy)
@@ -233,10 +222,6 @@ void AChronoRiftZone::TickDamage()
 		}
 		if (IsValid(Enemy))
 		{
-			if (!OwnerCharacter )
-			{
-				
-			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 

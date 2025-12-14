@@ -43,11 +43,12 @@ protected:
 	
 	virtual void ResetAttackCooldown() override;
 	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch(); 
+	void PerformLaunch();
 	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_PerformLaunch();
+	UFUNCTION(Server, Reliable)
+	virtual void Server_PerformLaunch();
+	
+	void SpawnChronoRiftZone();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
@@ -95,4 +96,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debuging();
 };

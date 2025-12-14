@@ -33,13 +33,26 @@ void UAttackComponentBase::StartAttack()
 	{
 		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
-	GetWorld()->GetTimerManager().SetTimer(
+	
+	if (CurrentCoolDownTime > 0.f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
 		CurrentCoolDownTime,
 		false
 		);
+	}
+	else
+	{
+		ResetAttackCooldown();
+	}
+	
+	if (bDrawDebug)
+	{
+		Server_Debug();
+	}
 }
 
 void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
@@ -139,6 +152,13 @@ void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
+}
+
+void UAttackComponentBase::Server_Debug_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%s, Attacked with: %s"), *OwnerCharacter->GetName(), *GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Current damage amount: %f"), GetDamageAmount());
+	UE_LOG(LogTemp, Warning, TEXT("Current Cooldown time: %f"), GetAttackCooldown());
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)

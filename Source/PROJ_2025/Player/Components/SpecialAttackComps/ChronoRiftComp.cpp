@@ -71,6 +71,7 @@ void UChronoRiftComp::StartAttack()
 	{
 		PerformAttack();
 		Super::StartAttack();
+		Server_Debuging();
 	}
 }
 
@@ -95,7 +96,7 @@ void UChronoRiftComp::PerformAttack()
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	Server_PerformLaunch();
+	PerformLaunch();
 }
 
 void UChronoRiftComp::TryLockingTargetArea()
@@ -225,17 +226,7 @@ void UChronoRiftComp::ResetAttackCooldown()
 	TargetAreaCenter = FVector::ZeroVector;
 }
 
-void UChronoRiftComp::Server_PerformLaunch_Implementation()
-{
-	if (!OwnerCharacter || !OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-
-	Multicast_PerformLaunch();
-}
-
-void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
+void UChronoRiftComp::PerformLaunch()
 {
 	if (!OwnerCharacter)
 	{
@@ -243,18 +234,24 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 		return;
 	}
 	
-	if (ChronoRiftZoneClass)
+	if (OwnerCharacter->HasAuthority())
+	{
+		SpawnChronoRiftZone();
+	}
+	else
+	{
+		Server_PerformLaunch();
+	}
+}
+
+void UChronoRiftComp::SpawnChronoRiftZone()
+{
+	if (ChronoRiftZoneClass && OwnerCharacter)
 	{
 		FActorSpawnParameters Params;
 		Params.Owner = OwnerCharacter;
-
-		if (!OwnerCharacter->GetInstigator())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("OwnerCharacter's Instigator is NULL in %s"), *FString(__FUNCTION__));
-			return;
-		}
 	
-		Params.Instigator = OwnerCharacter->GetInstigator();
+		Params.Instigator = OwnerCharacter;
 		
 		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator, Params);
 		
@@ -268,6 +265,11 @@ void UChronoRiftComp::Multicast_PerformLaunch_Implementation()
 				);
 		}
 	}
+}
+
+void UChronoRiftComp::Server_PerformLaunch_Implementation()
+{
+	SpawnChronoRiftZone();
 }
 
 void UChronoRiftComp::SetIndicatorHidden(const bool bIsHidden)
@@ -358,6 +360,14 @@ float UChronoRiftComp::GetDamageAmount() const
 		return Super::GetDamageAmount();
 	}
 	return Super::GetDamageAmount() + AttackDamageModifier;
+}
+
+void UChronoRiftComp::Server_Debuging_Implementation()
+{
+	if (bDrawDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current radius: %f"), GetAttackRadius());
+	}
 }
 
 void UChronoRiftComp::Server_SetIndicatorRadius_Implementation(const float NewRadius)

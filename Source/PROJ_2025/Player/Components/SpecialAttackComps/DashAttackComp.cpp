@@ -420,7 +420,26 @@ void UDashAttackComp::Server_SetCanDash_Implementation(const bool Value)
 
 void UDashAttackComp::Server_SetWentThroughShield_Implementation(const bool Value)
 {
+	if (!OwnerCharacter)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	bWentThroughShield = Value;
+	
+	if (bWentThroughShield)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s Starting I-Frames after going through shield."), *FString(__FUNCTION__));
+		if (GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
+		{
+			GetWorld()->GetTimerManager().ClearTimer(IFrameTimer);
+		}
+		OwnerCharacter->StartIFrame();
+		GetWorld()->GetTimerManager().SetTimer(IFrameTimer, [this]()
+		{
+			OwnerCharacter->ResetIFrame();
+		}, 7.f, false);
+	}
 }
 
 void UDashAttackComp::Server_SetStartAndTargetLocation_Implementation(const FVector& NewStartLocation,
@@ -440,12 +459,16 @@ void UDashAttackComp::Server_SetShouldRecast_Implementation(const bool bNewShoul
 	bShouldRecast = bNewShouldRecast;
 	if (bShouldRecast)
 	{
+		UE_LOG(LogTemp, Log, TEXT("%s Starting I-Frames after recasting."), *FString(__FUNCTION__));
 		OnCanRecast.Broadcast();
 		OwnerCharacter->StartIFrame();
-		GetWorld()->GetTimerManager().SetTimer(IFrameTimer, [this]()
+		if (!GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
+		{
+			GetWorld()->GetTimerManager().SetTimer(IFrameTimer, [this]()
 		{
 			OwnerCharacter->ResetIFrame();
 		}, RecastDuration, false);
+		}
 	}
 }
 
@@ -481,7 +504,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel3);
 
 	if (GetWorld())
 	{
@@ -520,6 +543,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 					}
 					if (HitActor->IsA(AShield::StaticClass()))
 					{
+						UE_LOG(LogTemp, Log, TEXT("%s Hit Shield."), *FString(__FUNCTION__));
 						Server_SetWentThroughShield(true);
 					}
 				}

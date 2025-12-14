@@ -50,6 +50,7 @@ void UShieldAttackComp::StartAttack()
 	if (!bIsShieldActive)
 	{
 		ActivateShield();
+		Server_Debuging();
 		return;
 	}
 	DeactivateShield();
@@ -287,6 +288,15 @@ void UShieldAttackComp::HandleOwnerMovement(const float NewMoveSpeed)
 	else
 	{
 		Server_HandleOwnerMovement(NewMoveSpeed);
+	}
+}
+
+void UShieldAttackComp::Server_Debuging_Implementation()
+{
+	if (bDrawDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current durability: %f"), GetDurability());
+		UE_LOG(LogTemp, Warning, TEXT("Current recovery rate: %f"), GetRecoveryRate());
 	}
 }
 

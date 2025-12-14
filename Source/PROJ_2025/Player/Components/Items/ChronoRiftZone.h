@@ -39,8 +39,6 @@ protected:
 
 	virtual void DestroySelf();
 	
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SlowEnemy(AActor* Enemy);
 	

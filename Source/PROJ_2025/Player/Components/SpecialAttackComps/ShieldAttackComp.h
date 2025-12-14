@@ -79,4 +79,7 @@ protected:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HandleOwnerMovement(const float NewMoveSpeed);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debuging();
 };
