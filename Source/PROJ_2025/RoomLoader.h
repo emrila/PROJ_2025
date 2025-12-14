@@ -7,6 +7,7 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class UInventoryWidget;
 class UInvAddWidget;
 class AFallingCarrot;
 class ALantern;
@@ -56,6 +57,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	float ChanceForModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UInvAddWidget> InvAddWidgetClass;
