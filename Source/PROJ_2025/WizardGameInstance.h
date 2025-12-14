@@ -10,6 +10,7 @@
 #include "WizardGameInstance.generated.h"
 
 
+struct FItemDataRow;
 class UWidget;
 
 USTRUCT(BlueprintType)
@@ -57,6 +58,8 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
 	
+	UFUNCTION(BlueprintCallable, Category = "Items")
+	FItemDataRow GetItem(FName RowName);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
