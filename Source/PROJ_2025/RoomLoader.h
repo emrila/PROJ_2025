@@ -7,6 +7,7 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class UInvAddWidget;
 class AFallingCarrot;
 class ALantern;
 
@@ -55,6 +56,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	float ChanceForModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInvAddWidget> InvAddWidgetClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
@@ -67,6 +71,10 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<ALantern> LanternActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<ADroppedItem> DroppedItemClass;
+	
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);

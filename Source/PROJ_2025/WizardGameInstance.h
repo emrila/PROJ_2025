@@ -61,6 +61,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	UDataTable* ItemDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	URoomData* CampRoom;

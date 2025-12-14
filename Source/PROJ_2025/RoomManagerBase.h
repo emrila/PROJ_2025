@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "RoomManagerBase.generated.h"
 
+class ADroppedItem;
 class URoomModifierBase;
 
 UENUM(BlueprintType)
@@ -63,6 +64,8 @@ private:
 
 	UPROPERTY()
 	class AUpgradeSpawner* LootSpawnLocation;
+
+	
 
 	UPROPERTY()
 	TArray<URoomModifierBase*> RoomModifiers;

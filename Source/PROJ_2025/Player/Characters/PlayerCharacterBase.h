@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UInventory;
 struct FInputActionInstance;
 class UUpgradeComponent;
 class UCameraComponent;
@@ -44,6 +45,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UAttackComponentBase* GetSpecialAttackComponent() const;
+
+	// Inventory pointer
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UInventory* Inventory;
 	
 	//Handle sockets
 	FVector GetRightHandSocketLocation() const;
@@ -238,7 +243,7 @@ protected:
 	//Handle components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* BasicAttackComponent;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* SpecialAttackComponent;
 	
