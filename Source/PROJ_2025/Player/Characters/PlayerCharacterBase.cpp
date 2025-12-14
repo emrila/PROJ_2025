@@ -242,6 +242,27 @@ void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
 	bIsInputActive = bNewInputActive;
 }
 
+void APlayerCharacterBase::SetShouldUseSprintInput(const bool bNewShouldUseInput)
+{
+	bShouldUseSprintInput = bNewShouldUseInput;
+	
+	if (!bShouldUseSprintInput)
+	{
+		EndSprint();
+	}
+}
+
+void APlayerCharacterBase::EndSprint()
+{
+	if (CurrentMaxWalkSpeed > 0.f)
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;

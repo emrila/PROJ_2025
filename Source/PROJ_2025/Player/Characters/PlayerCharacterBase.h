@@ -65,11 +65,13 @@ public:
 	//Handle Input
 	virtual void SetInputActive(const bool bNewInputActive);
 	
-	//virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
+	virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
 	
-	//virtual void EndSprint();
+	virtual void EndSprint();
 	
 	virtual bool IsInputActive() const { return bIsInputActive; }
+	
+	virtual bool GetShouldUseSprintInput() const { return bShouldUseSprintInput; }
 	
 	//Handle Damage
 	virtual void StartIFrame();
@@ -208,10 +210,6 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	float SprintSpeedMultiplier = 1.5f;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly, meta=(AllowPrivateAccess = true))
-	float MaxWalkSpeed = 600.f;
-
 	
 	bool bShouldSprint = false;
 	

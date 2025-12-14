@@ -54,6 +54,8 @@ protected:
 	
 	bool bIsShieldActive = false;
 	
+	bool bShouldHandleSprint = false;
+	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AShield> ShieldClass;
 	
