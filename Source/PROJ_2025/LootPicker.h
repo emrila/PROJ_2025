@@ -10,7 +10,7 @@ public:
 	static void Initialize(UDataTable* InDataTable);
 
 
-	static FItemDataRow* PickLoot();
+	static FItemDataRow* PickLoot(ELootTier& OutRarity);
 
 private:
 	static void InitPools();

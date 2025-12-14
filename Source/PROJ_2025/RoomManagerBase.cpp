@@ -244,11 +244,17 @@ void ARoomManagerBase::SpawnLoot()
 		if (RoomModifiers.Num() > 0)
 		{
 			UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
-			FItemDataRow* RandomLoot = FLootPicker::PickLoot();
+			ELootTier Tier;
+			FItemDataRow* RandomLoot = FLootPicker::PickLoot(Tier);
 			UItemBase* ItemInstance = NewObject<UItemBase>(this,RandomLoot->ItemClass);
+			ItemInstance->LootTier = Tier;
+			ItemInstance->DroppedMesh = RandomLoot->DroppedMesh;
+			ItemInstance->Icon = RandomLoot->Icon;
+			ItemInstance->Initialize();
 			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation());
 			DroppedItem->ItemMesh->SetStaticMesh(RandomLoot->DroppedMesh);
 			DroppedItem->ItemData = ItemInstance;
+			DroppedItem->Initialize();
 		}
 	}else
 	{

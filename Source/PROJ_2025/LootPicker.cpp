@@ -50,7 +50,7 @@ void FLootPicker::InitPools()
         CommonPool.Num(), RarePool.Num(), LegendaryPool.Num());
 }
 
-FItemDataRow* FLootPicker::PickLoot()
+FItemDataRow* FLootPicker::PickLoot(ELootTier& OutRarity)
 {
     if (!ItemDataTable)
         return nullptr;
@@ -58,12 +58,21 @@ FItemDataRow* FLootPicker::PickLoot()
     const float TierRoll = FMath::FRand();
     TArray<FItemDataRow*>* Pool = nullptr;
 
-    if (TierRoll < 0.7f)
-        Pool = &CommonPool;        // 70% common
-    else if (TierRoll < 0.95f)
-        Pool = &RarePool;          // 25% rare
-    else
-        Pool = &LegendaryPool;     // 5% legendary
+    if (TierRoll < 0.7f) // 70%common
+    {
+        Pool = &CommonPool;
+        OutRarity = ELootTier::Common;
+    }
+    else if (TierRoll < 0.95f) // 25%rare
+    {
+        Pool = &RarePool;
+        OutRarity = ELootTier::Rare;
+    }
+    else // 5% legendary
+    {
+        Pool = &LegendaryPool;
+        OutRarity = ELootTier::Legendary;
+    }   
 
     if (!Pool || Pool->Num() == 0)
     {
