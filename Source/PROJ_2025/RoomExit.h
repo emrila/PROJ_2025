@@ -24,7 +24,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, ReplicatedUsing=OnRep_LinkedRoomData)
 	FRoomInstance LinkedRoomInstance;
-
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void ResetExitState();
+	
 	UFUNCTION(BlueprintImplementableEvent)
 	void EnableExit();
 

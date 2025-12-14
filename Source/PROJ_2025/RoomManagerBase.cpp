@@ -42,6 +42,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
 		}
 	}
+	RoomModifiers.Empty();
 	for (TSubclassOf<URoomModifierBase> Mod : Room.ActiveModifierClasses)
 	{
 		if (!Mod) continue;
@@ -90,24 +91,28 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
-	TArray<ARoomExit*> RoomExits;
+	RoomExits.Empty();
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
 		{
+			Exit->ResetExitState();
 			RoomExits.Add(Exit);
 		}
 	}
+	UE_LOG(LogTemp, Error, TEXT("room exits %d"), RoomExits.Num());
 	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->SetActorHiddenInGame(true);
+		RoomExits[IndexToDelete]->SetActorEnableCollision(false);
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->SetActorHiddenInGame(true);
+		RoomExits[IndexToDelete]->SetActorEnableCollision(false);
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	
@@ -126,7 +131,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		ChosenRooms.Add(GI->BossRooms[BossRoom]);
 	}
 
-	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
+	if (!GI->RoomLoader->IsDevTest && Room.RoomData && AllRooms.Contains(Room.RoomData))
 	{
 		AllRooms.Remove(Room.RoomData);
 	}
@@ -295,6 +300,7 @@ void ARoomManagerBase::EnableExits()
 
 	for (URoomModifierBase* Mod : RoomModifiers)
 	{
+		if (!Mod) continue;
 		UE_LOG (LogTemp, Warning, TEXT("🔮 Mod OnExitsUnlocked called"));
 		Mod->OnExitsUnlocked();
 	}
@@ -314,7 +320,7 @@ void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
-	//DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
+	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
 }
 
 

@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "RoomManagerBase.generated.h"
 
+class ARoomExit;
 class ADroppedItem;
 class URoomModifierBase;
 
@@ -66,9 +67,11 @@ private:
 	UPROPERTY(Replicated)
 	class AUpgradeSpawner* LootSpawnLocation;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
-	
+
+	UPROPERTY()
+	TArray<ARoomExit*> RoomExits;
 	
 	
 };

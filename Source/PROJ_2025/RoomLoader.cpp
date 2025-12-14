@@ -139,8 +139,8 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
 	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
-	FString LevelName = PendingNextRoomData.RoomData->RoomLevel.GetAssetName();
-
+	FName LevelName = PendingNextRoomData.RoomData->RoomLevel.GetLongPackageFName();
+	
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = FName("OnNextLevelLoaded");
@@ -149,14 +149,14 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	
 	UGameplayStatics::LoadStreamLevel(
 		this,                  
-		FName(LevelName),             
+		LevelName,             
 		true,                 
 		true,                  
 		LatentInfo 
 	);
 	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
-	CurrentLoadedLevelName = FName(LevelName);
+	CurrentLoadedLevelName = LevelName;
 	CurrentRoom = PendingNextRoomData;
 	
 
