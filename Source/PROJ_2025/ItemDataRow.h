@@ -21,7 +21,13 @@ struct FItemDataRow : public FTableRowBase
 	TSubclassOf<class UItemBase> ItemClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSet<ELootTier> SpawnTiers;
+	ELootTier LootTier;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	FText Description;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UStaticMesh* DroppedMesh;

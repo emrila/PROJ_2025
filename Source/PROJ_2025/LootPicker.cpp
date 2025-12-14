@@ -4,9 +4,9 @@
 
 
 UDataTable* FLootPicker::ItemDataTable = nullptr;
-TArray<FItemDataRow*> FLootPicker::CommonPool;
-TArray<FItemDataRow*> FLootPicker::RarePool;
-TArray<FItemDataRow*> FLootPicker::LegendaryPool;
+TArray<FName> FLootPicker::CommonPool;
+TArray<FName> FLootPicker::RarePool;
+TArray<FName> FLootPicker::LegendaryPool;
 
 void FLootPicker::Initialize(UDataTable* InDataTable)
 {
@@ -35,53 +35,49 @@ void FLootPicker::InitPools()
         if (!Row || !Row->ItemClass)
             continue;
         
-        for (const ELootTier Tier : Row->SpawnTiers)
-        {
-            switch (Tier)
+        switch (Row->LootTier)
             {
-            case ELootTier::Common:    CommonPool.Add(Row); break;
-            case ELootTier::Rare:      RarePool.Add(Row); break;
-            case ELootTier::Legendary: LegendaryPool.Add(Row); break;
+            case ELootTier::Common:    CommonPool.Add(RowName); break;
+            case ELootTier::Rare:      RarePool.Add(RowName); break;
+            case ELootTier::Legendary: LegendaryPool.Add(RowName); break;
             }
-        }
     }
-
-    UE_LOG(LogTemp, Log, TEXT("LootPicker: Pools initialized: Common=%d, Rare=%d, Legendary=%d"),
-        CommonPool.Num(), RarePool.Num(), LegendaryPool.Num());
 }
 
-FItemDataRow* FLootPicker::PickLoot(ELootTier& OutRarity)
+FName FLootPicker::PickLoot()
 {
     if (!ItemDataTable)
-        return nullptr;
+        return FName();
 
     const float TierRoll = FMath::FRand();
-    TArray<FItemDataRow*>* Pool = nullptr;
+    TArray<FName>* Pool = nullptr;
 
     if (TierRoll < 0.7f) // 70%common
     {
         Pool = &CommonPool;
-        OutRarity = ELootTier::Common;
     }
     else if (TierRoll < 0.95f) // 25%rare
     {
         Pool = &RarePool;
-        OutRarity = ELootTier::Rare;
     }
     else // 5% legendary
     {
         Pool = &LegendaryPool;
-        OutRarity = ELootTier::Legendary;
     }   
 
     if (!Pool || Pool->Num() == 0)
     {
         UE_LOG(LogTemp, Error, TEXT("DROP POOL EMPTY"));
-        return nullptr;
+        return FName();
     }
 
     const int32 Index = FMath::RandRange(0, Pool->Num() - 1);
-    FItemDataRow* Row = (*Pool)[Index];
+    FName RandomRow = (*Pool)[Index];
     
-    return Row;
+    return RandomRow;
+}
+
+FItemDataRow FLootPicker::GetItem(const FName RowName)
+{
+    return *ItemDataTable->FindRow<FItemDataRow>(RowName, TEXT("FLootPicker InitPools"));
 }

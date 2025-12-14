@@ -231,6 +231,14 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
 	}
+	FTimerHandle EnableInputHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+	EnableInputHandle,
+	this,
+	&ARoomManagerBase::EnablePlayerInput, 
+	3.f,
+	false
+);
 }
 
 void ARoomManagerBase::SpawnLoot()
@@ -254,17 +262,12 @@ void ARoomManagerBase::SpawnLoot()
 		if (RoomModifiers.Num() > 0)
 		{
 			UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
-			ELootTier Tier;
-			FItemDataRow* RandomLoot = FLootPicker::PickLoot(Tier);
-			UItemBase* ItemInstance = NewObject<UItemBase>(this,RandomLoot->ItemClass);
-			ItemInstance->LootTier = Tier;
-			ItemInstance->DroppedMesh = RandomLoot->DroppedMesh;
-			ItemInstance->Icon = RandomLoot->Icon;
-			ItemInstance->Initialize();
-			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation());
-			DroppedItem->ItemMesh->SetStaticMesh(RandomLoot->DroppedMesh);
-			DroppedItem->ItemData = ItemInstance;
-			DroppedItem->Initialize();
+			FName RandomLoot = FLootPicker::PickLoot();
+			FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
+			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+			DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
+			DroppedItem->ItemRowName = RandomLoot;
+			DroppedItem->Initialize(1.f);
 		}
 	}else
 	{
@@ -321,6 +324,17 @@ void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
 	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
+}
+
+void ARoomManagerBase::EnablePlayerInput_Implementation()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+	
+	APawn* PlayerPawn = PC->GetPawn();
+	if (!PlayerPawn) return;
+
+	PlayerPawn->EnableInput(PC);
 }
 
 

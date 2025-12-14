@@ -10,6 +10,10 @@
 #include "Kismet/GameplayStatics.h"
 
 
+FItemDataRow UWizardGameInstance::GetItem(FName RowName)
+{
+	return FLootPicker::GetItem(RowName);
+}
 
 void UWizardGameInstance::Init()
 {

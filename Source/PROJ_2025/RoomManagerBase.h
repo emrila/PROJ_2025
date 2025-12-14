@@ -62,6 +62,9 @@ public:
 	virtual void EnableExits();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(NetMulticast,Reliable)
+	void EnablePlayerInput();
+
 private:
 
 	UPROPERTY(Replicated)

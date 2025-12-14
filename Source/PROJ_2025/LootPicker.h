@@ -10,14 +10,16 @@ public:
 	static void Initialize(UDataTable* InDataTable);
 
 
-	static FItemDataRow* PickLoot(ELootTier& OutRarity);
+	static FName PickLoot();
+
+	static FItemDataRow GetItem(const FName RowName);
 
 private:
 	static void InitPools();
 
 	static UDataTable* ItemDataTable;
 
-	static TArray<FItemDataRow*> CommonPool;
-	static TArray<FItemDataRow*> RarePool;
-	static TArray<FItemDataRow*> LegendaryPool;
+	static TArray<FName> CommonPool;
+	static TArray<FName> RarePool;
+	static TArray<FName> LegendaryPool;
 };
