@@ -71,7 +71,7 @@ public:
 	URoomData* ChoiceRoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	URoomData* BossRoom;
+	TArray<URoomData*> BossRooms;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> StaticNormalMapPool;

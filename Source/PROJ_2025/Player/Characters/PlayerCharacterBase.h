@@ -65,9 +65,9 @@ public:
 	//Handle Input
 	virtual void SetInputActive(const bool bNewInputActive);
 	
-	virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
+	//virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
 	
-	virtual void EndSprint();
+	//virtual void EndSprint();
 	
 	virtual bool IsInputActive() const { return bIsInputActive; }
 	

@@ -86,7 +86,7 @@ public:
 
 	bool RollForChoiceRoom() const;
 
-	bool RollForBossRoom() const;
+	int RollForBossRoom() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void RemoveRoomFromPool(URoomData* RoomData);

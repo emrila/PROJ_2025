@@ -6,16 +6,13 @@
 #include "DroppedItem.h"
 #include "ItemBase.h"
 #include "LootPicker.h"
-#include "LootSpawnLocation.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
-#include "Chaos/ChaosPerfTest.h"
 #include "RoomExit.h"
 #include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Controllers/PlayerControllerBase.h"
 #include "World/UpgradeSpawner.h"
@@ -74,10 +71,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		AllRooms = GI->StaticDevMapPool;
 	}
-	bool BossRoom = GI->RoomLoader->RollForBossRoom();
+	int BossRoom = GI->RoomLoader->RollForBossRoom();
 	bool CampExit = false;
 	bool ChoiceRoom = false;
-	if (!BossRoom)
+	if (BossRoom == -1)
 	{
 		ChoiceRoom = GI->RoomLoader->RollForChoiceRoom();
 		if (!ChoiceRoom)
@@ -100,13 +97,13 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom)
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
 		RoomExits[IndexToDelete]->Destroy();
@@ -123,9 +120,9 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		ChosenRooms.Add(GI->ChoiceRoom);
 	}
-	if (BossRoom)
+	if (BossRoom != -1)
 	{
-		ChosenRooms.Add(GI->BossRoom);
+		ChosenRooms.Add(GI->BossRooms[BossRoom]);
 	}
 
 	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
