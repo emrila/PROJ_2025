@@ -263,6 +263,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UUpgradeComponent> UpgradeComponent;
 	
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category="Components|Misc")
+	void SetupBindAttributes();
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	bool bIsAttacking = false;
 	

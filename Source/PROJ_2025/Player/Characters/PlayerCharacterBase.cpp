@@ -348,7 +348,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-
+	UE_LOG(PlayerBaseLog, Log, TEXT("BeginPLay"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -361,7 +361,7 @@ void APlayerCharacterBase::BeginPlay()
 		
 		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
 		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
-
+		
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
@@ -402,7 +402,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-
+	UE_LOG(PlayerBaseLog, Log, TEXT("Possesed"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -747,6 +747,50 @@ bool APlayerCharacterBase::ReplicateSubobjects(class UActorChannel* Channel, cla
 	}
 
 	return WroteSomething;
+}
+
+void APlayerCharacterBase::SetupBindAttributes_Implementation()
+{
+	if (UpgradeComponent && IsLocallyControlled())
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+
+		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+		{
+			const FName MaxHealthPropName = "MaxHealth";
+			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
+
+			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+
+			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
+			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
+			{
+				AttributeData->OnAttributeModified.AddWeakLambda(GameState, [GameState]
+				{
+					if (!GameState)
+					{
+						return;
+					}
+					UE_LOG(PlayerBaseLog, Log, TEXT("Updating MaxHealth to %f"), GameState->MaxHealth);
+					GameState->SetMaxHealth(GameState->MaxHealth);
+				});
+
+			}
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
+
+		}
+	}
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()

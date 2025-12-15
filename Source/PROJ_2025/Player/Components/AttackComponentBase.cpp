@@ -2,7 +2,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "BasicAttackComps/MeleeAttackComp.h"
-#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -152,6 +152,8 @@ void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
+	DOREPLIFETIME(UAttackComponentBase, AttackDamageModifier);
+	DOREPLIFETIME(UAttackComponentBase, AttackSpeedModifier);
 }
 
 void UAttackComponentBase::Server_Debug_Implementation()
@@ -159,6 +161,11 @@ void UAttackComponentBase::Server_Debug_Implementation()
 	UE_LOG(LogTemp, Warning, TEXT("%s, Attacked with: %s"), *OwnerCharacter->GetName(), *GetName());
 	UE_LOG(LogTemp, Warning, TEXT("Current damage amount: %f"), GetDamageAmount());
 	UE_LOG(LogTemp, Warning, TEXT("Current Cooldown time: %f"), GetAttackCooldown());
+	
+	if (OwnerCharacter && OwnerCharacter->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current Movement speed: %f"), OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
+	}
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)
