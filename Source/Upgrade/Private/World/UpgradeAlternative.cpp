@@ -60,6 +60,10 @@ AUpgradeAlternative::AUpgradeAlternative()
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
+	
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent->SetupAttachment(RootComponent);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -68,6 +72,14 @@ void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
+	}
+
+	if (StaticMeshComponent && !StaticMeshComponent->GetStaticMesh() && Data.Mesh.IsValid())
+	{
+		if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
+		{
+			StaticMeshComponent->SetStaticMesh(NewMesh);
+		}
 	}
 }
 
