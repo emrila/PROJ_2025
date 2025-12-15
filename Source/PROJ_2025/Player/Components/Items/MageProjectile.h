@@ -16,6 +16,8 @@ class PROJ_2025_API AMageProjectile : public AActor
 
 public:
 	AMageProjectile();
+	
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
 	void SetImpactParticle(UNiagaraSystem* Particles);
@@ -66,7 +68,7 @@ protected:
 	UStaticMeshComponent* ProjectileMesh;
 
 	UPROPERTY(Replicated)
-	float ProjectileSpeed = 2000.0f;
+	float ProjectileSpeed = 3000.0f;
 	
 	float LifeTime = 50.0f;
 
@@ -78,4 +80,16 @@ protected:
 	
 	UPROPERTY(Replicated)
 	TArray<AActor*> HitEnemies;
+	
+	UPROPERTY(Replicated)
+	FVector CurrentScale;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
+	float ScaleFactor = 4.f;
+	
+	UPROPERTY(Replicated)
+	float AlphaElapsed = 0.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
+	float ScaleDuration = 0.3f;
 };
