@@ -152,6 +152,8 @@ void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
+	DOREPLIFETIME(UAttackComponentBase, AttackDamageModifier);
+	DOREPLIFETIME(UAttackComponentBase, AttackSpeedModifier);
 }
 
 void UAttackComponentBase::Server_Debug_Implementation()
