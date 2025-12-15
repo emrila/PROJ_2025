@@ -29,10 +29,9 @@ void UParkourTimerMod::OnRep_PlayersThatMadeIt() const
 	TimerWidget->UpdatePlayersThatMadeIt(PlayersThatMadeIt.Num());
 }
 
-
-
-void UParkourTimerMod::OnAllClientsReady()
+void UParkourTimerMod::OnRoomEntered(ARoomManagerBase* InRoomManager)
 {
+	Super::OnRoomEntered(InRoomManager);
 	UE_LOG(LogTemp, Warning, TEXT("ALL CLIENTS READY SUB"));
 	AActor* GoalActor = UGameplayStatics::GetActorOfClass(GetWorld(), AParkourTimeTrialGoal::StaticClass());
 	if (AParkourTimeTrialGoal* Goal = Cast<AParkourTimeTrialGoal>(GoalActor))
@@ -49,7 +48,6 @@ void UParkourTimerMod::OnAllClientsReady()
 	{
 		if (AParkourManager* PM = Cast<AParkourManager>(PKA))
 		{
-			Multicast_AddTimerWidget(PM->TimerIfTimeTrial);
 			GetWorld()->GetTimerManager().SetTimer(
 				TimerHandle, 
 				this, 
@@ -62,6 +60,12 @@ void UParkourTimerMod::OnAllClientsReady()
 	{
 		UE_LOG(LogTemp, Display, TEXT("PKA MIA"));
 	}
+}
+
+
+void UParkourTimerMod::OnAllClientsReady()
+{
+	
 }
 
 void UParkourTimerMod::OnExitsUnlocked()
@@ -80,6 +84,14 @@ void UParkourTimerMod::Multicast_RemoveTimerWidget_Implementation()
 void UParkourTimerMod::BeginReplication()
 {
 	Super::BeginReplication();
+	AActor* PKA = UGameplayStatics::GetActorOfClass(GetWorld(), AParkourManager::StaticClass());
+	if (PKA)
+	{
+		if (AParkourManager* PM = Cast<AParkourManager>(PKA))
+		{
+			Multicast_AddTimerWidget(PM->TimerIfTimeTrial);
+		}
+	}
 	if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
 	{
 		APlayerControllerBase* MyPC = Cast<APlayerControllerBase>(PC);
@@ -99,11 +111,8 @@ void UParkourTimerMod::DealDamageToPlayers()
 	}
 }
 
-void UParkourTimerMod::Multicast_AddTimerWidget_Implementation(float Timer)
+void UParkourTimerMod::Multicast_AddTimerWidget(float Timer)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Multicast_AddTimerWidget called! World role: %s, NetMode: %d"), 
-		*UEnum::GetValueAsString(GetOwner()->GetLocalRole()), 
-		GetWorld()->GetNetMode());
 	TSubclassOf<UUserWidget> TimerWidgetClass;
 	if (UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetWorld()->GetGameInstance()))
 	{
@@ -112,7 +121,7 @@ void UParkourTimerMod::Multicast_AddTimerWidget_Implementation(float Timer)
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		APlayerController* PC = It->Get();
-		if (!PC || !PC->IsLocalController()) continue; // Only the local client spawns the widget
+		if (!PC || !PC->IsLocalController()) continue; 
 
 		if (!TimerWidget)
 		{

@@ -93,9 +93,14 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 	
-	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Replicated,meta = (AllowPrivateAccess = "true"))
 	float AttackSpeedModifier = 1.f;
 	
-	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Replicated, meta = (AllowPrivateAccess = "true"))
 	float AttackDamageModifier = 1.f;
+	
+	bool bDrawDebug = false;
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_Debug();
 };

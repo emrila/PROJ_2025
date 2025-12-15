@@ -1,6 +1,7 @@
 ﻿#include "ShieldAttackComp.h"
 
 #include "EnhancedInputComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
@@ -10,8 +11,8 @@ UShieldAttackComp::UShieldAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	DamageAmount = 10.f;
-	AttackCooldown = 20.f;
+	DamageAmount = 5.f;
+	AttackCooldown = 5.f;
 	BaseDurability = 200.f;
 	BaseRecoveryRate = 1.f;
 }
@@ -48,13 +49,11 @@ void UShieldAttackComp::StartAttack()
 	
 	if (!bIsShieldActive)
 	{
-		//Server_ActivateShield();
 		ActivateShield();
+		Server_Debuging();
 		return;
 	}
-
 	DeactivateShield();
-	//Server_DeactivateShield();
 }
 
 void UShieldAttackComp::SpawnShield()
@@ -129,17 +128,44 @@ float UShieldAttackComp::GetRecoveryRate()
 
 void UShieldAttackComp::ActivateShield()
 {
-	if (!OwnerCharacter || !CurrentShield)
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (!CurrentShield)
+	{
+		TArray<AActor*> ShieldActors;
+		OwnerCharacter->GetAllChildActors(ShieldActors);
+
+		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
+
+		for (AActor* Actor : ShieldActors)
+		{
+			if (AShield* Shield = Cast<AShield>(Actor))
+			{
+				CurrentShield = Shield;
+				break;
+			}
+		}
+	}
+	
+	if (!CurrentShield)
 	{
 		return;
 	}
 
 	bIsShieldActive = true;
+	
+	if (bShouldHandleSprint)
+	{
+		OwnerCharacter->SetShouldUseSprintInput(false);
+	}
 
 	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
 	CurrentShield->SetDamageAmount(GetDamageAmount());
 	CurrentShield->SetRecoveryRate(GetRecoveryRate());
-	//CurrentShield->ActivateShield();
+	CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
+	HandleOwnerMovement(CurrentMoveSpeed * CurrentShield->GetPlayerMovementSpeedMultiplier());
 	CurrentShield->RequestActivateShield();
 }
 
@@ -150,8 +176,13 @@ void UShieldAttackComp::DeactivateShield()
 		return;
 	}
 	bIsShieldActive = false;
-	//CurrentShield->DeactivateShield();
-
+	
+	if (bShouldHandleSprint)
+	{
+		OwnerCharacter->SetShouldUseSprintInput(true);
+	}
+	
+	HandleOwnerMovement(CurrentMoveSpeed);
 	CurrentShield->RequestDeactivateShield();
 }
 
@@ -174,6 +205,7 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 	{
 		CurrentShield->SetDurability(GetDurability());
 	}
+	HandleOwnerMovement(CurrentMoveSpeed);
 	
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
@@ -182,8 +214,6 @@ void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	//Server_SpawnShield();
-	//SpawnShield();
 
 	if (OwnerCharacter)
 	{
@@ -204,7 +234,6 @@ void UShieldAttackComp::BeginPlay()
 		if (!CurrentShield)
 		{
 			UE_LOG(LogTemp, Error, TEXT("No shield found in %s"), *FString(__FUNCTION__));
-			//SpawnShield();
 			return;
 		}
 		
@@ -213,6 +242,8 @@ void UShieldAttackComp::BeginPlay()
 		CurrentShield->SetDurability(GetDurability());
 		CurrentShield->SetDamageAmount(GetDamageAmount());
 		CurrentShield->SetRecoveryRate(GetRecoveryRate());
+		
+		bShouldHandleSprint = OwnerCharacter->GetShouldUseSprintInput();
 	}
 }
 
@@ -230,6 +261,61 @@ void UShieldAttackComp::OnPlayerDied(bool bNewIsAlive)
 		DeactivateShield();
 		ResetAttackCooldown();
 	}
+}
+
+void UShieldAttackComp::ResetAttackCooldown()
+{
+	if (!CurrentShield)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, CurrentShield is NULL"), *FString(__FUNCTION__));
+		return;
+	}
+	Super::ResetAttackCooldown();
+	DeactivateShield();
+}
+
+void UShieldAttackComp::HandleOwnerMovement(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	
+	if (OwnerCharacter->HasAuthority())
+	{
+		OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
+	}
+	else
+	{
+		Server_HandleOwnerMovement(NewMoveSpeed);
+	}
+}
+
+void UShieldAttackComp::Server_Debuging_Implementation()
+{
+	if (bDrawDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current durability: %f"), GetDurability());
+		UE_LOG(LogTemp, Warning, TEXT("Current recovery rate: %f"), GetRecoveryRate());
+	}
+}
+
+void UShieldAttackComp::Server_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	Multicast_HandleOwnerMovement(NewMoveSpeed);
+}
+
+void UShieldAttackComp::Multicast_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
+{
+	if (!CurrentShield || !OwnerCharacter)
+	{
+		return;
+	}
+	OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
 }
 
 

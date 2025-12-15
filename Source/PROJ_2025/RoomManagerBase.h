@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "RoomManagerBase.generated.h"
 
+class ARoomExit;
+class ADroppedItem;
 class URoomModifierBase;
 
 UENUM(BlueprintType)
@@ -53,19 +55,26 @@ public:
 
 	virtual void OnRoomInitialized(const FRoomInstance& Room);
 
+	UFUNCTION(BlueprintCallable)
 	void SpawnLoot();
 	
 	UFUNCTION()
 	virtual void EnableExits();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UFUNCTION(NetMulticast,Reliable)
+	void EnablePlayerInput();
 
 private:
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	class AUpgradeSpawner* LootSpawnLocation;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
-	
+
+	UPROPERTY()
+	TArray<ARoomExit*> RoomExits;
 	
 	
 };

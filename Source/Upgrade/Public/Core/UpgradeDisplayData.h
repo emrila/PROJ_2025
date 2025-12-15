@@ -30,6 +30,9 @@ struct FUpgradeDisplayData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Icon = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/VREditor/Devices/Vive/UE4_Logo.UE4_Logo")));
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UStaticMesh> Mesh/* = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")))*/;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
 
@@ -38,8 +41,7 @@ struct FUpgradeDisplayData
 
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
-		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon ==
-			UpgradeData.Icon;
+		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
 	};
 
 	bool operator!=(const FUpgradeDisplayData& UpgradeData) const

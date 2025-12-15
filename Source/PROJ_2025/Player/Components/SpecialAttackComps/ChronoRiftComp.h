@@ -39,32 +39,36 @@ protected:
 	
 	virtual void OnTargetAreaLocked(const FInputActionInstance& InputActionInstance);
 	
-	virtual void OnStartLockingCanceled(const FInputActionInstance& InputActionInstance);
-	
 	virtual void PrepareForLaunch();
 	
 	virtual void ResetAttackCooldown() override;
 	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch(); 
+	void PerformLaunch();
 	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_PerformLaunch();
+	UFUNCTION(Server, Reliable)
+	virtual void Server_PerformLaunch();
+	
+	void SpawnChronoRiftZone();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
 
-	virtual void SetIndicatorHidden(bool bIsHidden);
+	virtual void SetIndicatorHidden(const bool bIsHidden);
+	
+	void UpdateIndicatorScale();
 
 	virtual float GetChronoDuration() const;
 
-	virtual float GetAttackRadius() const;
+	virtual float GetAttackRadius();
 
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
 	
-	UPROPERTY(Replicated)
+	UFUNCTION(Server, Reliable)
+	void Server_SetIndicatorRadius(const float NewRadius);
+	
+	UPROPERTY()
 	AActor* LovesMesh;
 	
 	UPROPERTY(editAnywhere, BlueprintReadWrite)
@@ -74,6 +78,9 @@ protected:
 	FVector TargetAreaCenter;
 	
 	float TargetAreaRadius = 400.f;
+	
+	UPROPERTY(Replicated)
+	float IndicatorRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
 
@@ -90,5 +97,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
 	
-	FVector InitialIndicatorScale;
+	UFUNCTION(Server, Reliable)
+	void Server_Debuging();
 };

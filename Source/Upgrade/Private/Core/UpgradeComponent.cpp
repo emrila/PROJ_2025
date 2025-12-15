@@ -54,6 +54,12 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 	}
 
 	const uint64 Key = UpgradeUtils::GetKey(Owner, Prop);
+	
+	if (AttributesByKey.Contains(Key))
+	{
+		UPGRADE_WARNING(TEXT("%hs: Attribute for property %s on owner %s is already bound!"), __FUNCTION__, *PropertyName.ToString(), *UpgradeUtils::GetClassNameKey(Owner));
+		return;
+	}
 	const FAttributeUpgradeData* UpgradeData = UpgradeDataTable->FindRow<FAttributeUpgradeData>(RowName, __FUNCTION__);
 	if (!UpgradeData)
 	{
@@ -81,8 +87,7 @@ void UUpgradeComponent::BindAttribute_Implementation(UObject* Owner, const FName
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Attribute %s has reached max upgrade level %d."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(NewAttributeRaw->Owner.Get()), NewAttributeRaw->CurrentUpgradeLevel);
 			return;
-		}
-		
+		}	
 		if (NewAttributeRaw->Modify(UpgradeData->GetModifier(NewAttributeRaw->CurrentUpgradeLevel)))
 		{
 			const int32 Level = NewAttributeRaw->CurrentUpgradeLevel+1;		

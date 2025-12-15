@@ -10,6 +10,7 @@
 #include "WizardGameInstance.generated.h"
 
 
+struct FItemDataRow;
 class UWidget;
 
 USTRUCT(BlueprintType)
@@ -53,24 +54,18 @@ class PROJ_2025_API UWizardGameInstance : public UAdvancedFriendsGameInstance
 	GENERATED_BODY()
 public:
 
-	UFUNCTION(BlueprintCallable, Category = "Rooms")
-	TArray<URoomData*> GetAllRoomData() const;
-	URoomData* GetCampRoomData() const;
 
-	URoomData* GetChoiceRoomData() const;
-
-	bool RollForCampRoom(bool OnlyIncrementChance = false);
-
-	bool RollForChoiceRoom() const;
-
-	bool RollForBossRoom() const;
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
 	
+	UFUNCTION(BlueprintCallable, Category = "Items")
+	FItemDataRow GetItem(FName RowName);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	UDataTable* ItemDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	URoomData* CampRoom;
@@ -79,16 +74,16 @@ public:
 	URoomData* ChoiceRoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	URoomData* BossRoom;
+	TArray<URoomData*> BossRooms;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	TArray<URoomData*> NormalMapPool;
+	TArray<URoomData*> StaticNormalMapPool;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	TArray<URoomData*> CombatOnly;
+	TArray<URoomData*> StaticCombatOnly;
 
-	UFUNCTION(BlueprintCallable, Category = "Rooms")
-	void RemoveRoomFromPool(URoomData* RoomData);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TArray<URoomData*> StaticDevMapPool;
 	
 	//LAN stuff
 	virtual void Init() override;
@@ -127,7 +122,5 @@ public:
 	FTimerHandle DestroySessionTimerHandle;
 	float DestroySessionDelaySeconds = 1.f;
 	FString PendingMainMenuMap;
-	
-private:
-	float ChanceForCamp = 0.f;
+
 };

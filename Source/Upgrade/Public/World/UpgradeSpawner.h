@@ -19,6 +19,12 @@ struct FUpgradeAlternativePair
 
 	FUpgradeAlternativePair() = default;
 	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData) : Alternative(InAlternative), UpgradeData(InUpgradeData)	{}
+	FUpgradeAlternativePair(AUpgradeAlternative* InAlternative, const FUpgradeDisplayData& InUpgradeData, const int32 NumberOfSpawnAlternatives) : Alternative(InAlternative), UpgradeData(InUpgradeData)
+	{
+		FocusedByPlayers.SetNum(NumberOfSpawnAlternatives);
+		SelectedByPlayers.SetNum(NumberOfSpawnAlternatives);
+		LockedForPlayer.SetNum(NumberOfSpawnAlternatives);		
+	}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AUpgradeAlternative* Alternative = nullptr;
@@ -67,7 +73,11 @@ public:
 	}
 
 	UFUNCTION(Server, Reliable)
-	void Server_Spawn();	
+	void Server_Spawn();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ClearAll();	
+	
 	TArray<FUpgradeAlternativePair>& GetUpgradeAlternativePairs() { return UpgradeAlternativePairs; }
 	
 protected:
@@ -87,7 +97,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;
 	
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ClampMin = 0))
 	int32 NumberOfSpawnAlternatives = 3;
 	
 	UPROPERTY(Replicated,EditAnywhere, BlueprintReadWrite, Category = "Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, ExposeOnSpawn=true))

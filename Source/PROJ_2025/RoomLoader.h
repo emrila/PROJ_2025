@@ -7,6 +7,8 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class UInventoryWidget;
+class UInvAddWidget;
 class AFallingCarrot;
 class ALantern;
 
@@ -27,16 +29,26 @@ class PROJ_2025_API ARoomLoader : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
+public:
+
+	void RefreshPool();
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Rooms")
 	FRoomInstance CurrentRoom;
 
-
+	UPROPERTY()
+	TArray<URoomData*> NormalMapPool;
+	
+	UPROPERTY()
+	TArray<URoomData*> CombatOnly;
+	
 	UPROPERTY()
 	FName CurrentLoadedLevelName;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool IsDevTest = false;
 	
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Rooms")
 	void LoadNextRoom(const FRoomInstance& NextRoomData);
@@ -45,6 +57,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	float ChanceForModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInvAddWidget> InvAddWidgetClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
@@ -57,12 +75,26 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<ALantern> LanternActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<ADroppedItem> DroppedItemClass;
+	
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	float GetDungeonScaling() const;
+
+	bool RollForCampRoom(bool OnlyIncrementChance = false);
+
+	bool RollForChoiceRoom() const;
+
+	int RollForBossRoom() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Rooms")
+	void RemoveRoomFromPool(URoomData* RoomData);
+	
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void RegisterNextRoom(URoomData* RoomData);
@@ -100,5 +132,9 @@ private:
 	
 	UFUNCTION()
 	void OnPreviousLevelUnloaded();
+
+		
+private:
+	float ChanceForCamp = 0.f;
 
 };

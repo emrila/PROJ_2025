@@ -2,18 +2,17 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "PlayerLoginSystem.h"
+#include "Inventory.h"
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
+#include "Engine/ActorChannel.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -48,6 +47,7 @@ APlayerCharacterBase::APlayerCharacterBase()
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
 	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	Inventory = CreateDefaultSubobject<UInventory>(TEXT("Inventory"));
 	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
@@ -130,14 +130,14 @@ void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	}
 }
 
-UAttackComponentBase* APlayerCharacterBase::GetFirstAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetBasicAttackComponent() const
 {
-	return FirstAttackComponent;
+	return BasicAttackComponent;
 }
 
-UAttackComponentBase* APlayerCharacterBase::GetSecondAttackComponent() const
+UAttackComponentBase* APlayerCharacterBase::GetSpecialAttackComponent() const
 {
-	return SecondAttackComponent;
+	return SpecialAttackComponent;
 }
 
 FVector APlayerCharacterBase::GetRightHandSocketLocation() const
@@ -237,6 +237,32 @@ void APlayerCharacterBase::HandleCameraReattachment()
 	FollowCamera->SetRelativeLocationAndRotation(FollowCameraRelativeLocation, FollowCameraRelativeRotation);
 }
 
+void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
+{
+	bIsInputActive = bNewInputActive;
+}
+
+void APlayerCharacterBase::SetShouldUseSprintInput(const bool bNewShouldUseInput)
+{
+	bShouldUseSprintInput = bNewShouldUseInput;
+	
+	if (!bShouldUseSprintInput)
+	{
+		EndSprint();
+	}
+}
+
+void APlayerCharacterBase::EndSprint()
+{
+	if (CurrentMaxWalkSpeed > 0.f)
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -287,6 +313,34 @@ void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (HasAuthority())
+	{
+		if (BasicAttackComponentClass)
+		{
+			BasicAttackComponent = NewObject<UAttackComponentBase>(this, BasicAttackComponentClass);
+			if (BasicAttackComponent)
+			{
+				BasicAttackComponent->SetIsReplicated(true);
+				BasicAttackComponent->RegisterComponent();
+				BasicAttackComponent->InitializeComponent();
+			}
+		}
+	
+		if (SpecialAttackComponentClass)
+		{
+			SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
+		
+			if (SpecialAttackComponentClass)
+			{
+				SpecialAttackComponent->SetIsReplicated(true);
+				SpecialAttackComponent->RegisterComponent();
+				SpecialAttackComponent->InitializeComponent();
+			}
+		}
+	}
+	
+	
 	if (FollowCamera)
 	{
 		FollowCameraRelativeLocation = FollowCamera->GetRelativeLocation();
@@ -294,7 +348,7 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-
+	UE_LOG(PlayerBaseLog, Log, TEXT("BeginPLay"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -302,12 +356,12 @@ void APlayerCharacterBase::BeginPlay()
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 		
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 		
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
-
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
@@ -348,7 +402,7 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
-
+	UE_LOG(PlayerBaseLog, Log, TEXT("Possesed"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{
 		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
@@ -356,11 +410,11 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(FirstAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SecondAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
 
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
@@ -399,6 +453,9 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 	DOREPLIFETIME(APlayerCharacterBase, IFrame);
+	
+	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
+	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -416,14 +473,17 @@ float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent c
 			GameState->OnRep_Health();
 			return 0;
 		}
-	
+		
 		GameState->DamageHealth(NewDamageAmount);
 		AWizardPlayerState* WizardPlayerState = Cast<AWizardPlayerState>(GetPlayerState());
 		if (!WizardPlayerState)
 		{
 			return 0.f;
 		}
-		WizardPlayerState->AddDamageTaken(NewDamageAmount);
+		if (bIsAlive)
+		{
+			WizardPlayerState->AddDamageTaken(NewDamageAmount);
+		}
 		if (DamageAmount >= 10)
 		{
 			Client_ShowDamageVignette(); // send to owning client
@@ -478,7 +538,7 @@ void APlayerCharacterBase::InterpolateCamera(FVector& TargetLocation, const floa
 
 void APlayerCharacterBase::Move(const FInputActionValue& Value)
 {
-	if (!bShouldUseMoveInput || !bIsAlive)
+	if (!bShouldUseMoveInput || !bIsAlive || !bIsInputActive)
 	{
 		return;
 	}
@@ -493,7 +553,7 @@ void APlayerCharacterBase::Move(const FInputActionValue& Value)
 
 void APlayerCharacterBase::Look(const FInputActionValue& Value)
 {
-	if (!bShouldUseLookInput || !bIsAlive)
+	if (!bShouldUseLookInput || !bIsInputActive)
 	{
 		return;
 	}	
@@ -511,46 +571,9 @@ void APlayerCharacterBase::Look(const FInputActionValue& Value)
 	AddControllerPitchInput(LookAxisVector.Y);
 }
 
-void APlayerCharacterBase::UseFirstAttackComponent()
-{
-	if (!FirstAttackComponent)
-	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseFirstAttackComponent, FirstAttackComp is Null"));
-		return;
-	}
-	if (bIsAlive)
-	{
-		bIsAttacking = true;
-		GetFirstAttackComponent()->StartAttack();
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(
-		TimerHandle,
-		this,
-		&APlayerCharacterBase::EndIsAttacking,
-		0.1f,
-		false
-		);
-	}
-
-	
-}
-
-void APlayerCharacterBase::UseSecondAttackComponent()
-{
-	if (!SecondAttackComponent)
-	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("APlayerCharacterBase::UseSecondAttackComponent, SecondAttackComp is Null"));
-		return;
-	}
-	if (bIsAlive)
-	{
-		GetSecondAttackComponent()->StartAttack();
-	}
-}
-
 void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInstance)
 {
-	if (!bShouldUseSprintInput) { return; }
+	if (!bShouldUseSprintInput || !bIsInputActive) { return; }
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
 	{
 		return;
@@ -579,7 +602,7 @@ void APlayerCharacterBase::OnSprintBegin(const FInputActionInstance& ActionInsta
 
 void APlayerCharacterBase::OnSprintEnd(const FInputActionInstance& ActionInstance)
 {
-	if (!bShouldUseSprintInput) { return; }
+	if (!bShouldUseSprintInput || !bIsInputActive) { return; }
 	if (ActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
 		return;
@@ -621,33 +644,33 @@ void APlayerCharacterBase::SetupAttackComponentInput(UEnhancedInputComponent* En
 		return;
 	}
 	
-	if (!FirstAttackComponent)
+	if (!BasicAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackComp is Null"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	if (!FirstAttackAction)
+	if (!BasicAttackAction)
 	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("%s, FirstAttackAction is Null"), *FString(__FUNCTION__));
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, BasicAttackAction is Null"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	FirstAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, FirstAttackAction);
+	BasicAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, BasicAttackAction);
 	
-	if (!SecondAttackComponent)
+	if (!SpecialAttackComponent)
 	{
 		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackComp is Null"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	if (!SecondAttackAction)
+	if (!SpecialAttackAction)
 	{
-		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SecondAttackAction is Null"), *FString(__FUNCTION__));
+		UE_LOG(PlayerBaseLog, Error, TEXT("%s, SpecialAttackAction is Null"), *FString(__FUNCTION__));
 		return;
 
 	}
-	SecondAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SecondAttackAction);
+	SpecialAttackComponent->SetupOwnerInputBinding(EnhancedInputComponent, SpecialAttackAction);
 }
 
 void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprintState)
@@ -706,6 +729,68 @@ void APlayerCharacterBase::Server_HitFeedback_Implementation()
 void APlayerCharacterBase::Multicast_HitFeedback_Implementation()
 {
 	HitFeedback();
+}
+
+bool APlayerCharacterBase::ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch,
+	FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+	
+	if (BasicAttackComponent)
+	{
+		WroteSomething |= Channel->ReplicateSubobject(BasicAttackComponent, *Bunch, *RepFlags);
+	}
+
+	if (SpecialAttackComponent)
+	{
+		WroteSomething |= Channel->ReplicateSubobject(SpecialAttackComponent, *Bunch, *RepFlags);
+	}
+
+	return WroteSomething;
+}
+
+void APlayerCharacterBase::SetupBindAttributes_Implementation()
+{
+	if (UpgradeComponent && IsLocallyControlled())
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+
+		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+		{
+			const FName MaxHealthPropName = "MaxHealth";
+			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
+
+			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+
+			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
+			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
+			{
+				AttributeData->OnAttributeModified.AddWeakLambda(GameState, [GameState]
+				{
+					if (!GameState)
+					{
+						return;
+					}
+					UE_LOG(PlayerBaseLog, Log, TEXT("Updating MaxHealth to %f"), GameState->MaxHealth);
+					GameState->SetMaxHealth(GameState->MaxHealth);
+				});
+
+			}
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
+
+		}
+	}
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()

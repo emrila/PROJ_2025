@@ -16,9 +16,11 @@ public:
 	URangeAttackComp();
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	
 	virtual void StartAttack() override;
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
+	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
@@ -28,27 +30,31 @@ protected:
 	
 	virtual void OnAttackEnd(const FInputActionInstance& Instance);
 	
-	virtual void OnAttackCanceled(const FInputActionInstance& Instance);
-	
 	virtual void PerformAttack() override;
+	
+	void SpawnProjectile(const FTransform SpawnTransform);
 
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SpawnProjectile(const FTransform SpawnTransform);
 	
+	void PlayAttackAnim();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_PlayAttackAnim();
+	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnProjectile(const FTransform SpawnTransform);
+	void Multicast_PlayAttackAnim();
 
 	virtual FTransform GetProjectileTransform();
 
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
+	
+	virtual float GetProjectileSpeed();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
-	
-	UPROPERTY(Replicated)
-	AMageProjectile* ProjectileInstance;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ProjectileOffsetDistanceInFront = 120.f;
@@ -57,4 +63,16 @@ protected:
 	UAnimMontage* AttackAnimation;
 	
 	bool bIsAttacking = false;
+	
+	UPROPERTY(Replicated)
+	FTransform ProjectileSpawnTransform;
+	
+	UPROPERTY(Replicated)
+	float ProjectileSpeed = 2000.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float ProjectileSpeedUpgradeAmount = 100.f;
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debugging();
 };

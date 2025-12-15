@@ -17,16 +17,6 @@ AShield::AShield()
 
 	bReplicates = true;
 	
-	/*CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
-	RootComponent = CollisionBox;
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	CollisionBox->SetCollisionObjectType(ECC_WorldDynamic);
-	CollisionBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	CollisionBox->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	CollisionBox->SetGenerateOverlapEvents(true);
-
-	CollisionBox->SetIsReplicated(true);*/
-	
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
 	RootComponent = ShieldMesh;
 	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -62,12 +52,12 @@ void AShield::Server_ActivateShield_Implementation()
 	// Start durability timer on server
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+		//GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
 		// Clear any existing timer to avoid having multiples running
 		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
 
-		GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle, this, &AShield::TickDurability, 1.f, true);
+		//GetWorld()->GetTimerManager().SetTimer(DurabilityTimerHandle, this, &AShield::TickDurability, 1.f, true);
 	}
 }
 
@@ -77,11 +67,7 @@ void AShield::Multicast_ActivateShield_Implementation()
 	{
 		return;
 	}
-	/*if (ShieldMesh && CollisionBox)
-	{
-		ShieldMesh->SetVisibility(true);
-		SetActorEnableCollision(true);
-	}*/
+	
 	if (ShieldMesh)
 	{
 		ShieldMesh->SetVisibility(true);
@@ -105,7 +91,7 @@ void AShield::Server_DeactivateShield_Implementation()
 	bIsShieldActive = false;
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
+		//GetWorld()->GetTimerManager().ClearTimer(DurabilityTimerHandle);
 
 		// Clear any existing timer to avoid having multiples running
 		GetWorld()->GetTimerManager().ClearTimer(RecoveryTimerHandle);
@@ -120,11 +106,6 @@ void AShield::Multicast_DeactivateShield_Implementation()
 	{
 		return;
 	}
-	/*if (ShieldMesh && CollisionBox)
-	{
-		ShieldMesh->SetVisibility(false);
-		SetActorEnableCollision(false);
-	}*/
 	
 	if (ShieldMesh)
 	{
@@ -133,29 +114,53 @@ void AShield::Multicast_DeactivateShield_Implementation()
 	}
 }
 
-void AShield::IncreaseDurability(const float AmountToIncrease)
+void AShield::ChangeDurability(bool bIncrease, const float AmountToChange)
 {
-	Durability += AmountToIncrease;
-	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	if (bIncrease)
 	{
-		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
-		if (ShieldComp)
+		Durability += AmountToChange;
+	}
+	else
+	{
+		Durability -= AmountToChange;
+		if (Durability <= 0.f)
 		{
-			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
+			if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
+			{
+				ShieldComp->StartAttackCooldown();
+				ShieldComp->DeactivateShield();
+				Durability = 0.f;
+				return;
+			}
 		}
 	}
+	
+	Server_BroadcastDurability(Durability);
 }
 
-void AShield::DecreaseDurability(const float AmountToDecrease)
+void AShield::Server_BroadcastDurability_Implementation(const float NewDurability)
 {
-	Durability -= AmountToDecrease;
-	if (OwnerCharacter && OwnerCharacter->GetSecondAttackComponent())
+	if (!OwnerCharacter && !OwnerCharacter->GetSpecialAttackComponent())
 	{
-		UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent());
-		if (ShieldComp)
-		{
-			ShieldComp->OnDurabilityChanged.Broadcast(Durability, ShieldComp->GetDurability());
-		}
+		UE_LOG(LogTemp, Error, TEXT("%s: OwnerCharacter or SpecialAttackComponent is null!"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent());
+	if (ShieldComp)
+	{
+		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
+		Multicast_BroadcastDurability(Durability);
+	}
+	
+}
+
+void AShield::Multicast_BroadcastDurability_Implementation(const float NewDurability)
+{
+	UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent());
+	if (ShieldComp)
+	{
+		ShieldComp->OnDurabilityChanged.Broadcast(NewDurability, ShieldComp->GetDurability());
 	}
 }
 
@@ -172,26 +177,13 @@ void AShield::BeginPlay()
 {
 	Super::BeginPlay();
 
-	bReplicates = true;
+	SetReplicates(true);
 	SetReplicateMovement(true);
-	
-	/*if (HasAuthority() && CollisionBox)
-	{
-		CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
-		CollisionBox->OnComponentHit.AddDynamic(this, &AShield::OnShieldHit);
-	}*/
 	
 	if (HasAuthority() && ShieldMesh)
 	{
-		//ShieldMesh->OnComponentBeginOverlap.AddDynamic(this, &AShield::OnShieldOverlap);
 		ShieldMesh->OnComponentHit.AddDynamic(this, &AShield::OnShieldHit);
 	}
-
-	/*if (CollisionBox && ShieldMesh)
-	{
-		ShieldMesh->SetVisibility(false);
-		SetActorEnableCollision(false);
-	}*/
 	
 	if (ShieldMesh)
 	{
@@ -213,7 +205,7 @@ void AShield::TickDurability()
 	}
 	if (Durability <= 0.f)
 	{
-		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
+		if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
 		{
 			ShieldComp->StartAttackCooldown();
 			ShieldComp->DeactivateShield();
@@ -221,7 +213,7 @@ void AShield::TickDurability()
 		}
 	}
 	const float OldDurability = Durability;
-	Durability -= 10.f;
+	ChangeDurability(false, 10.f);
 	//UE_LOG(LogTemp, Warning, TEXT("Durability reduced from:%f, to:%f"), OldDurability, Durability);
 }
 
@@ -235,7 +227,7 @@ void AShield::TickRecovery()
 	{
 		return;
 	}
-	if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSecondAttackComponent()))
+	if (UShieldAttackComp* ShieldComp = Cast<UShieldAttackComp>(OwnerCharacter->GetSpecialAttackComponent()))
 	{
 		if (Durability >= ShieldComp->GetDurability())
 		{
@@ -245,43 +237,8 @@ void AShield::TickRecovery()
 		}
 	}
 	const float OldDurability = Durability;
-	Durability += 10.f;
+	ChangeDurability(true, 10.f);
 	//UE_LOG(LogTemp, Warning, TEXT("Durability increased from:%f, to:%f"), OldDurability, Durability);
-}
-
-void AShield::OnShieldOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
-                              UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (!HasAuthority())
-	{
-		return;
-	}
-	
-	if (AEnemyBase* Enemy = Cast<AEnemyBase>(OtherActor))
-	{
-		AActor* DamageCauser;
-		if (OwnerCharacter)
-		{
-			DamageCauser = OwnerCharacter;
-		}
-		else
-		{
-			DamageCauser = this;
-		}
-		if (bShouldGiveDamage)
-		{
-			UGameplayStatics::ApplyDamage(
-			Enemy, 
-			DamageAmount, 
-			OwnerCharacter ? OwnerCharacter->GetController() : nullptr, 
-			DamageCauser,
-			UDamageType::StaticClass()
-			);
-			Durability -= 10.f;
-			bShouldGiveDamage = false;
-			ResetShouldGiveDamage();
-		}
-	}
 }
 
 void AShield::OnShieldHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp,
@@ -313,7 +270,7 @@ void AShield::OnShieldHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPri
 			DamageCauser,
 			UDamageType::StaticClass()
 			);
-			Durability -= 10.f;
+			ChangeDurability(false, 10.f);
 			bShouldGiveDamage = false;
 			ResetShouldGiveDamage();
 		}
@@ -333,7 +290,7 @@ float AShield::TakeDamage(float NewDamageAmount, struct FDamageEvent const& Dama
 	}
 	
 	
-	Durability -= 10.f;
+	ChangeDurability(false, 10.f);
 	
 	UE_LOG(LogTemp, Warning, TEXT("Shield took %f damage"), 10.f);
 	

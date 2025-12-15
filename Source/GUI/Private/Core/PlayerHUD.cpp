@@ -99,7 +99,10 @@ void APlayerHUD::ToggleMenuWidget(T* Widget)
 	if (Widget->GetVisibility() == ESlateVisibility::Visible)
 	{
 		Widget->SetVisibility(ESlateVisibility::Collapsed);
-		HUDWidget->SetVisibility(ESlateVisibility::Visible);
+		if (HUDClass)
+		{
+			HUDWidget->SetVisibility(ESlateVisibility::Visible);
+		}
 
 		APlayerController* Controller = GetOwningPlayerController();
 		Controller->SetInputMode(FInputModeGameOnly());
@@ -112,7 +115,12 @@ void APlayerHUD::ToggleMenuWidget(T* Widget)
 	else if (Widget->GetVisibility() == ESlateVisibility::Collapsed)
 	{
 		Widget->SetVisibility(ESlateVisibility::Visible);
-		HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
+		
+		if (HUDClass)
+		{
+			HUDWidget->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		
 
 		APlayerController* Controller = GetOwningPlayerController();
 		Controller->SetInputMode(FInputModeGameAndUI());

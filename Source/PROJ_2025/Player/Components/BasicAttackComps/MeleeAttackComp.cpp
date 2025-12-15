@@ -24,31 +24,19 @@ void UMeleeAttackComp::BeginPlay()
 
 void UMeleeAttackComp::StartAttack()
 {
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
-	{
-		return;
-	}
-
-	SetCurrentAnimIndex();
-
-	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
-	{
-	//	SetAttackCooldown(GetAttackCooldown());
-	}
-	
-	Super::StartAttack();
-
 	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
+		return;
+	}
 
+	SetCurrentAnimIndex();
+	Super::StartAttack();
 	PerformAttack();
 }
 
@@ -60,26 +48,8 @@ void UMeleeAttackComp::PerformAttack()
 		return;
 	}
 
-	if (const float Delay = GetCurrentAnimLength(); Delay > 0.0f)
-	{
-		if (GetWorld()->GetTimerManager().IsTimerActive(SweepTimerHandle))
-		{
-			return;
-		}
-		
-		Server_PlayAttackAnim();
-
-		GetWorld()->GetTimerManager().SetTimer(
-			SweepTimerHandle,
-			[this] ()
-			{
-				CheckForCollisionWithEnemy();
-			},
-			(Delay/2.f - 0.3f),
-			false
-			);		
-	}
-	
+	Server_PlayAttackAnim();
+	CheckForCollisionWithEnemy();
 }
 
 void UMeleeAttackComp::SetCurrentAnimIndex()
@@ -125,7 +95,13 @@ void UMeleeAttackComp::Multicast_PlayAttackAnim_Implementation()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2.0f);
+		float PlayRate = 1.f;
+		if (AttackAnims[CurrentAttackAnimIndex]->GetPlayLength() > GetAttackCooldown())
+		{
+			const float AnimLength = AttackAnims[CurrentAttackAnimIndex]->GetPlayLength();
+			PlayRate = AnimLength / GetAttackCooldown();
+		}
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], PlayRate);
 	}
 }
 
@@ -139,7 +115,13 @@ void UMeleeAttackComp::PlayAttackAnim()
 
 	if (AttackAnims[CurrentAttackAnimIndex])
 	{
-		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], 2.0f);
+		float PlayRate = 1.f;
+		if (AttackAnims[CurrentAttackAnimIndex]->GetPlayLength() > GetAttackCooldown())
+		{
+			const float AnimLength = AttackAnims[CurrentAttackAnimIndex]->GetPlayLength();
+			PlayRate = AnimLength / GetAttackCooldown();
+		}
+		OwnerCharacter->PlayAnimMontage(AttackAnims[CurrentAttackAnimIndex], PlayRate);
 	}
 }
 
@@ -161,20 +143,9 @@ void UMeleeAttackComp::CheckForCollisionWithEnemy()
 		return;
 	}
 
-	FVector SweepLocation1 = OwnerCharacter->GetActorLocation();
-	//FVector SweepLocation2 = FVector::ZeroVector;
+	FVector SweepLocation = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * AttackRadius;
 
-	if (const APlayerCharacterBase* PlayerCharacterBase = Cast<APlayerCharacterBase>(OwnerCharacter))
-	{
-		if (PlayerCharacterBase->GetRightHandSocketLocation() != FVector::ZeroVector)
-		{
-			SweepLocation1 = PlayerCharacterBase->GetRightHandSocketLocation();
-		}
-		//SweepLocation2 = PlayerCharacterBase->GetLeftHandSocketLocation();
-	}
-
-	Sweep(SweepLocation1);
-	//TODO : Determine which sweep locations to use based on the attack animation (one-handed, two-handed, etc.)
+	Sweep(SweepLocation);
 }
 
 float UMeleeAttackComp::GetAttackCooldown() const
@@ -199,23 +170,40 @@ void UMeleeAttackComp::Sweep_Implementation(FVector SweepLocation)
 	FCollisionQueryParams QueryParams;
 
 	QueryParams.AddIgnoredActor(OwnerCharacter);
-
-	const bool bHit = GetWorld()->SweepMultiByChannel(
+	
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	
+	const bool bHit = GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		SweepLocation,
-		SweepLocation,
+		SweepLocation, 
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		FCollisionShape::MakeSphere(AttackRadius),
-		QueryParams
-		);
+		QueryParams);
 	
-	TSet<AActor*> UniqueHitActors;
+#if WITH_EDITOR
+	if (bDrawDebug)
+	{
+		DrawDebugSphere(
+			GetWorld(),
+			SweepLocation,
+			AttackRadius,
+			12,
+			bHit ? FColor::Red : FColor::Green,
+			false,
+			2.0f
+			);
+	}
+#endif
+
 	if (bHit)
 	{
+		TSet<AActor*> UniqueHitActors;
 		for (const FHitResult& Hit : HitResults)
 		{
-			if (Hit.GetActor() && Hit.GetActor()->IsA(AEnemyBase::StaticClass()))
+			if (Hit.GetActor())
 			{
 				UniqueHitActors.Add(Hit.GetActor());
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)

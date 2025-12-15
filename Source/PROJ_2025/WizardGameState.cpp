@@ -18,6 +18,11 @@ void AWizardGameState::BeginPlay()
 	SetHealth(MaxHealth);
 }
 
+void AWizardGameState::OnRep_Health() const
+{
+	OnHealthChangedDelegate.Broadcast();
+}
+
 void AWizardGameState::PlayerEnteredStartDungeon_Implementation(bool Entered)
 {
 	if (Entered)

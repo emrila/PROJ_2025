@@ -8,13 +8,12 @@
 
 APlayerControllerBase::APlayerControllerBase()
 {
-	ControlledPlayer = nullptr;
+	
 }
 
 void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	//DOREPLIFETIME(APlayerControllerBase, ControlledPlayer);
 }
 
 void APlayerControllerBase::Tick(float DeltaTime)
@@ -30,26 +29,16 @@ void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotato
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (!ControlledPlayer)
-	{
-		ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
-	}
-	
 }
 
 void APlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
-	ControlledPlayer = nullptr;
 }
 
 void APlayerControllerBase::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
-
-	ControlledPlayer = Cast<APlayerCharacterBase>(GetPawn());
 
 	if (IsLocalPlayerController())
 	{

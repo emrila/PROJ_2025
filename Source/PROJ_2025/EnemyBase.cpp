@@ -35,7 +35,11 @@ float AEnemyBase::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 		{
 			return 0.f;
 		}
-		WizardPlayerState->AddDamageDealt(DamageAmount);
+		
+		if (Health > 0.f)
+		{
+			WizardPlayerState->AddDamageDealt(DamageAmount);
+		}
 	}
 	HandleHit(DamageEvent, DamageCauser);
 	OnRep_Health();
@@ -64,6 +68,7 @@ void AEnemyBase::OnRep_Health() const
 void AEnemyBase::FinishDeath()
 {
 	SpawnDeathEffect();
+	Death();
 	Destroy();
 }
 
@@ -117,12 +122,14 @@ void AEnemyBase::HandleDeath()
 			}else
 			{
 				SpawnDeathEffect();
+				Death();
 				Destroy();
 			}
 		}
 		return;
 	}
 	SpawnDeathEffect();
+	Death();
 	Destroy();
 }
 

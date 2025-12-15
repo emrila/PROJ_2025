@@ -3,12 +3,13 @@
 
 #include "RoomManagerBase.h"
 
-#include "LootSpawnLocation.h"
+#include "DroppedItem.h"
+#include "ItemBase.h"
+#include "LootPicker.h"
+#include "RoomExit.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
-#include "Chaos/ChaosPerfTest.h"
-#include "RoomExit.h"
 #include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -41,6 +42,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
 		}
 	}
+	RoomModifiers.Empty();
 	for (TSubclassOf<URoomModifierBase> Mod : Room.ActiveModifierClasses)
 	{
 		if (!Mod) continue;
@@ -54,49 +56,61 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 	if (!GI) return;
 	TArray<URoomData*> AllRooms;
-	if (Room.RoomData->RoomType != ERoomType::Parkour)
+	if (!GI->RoomLoader->IsDevTest)
 	{
-		AllRooms = GI->NormalMapPool;
-	}else
-	{
-		AllRooms = GI->CombatOnly;
-	}
-	bool BossRoom = GI->RollForBossRoom();
-	bool CampExit = false;
-	bool ChoiceRoom = false;
-	if (!BossRoom)
-	{
-		ChoiceRoom = GI->RollForChoiceRoom();
-		if (!ChoiceRoom)
+		if (GI->RoomLoader->NormalMapPool.Num() <= 4)
 		{
-			CampExit = GI->RollForCampRoom();
+			GI->RoomLoader->RefreshPool();
+		}
+		if (Room.RoomData->RoomType != ERoomType::Parkour)
+		{
+			AllRooms = GI->RoomLoader->NormalMapPool;
 		}else
 		{
-			GI->RollForCampRoom(true);
+			AllRooms = GI->RoomLoader->CombatOnly;
+		}
+	}else
+	{
+		AllRooms = GI->StaticDevMapPool;
+	}
+	int BossRoom = GI->RoomLoader->RollForBossRoom();
+	bool CampExit = false;
+	bool ChoiceRoom = false;
+	if (BossRoom == -1)
+	{
+		ChoiceRoom = GI->RoomLoader->RollForChoiceRoom();
+		if (!ChoiceRoom)
+		{
+			CampExit = GI->RoomLoader->RollForCampRoom();
+		}else
+		{
+			GI->RoomLoader->RollForCampRoom(true);
 		}
 	}
 
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
-	TArray<ARoomExit*> RoomExits;
+	RoomExits.Empty();
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
 		{
+			Exit->ResetExitState();
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom)
+	UE_LOG(LogTemp, Error, TEXT("room exits %d"), RoomExits.Num());
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	
@@ -104,18 +118,18 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 
 	if (CampExit)
 	{
-		ChosenRooms.Add(GI->GetCampRoomData());
+		ChosenRooms.Add(GI->CampRoom);
 	}
 	if (ChoiceRoom)
 	{
-		ChosenRooms.Add(GI->GetChoiceRoomData());
+		ChosenRooms.Add(GI->ChoiceRoom);
 	}
-	if (BossRoom)
+	if (BossRoom != -1)
 	{
-		ChosenRooms.Add(GI->BossRoom);
+		ChosenRooms.Add(GI->BossRooms[BossRoom]);
 	}
 
-	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
+	if (!GI->RoomLoader->IsDevTest && Room.RoomData && AllRooms.Contains(Room.RoomData))
 	{
 		AllRooms.Remove(Room.RoomData);
 	}
@@ -215,21 +229,47 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
 	}
+	FTimerHandle EnableInputHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+	EnableInputHandle,
+	this,
+	&ARoomManagerBase::EnablePlayerInput, 
+	3.f,
+	false
+);
 }
 
 void ARoomManagerBase::SpawnLoot()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
+	if (!LootSpawnLocation)
+	{
+		LootSpawnLocation = Cast<AUpgradeSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass()));
+		UE_LOG(LogTemp, Warning, TEXT("🔮Found Loot Spawn Location: %s"), LootSpawnLocation ? TEXT("True") : TEXT("False"));
+	}
 	if (LootSpawnLocation)
 	{
+		LootSpawnLocation->Server_ClearAll();
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
+		UE_LOG(LogTemp, Warning, TEXT("🔮OnCompletedAllUpgrades.AddDynamic!"));
 		for (URoomModifierBase* Mod : RoomModifiers)
 		{
 			Mod->OnLootSpawned();
 		}
+		if (RoomModifiers.Num() > 0)
+		{
+			UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+			FName RandomLoot = FLootPicker::PickLoot();
+			FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
+			ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+			DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
+			DroppedItem->ItemRowName = RandomLoot;
+			DroppedItem->Initialize(1.f);
+		}
 	}else
 	{
+		UE_LOG (LogTemp, Error, TEXT("🔮No Loot Spawn Location found in room!"));
 		EnableExits();
 	}
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
@@ -255,10 +295,14 @@ void ARoomManagerBase::EnableExits()
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
+		LootSpawnLocation->Server_ClearAll();
+		UE_LOG(LogTemp, Warning, TEXT("🔮OnCompletedAllUpgrades.RemoveDynamic"));
 	}
 
 	for (URoomModifierBase* Mod : RoomModifiers)
 	{
+		if (!Mod) continue;
+		UE_LOG (LogTemp, Warning, TEXT("🔮 Mod OnExitsUnlocked called"));
 		Mod->OnExitsUnlocked();
 	}
 	
@@ -268,8 +312,27 @@ void ARoomManagerBase::EnableExits()
 		{
 			Exit->CanExit = true;
 			Exit->EnableExit();
+			UE_LOG (LogTemp, Warning, TEXT(" 🔮Exits Enabled!") );
 		}
 	}
+}
+
+void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
+	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
+}
+
+void ARoomManagerBase::EnablePlayerInput_Implementation()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+	
+	APawn* PlayerPawn = PC->GetPawn();
+	if (!PlayerPawn) return;
+
+	PlayerPawn->EnableInput(PC);
 }
 
 

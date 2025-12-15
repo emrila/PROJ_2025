@@ -2,7 +2,7 @@
 
 #include "EnhancedInputComponent.h"
 #include "BasicAttackComps/MeleeAttackComp.h"
-#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -14,17 +14,17 @@ UAttackComponentBase::UAttackComponentBase()
 
 void UAttackComponentBase::StartAttack()
 {
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
 		return;
 	}
-
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
+		return;
+	}
+	
 	bCanAttack = false;
 
 
@@ -33,25 +33,38 @@ void UAttackComponentBase::StartAttack()
 	{
 		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
 	}
-	GetWorld()->GetTimerManager().SetTimer(
+	
+	if (CurrentCoolDownTime > 0.f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(
 		AttackCooldownTimerHandle,
 		this,
 		&UAttackComponentBase::ResetAttackCooldown,
 		CurrentCoolDownTime,
 		false
 		);
+	}
+	else
+	{
+		ResetAttackCooldown();
+	}
+	
+	if (bDrawDebug)
+	{
+		Server_Debug();
+	}
 }
 
 void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter && !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!OwnerCharacter)
 	{
 		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
+		return;
+	}
+	
+	if (!bCanAttack || !OwnerCharacter->IsAlive())
+	{
 		return;
 	}
 	
@@ -139,6 +152,20 @@ void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
+	DOREPLIFETIME(UAttackComponentBase, AttackDamageModifier);
+	DOREPLIFETIME(UAttackComponentBase, AttackSpeedModifier);
+}
+
+void UAttackComponentBase::Server_Debug_Implementation()
+{
+	UE_LOG(LogTemp, Warning, TEXT("%s, Attacked with: %s"), *OwnerCharacter->GetName(), *GetName());
+	UE_LOG(LogTemp, Warning, TEXT("Current damage amount: %f"), GetDamageAmount());
+	UE_LOG(LogTemp, Warning, TEXT("Current Cooldown time: %f"), GetAttackCooldown());
+	
+	if (OwnerCharacter && OwnerCharacter->GetCharacterMovement())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current Movement speed: %f"), OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
+	}
 }
 
 void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)

@@ -60,6 +60,10 @@ AUpgradeAlternative::AUpgradeAlternative()
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
+	
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent->SetupAttachment(RootComponent);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -68,6 +72,14 @@ void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
+	}
+
+	if (StaticMeshComponent && !StaticMeshComponent->GetStaticMesh() && Data.Mesh.IsValid())
+	{
+		if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
+		{
+			StaticMeshComponent->SetStaticMesh(NewMesh);
+		}
 	}
 }
 
@@ -138,8 +150,14 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 			UPGRADE_WARNING(TEXT("%hs: Upgrade alternative already selected or locked for a player!"), __FUNCTION__);
 			return;
 		}
-		UpgradeAlternativePair.SelectedByPlayers[Index] = true;
-		UpgradeAlternativePair.LockedForPlayer[Index] = true;
+		if (UpgradeAlternativePair.SelectedByPlayers.IsValidIndex(Index))
+		{
+			UpgradeAlternativePair.SelectedByPlayers[Index] = true;
+		}
+		if (UpgradeAlternativePair.LockedForPlayer.IsValidIndex(Index))
+		{
+			UpgradeAlternativePair.LockedForPlayer[Index] = true;
+		}
 	}
 
 	//ForceNetUpdate();

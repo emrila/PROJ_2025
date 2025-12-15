@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UInventory;
 struct FInputActionInstance;
 class UUpgradeComponent;
 class UCameraComponent;
@@ -18,7 +19,11 @@ class UAttackComponentBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDash);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
 
 UCLASS()
@@ -35,9 +40,15 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 	//Handle components
-	UAttackComponentBase* GetFirstAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetBasicAttackComponent() const;
 
-	UAttackComponentBase* GetSecondAttackComponent() const;
+	UFUNCTION(BlueprintCallable)
+	UAttackComponentBase* GetSpecialAttackComponent() const;
+
+	// Inventory pointer
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UInventory* Inventory;
 	
 	//Handle sockets
 	FVector GetRightHandSocketLocation() const;
@@ -51,6 +62,17 @@ public:
 	
 	virtual void HandleCameraReattachment();
 	
+	//Handle Input
+	virtual void SetInputActive(const bool bNewInputActive);
+	
+	virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
+	
+	virtual void EndSprint();
+	
+	virtual bool IsInputActive() const { return bIsInputActive; }
+	
+	virtual bool GetShouldUseSprintInput() const { return bShouldUseSprintInput; }
+	
 	//Handle Damage
 	virtual void StartIFrame();
 	
@@ -59,11 +81,12 @@ public:
 	virtual bool IsAlive() const { return bIsAlive; }
 
 	virtual void SetIsAlive(const bool NewIsAlive);
-	
-	virtual void EndIsAttacking() { bIsAttacking = false; }
 
 	FOnPlayerDied OnPlayerDied;
 	FOnIFrameChanged OnIFrameStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnDash OnDash;
 	
 	/*UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
@@ -86,8 +109,6 @@ public:
 
 	UFUNCTION()
 	void EndSuddenDeath();
-
-	virtual void Jump() override;
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
@@ -121,7 +142,7 @@ protected:
 	UPROPERTY(Replicated)
 	bool IFrame = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Damage")
 	float DefenceStat = 0.f;
 	//Handle nametag
 	virtual void TickNotLocal();
@@ -165,10 +186,10 @@ protected:
 	virtual void Move(const FInputActionValue& Value);
 
 	virtual void Look(const FInputActionValue& Value);
-
-	virtual void UseFirstAttackComponent();
-
-	virtual void UseSecondAttackComponent();
+	
+	virtual void Jump() override;
+	
+	FTimerHandle JumpTimerHandle;
 	
 	virtual void OnSprintBegin(const FInputActionInstance& ActionInstance);
 	
@@ -181,6 +202,8 @@ protected:
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
+	
+	bool bIsInputActive = true;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	bool bShouldUseSprintInput = true;
@@ -211,26 +234,41 @@ protected:
 	UInputAction* SprintAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* FirstAttackAction;
+	UInputAction* BasicAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Ability")
-	UInputAction* SecondAttackAction;
+	UInputAction* SpecialAttackAction;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
 
 	//Handle components
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
+	UAttackComponentBase* BasicAttackComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
+	UAttackComponentBase* SpecialAttackComponent;
+	
+	virtual bool ReplicateSubobjects(class UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* FirstAttackComponent;
-
+	TSubclassOf<UAttackComponentBase> BasicAttackComponentClass;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Ability")
-	UAttackComponentBase* SecondAttackComponent;
+	TSubclassOf<UAttackComponentBase> SpecialAttackComponentClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UInteractorComponent> InteractorComponent;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UUpgradeComponent> UpgradeComponent;
+	
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category="Components|Misc")
+	void SetupBindAttributes();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
+	
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
@@ -247,9 +285,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
 	FText ClassDescription;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	bool bIsAttacking = false;
-	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName RightHandSocket = TEXT("R_HandSocket");
@@ -263,8 +298,6 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
-
-
 
 private:
 	//Handle nametag	

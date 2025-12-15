@@ -81,6 +81,9 @@ protected:
 private:
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
     	TObjectPtr<USceneComponent> SceneComponent;
+	
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+		TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
     	
     	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
     	TObjectPtr<UWidgetComponent> WidgetComponent;

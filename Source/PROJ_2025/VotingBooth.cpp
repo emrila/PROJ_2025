@@ -117,7 +117,7 @@ void AVotingBooth::CheckResults_Implementation()
 		{
 			OnVotingFinishedParams.Broadcast(FInstancedStruct::Make(Candidates[Index].ModifierData));
 		}
-		UE_LOG (LogTemp, Warning, TEXT("No candidate received majority votes. Randomly selected candidate %s"), *Candidates[Index].CandidateClass->GetName());
+		//UE_LOG (LogTemp, Warning, TEXT("No candidate received majority votes. Randomly selected candidate %s"), *Candidates[Index].CandidateClass->GetName());
 		//this->Destroy();
 	}
  }

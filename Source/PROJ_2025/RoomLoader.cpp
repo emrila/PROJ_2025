@@ -8,6 +8,15 @@
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 
+void ARoomLoader::RefreshPool()
+{
+	if (UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance()))
+	{
+		NormalMapPool = GI->StaticNormalMapPool;
+		CombatOnly = GI->StaticCombatOnly;
+	}
+}
+
 void ARoomLoader::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -100,6 +109,8 @@ void ARoomLoader::BeginPlay()
 	if (UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance()))
 	{
 		GI->RoomLoader = this;
+		NormalMapPool = GI->StaticNormalMapPool;
+		CombatOnly = GI->StaticCombatOnly;
 	}
 }
 
@@ -128,8 +139,8 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
 	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
-	FString LevelName = PendingNextRoomData.RoomData->RoomLevel.GetAssetName();
-
+	FName LevelName = PendingNextRoomData.RoomData->RoomLevel.GetLongPackageFName();
+	
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = FName("OnNextLevelLoaded");
@@ -138,15 +149,84 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	
 	UGameplayStatics::LoadStreamLevel(
 		this,                  
-		FName(LevelName),             
+		LevelName,             
 		true,                 
 		true,                  
 		LatentInfo 
 	);
 	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
-	CurrentLoadedLevelName = FName(LevelName);
+	CurrentLoadedLevelName = LevelName;
 	CurrentRoom = PendingNextRoomData;
 	
 
+}
+
+bool ARoomLoader::RollForCampRoom(bool OnlyIncrementChance)
+{
+	if (ChanceForCamp == 0.f)
+	{
+		ChanceForCamp = 0.05f;
+		return false;
+	}
+	if (!OnlyIncrementChance && FMath::FRand() <= ChanceForCamp)
+	{
+		ChanceForCamp = 0.001f;
+		return true;
+	}
+	if (ChanceForCamp == 0.001f)
+	{
+		ChanceForCamp = 0.01f;
+	}
+	else if (ChanceForCamp == 0.01f)
+	{
+		ChanceForCamp = 0.05f;
+	}
+	else if (ChanceForCamp == 0.05f)
+	{
+		ChanceForCamp = 0.1f;
+	}
+	else if (ChanceForCamp == 0.1f)
+	{
+		ChanceForCamp = 0.75f;
+	}
+	else if (ChanceForCamp == 0.75f)
+	{
+		ChanceForCamp = 0.9f;
+	}
+	else if (ChanceForCamp == 0.9f)
+	{
+		ChanceForCamp = 1.f;
+	}
+	return false;
+	
+}
+
+bool ARoomLoader::RollForChoiceRoom() const
+{
+	if (ClearedRooms == 3)
+	{
+		return true;
+	}
+	return false;
+}
+
+int ARoomLoader::RollForBossRoom() const
+{
+	if (ClearedRooms == 9)
+	{
+		return 0;
+	}
+	if (ClearedRooms == 19)
+	{
+		return 1;
+	}
+	return -1;
+}
+
+void ARoomLoader::RemoveRoomFromPool(URoomData* RoomData)
+{
+	NormalMapPool.Remove(RoomData);
+	CombatOnly.Remove(RoomData);
+	
 }
