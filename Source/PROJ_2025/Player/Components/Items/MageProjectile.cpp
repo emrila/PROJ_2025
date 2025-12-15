@@ -28,7 +28,7 @@ AMageProjectile::AMageProjectile()
 	ProjectileMovementComponent->UpdatedComponent = CollisionComponent;
 	ProjectileMovementComponent->InitialSpeed = ProjectileSpeed;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	ProjectileMovementComponent->bShouldBounce = false;  //TODO: Should it bounce?
+	ProjectileMovementComponent->bShouldBounce = false; 
 
 	InitialLifeSpan = LifeTime;
 	
@@ -72,12 +72,20 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 	AActor* DamageCauser = GetOwner() ? GetOwner() : this;
 	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
 	{
+		if (HitEnemies.Contains(OtherActor))
+		{
+			return;
+		}
 		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
 
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
+		HitEnemies.Add(OtherActor);
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
-
-		Destroy();
+		
+		if (HitEnemies.Num() >= PiercingAmount)
+		{
+			Destroy();
+		}
 	}
 }
 
@@ -101,6 +109,9 @@ void AMageProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMageProjectile, DamageAmount);
 	DOREPLIFETIME(AMageProjectile, ImpactParticles);
+	DOREPLIFETIME(AMageProjectile, ProjectileSpeed);
+	DOREPLIFETIME(AMageProjectile, PiercingAmount);
+	DOREPLIFETIME(AMageProjectile, HitEnemies);
 }
 
 void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)
@@ -121,6 +132,31 @@ void AMageProjectile::Server_SetDamageAmount_Implementation(const float NewDamag
 	}
 	
 	this->DamageAmount = NewDamageAmount;
+}
+
+void AMageProjectile::Server_SetProjectileSpeed_Implementation(const float NewProjectileSpeed)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	
+	if (NewProjectileSpeed <= ProjectileSpeed)
+	{
+		return;
+	}
+	
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->InitialSpeed = NewProjectileSpeed;
+		ProjectileMovementComponent->MaxSpeed = NewProjectileSpeed;
+
+		if (const FVector NewVelocity = ProjectileMovementComponent->Velocity; NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER)
+		{
+			const FVector NewVelocityDir = NewVelocity.GetSafeNormal();
+			ProjectileMovementComponent->Velocity = NewVelocityDir * NewProjectileSpeed;
+		}
+	}
 }
 
 
