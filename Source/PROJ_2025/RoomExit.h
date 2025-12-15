@@ -29,6 +29,9 @@ public:
 	void ResetExitState();
 	
 	UFUNCTION(BlueprintImplementableEvent)
+	void DisableExit();
+	
+	UFUNCTION(BlueprintImplementableEvent)
 	void EnableExit();
 
 	UPROPERTY(Replicated, BlueprintReadWrite)
