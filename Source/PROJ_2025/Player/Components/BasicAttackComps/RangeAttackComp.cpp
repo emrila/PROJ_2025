@@ -128,7 +128,7 @@ void URangeAttackComp::SpawnProjectile(const FTransform SpawnTransform)
 		if (Projectile)
 		{
 			Projectile->Server_SetDamageAmount(GetDamageAmount());
-			Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
+			//Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
 			//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
 		}
 	}
@@ -156,7 +156,7 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	if (Projectile)
 	{
 		Projectile->Server_SetDamageAmount(GetDamageAmount());
-		Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
+		//Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
 		//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
 	}
 }
@@ -241,12 +241,15 @@ float URangeAttackComp::GetDamageAmount() const
 
 float URangeAttackComp::GetProjectileSpeed()
 {
-	if (FMath::IsNearlyEqual(AttackSpeedModifier, 1.f, 0.0001f))
+	// WIP
+	/*if (FMath::IsNearlyEqual(AttackSpeedModifier, 1.f, 0.0001f))
 	{
 		return ProjectileSpeed;
 	}
-	
-	return ProjectileSpeed + ((2.f - AttackSpeedModifier) * 200.f);
+	return 10.f;
+	//return 2.f - AttackSpeedModifier;
+	//return ProjectileSpeed + ((2.f - AttackSpeedModifier) * ProjectileSpeedUpgradeAmount);*/
+	return ProjectileSpeed;
 }
 
 void URangeAttackComp::Server_Debugging_Implementation()
