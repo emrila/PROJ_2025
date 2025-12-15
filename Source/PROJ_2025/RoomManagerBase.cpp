@@ -104,15 +104,13 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->SetActorHiddenInGame(true);
-		RoomExits[IndexToDelete]->SetActorEnableCollision(false);
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->SetActorHiddenInGame(true);
-		RoomExits[IndexToDelete]->SetActorEnableCollision(false);
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	
