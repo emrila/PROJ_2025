@@ -50,6 +50,8 @@ protected:
 	virtual float GetAttackCooldown() const override;
 
 	virtual float GetDamageAmount() const override;
+	
+	virtual float GetProjectileSpeed();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
@@ -64,4 +66,13 @@ protected:
 	
 	UPROPERTY(Replicated)
 	FTransform ProjectileSpawnTransform;
+	
+	UPROPERTY(Replicated)
+	float ProjectileSpeed = 2000.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	float ProjectileSpeedUpgradeAmount = 100.f;
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debugging();
 };

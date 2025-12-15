@@ -16,12 +16,17 @@ class PROJ_2025_API AMageProjectile : public AActor
 
 public:
 	AMageProjectile();
+	
+	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintCallable)
 	void SetImpactParticle(UNiagaraSystem* Particles);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_SetDamageAmount(const float NewDamageAmount);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetProjectileSpeed(const float NewProjectileSpeed);
 
 protected:
 	virtual void BeginPlay() override;
@@ -62,17 +67,29 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* ProjectileMesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ProjectileSpeed = 1000.0f;
-
-	float GetProjectileSpeed() const { return ProjectileSpeed; }
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float LifeTime = 5.0f;
+	UPROPERTY(Replicated)
+	float ProjectileSpeed = 3000.0f;
+	
+	float LifeTime = 50.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UNiagaraSystem* ImpactParticles;
-
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated)
+	float PiercingAmount = 2.f;
 	
+	UPROPERTY(Replicated)
+	TArray<AActor*> HitEnemies;
+	
+	UPROPERTY(Replicated)
+	FVector CurrentScale;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
+	float ScaleFactor = 4.f;
+	
+	UPROPERTY(Replicated)
+	float AlphaElapsed = 0.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
+	float ScaleDuration = 0.3f;
 };

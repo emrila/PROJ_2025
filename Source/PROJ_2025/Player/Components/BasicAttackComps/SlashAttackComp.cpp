@@ -10,7 +10,7 @@ USlashAttackComp::USlashAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	DamageAmount = 15.f;
-	AttackCooldown = 0.25f;
+	AttackCooldown = 0.5f;
 }
 
 void USlashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
