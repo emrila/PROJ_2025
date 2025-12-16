@@ -43,7 +43,7 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	{
 		SetupInputComponent();
 	}
-	FString PlayerName = "";
+	/*FString PlayerName = "";
 	if (APlayerState* PlayerState = GetPlayerState())
 	{
 		PlayerName = PlayerState->GetPlayerName();
@@ -52,7 +52,7 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	if (!PlayerName.IsEmpty())
 	{
 		UE_LOG(LogTemp, Display, TEXT("Player Name: %s"), *PlayerName);
-	}
+	}*/
 }
 
 void APlayerControllerBase::Server_RegisterModifierClient_Implementation(URoomModifierBase* Modifier)
