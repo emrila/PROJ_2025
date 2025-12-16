@@ -45,6 +45,9 @@ void URangeAttackComp::StartAttack()
 	}
 	
 	Super::StartAttack();
+	
+	Server_Debugging();
+	
 	PerformAttack();
 }
 
@@ -61,6 +64,7 @@ void URangeAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(URangeAttackComp, ProjectileSpawnTransform);
+	DOREPLIFETIME(URangeAttackComp, ProjectileSpeed);
 }
 
 void URangeAttackComp::BeginPlay()
@@ -124,7 +128,8 @@ void URangeAttackComp::SpawnProjectile(const FTransform SpawnTransform)
 		if (Projectile)
 		{
 			Projectile->Server_SetDamageAmount(GetDamageAmount());
-			Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
+			//Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
+			//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
 		}
 	}
 	else
@@ -151,7 +156,8 @@ void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform Sp
 	if (Projectile)
 	{
 		Projectile->Server_SetDamageAmount(GetDamageAmount());
-		Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
+		//Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
+		//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
 	}
 }
 
@@ -232,3 +238,25 @@ float URangeAttackComp::GetDamageAmount() const
 {
 	return Super::GetDamageAmount() * AttackDamageModifier;
 }
+
+float URangeAttackComp::GetProjectileSpeed()
+{
+	// WIP
+	/*if (FMath::IsNearlyEqual(AttackSpeedModifier, 1.f, 0.0001f))
+	{
+		return ProjectileSpeed;
+	}
+	return 10.f;
+	//return 2.f - AttackSpeedModifier;
+	//return ProjectileSpeed + ((2.f - AttackSpeedModifier) * ProjectileSpeedUpgradeAmount);*/
+	return ProjectileSpeed;
+}
+
+void URangeAttackComp::Server_Debugging_Implementation()
+{
+	if (bDrawDebug)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Current Projectile Speed: %f"), GetProjectileSpeed());
+	}
+}
+
