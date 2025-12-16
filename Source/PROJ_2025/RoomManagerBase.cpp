@@ -39,7 +39,17 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		}
 		for (APlayerState* Player : GameState->PlayerArray)
 		{
-			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
+			if (Player)
+			{
+				if (APlayerController* PC = Player->GetPlayerController())
+				{
+					if (APlayerCharacterBase* Character =
+						Cast<APlayerCharacterBase>(PC->GetPawn()))
+					{
+						Character->ResetIFrame();
+					}
+				}
+			}
 		}
 	}
 	RoomModifiers.Empty();
