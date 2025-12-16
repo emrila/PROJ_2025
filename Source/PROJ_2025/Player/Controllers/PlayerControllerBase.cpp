@@ -1,10 +1,9 @@
 ﻿#include "PlayerControllerBase.h"
 
+#include "AdvancedSessionsLibrary.h"
 #include "EnhancedInputSubsystems.h"
 #include "RoomModifierBase.h"
-#include "../Characters/PlayerCharacterBase.h"
-#include "Blueprint/UserWidget.h"
-#include "Net/UnrealNetwork.h"
+#include "WizardPlayerState.h"
 
 APlayerControllerBase::APlayerControllerBase()
 {
@@ -43,6 +42,16 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	if (IsLocalPlayerController())
 	{
 		SetupInputComponent();
+	}
+	FString PlayerName = "";
+	if (APlayerState* PlayerState = GetPlayerState())
+	{
+		PlayerName = PlayerState->GetPlayerName();
+	}
+	
+	if (!PlayerName.IsEmpty())
+	{
+		UE_LOG(LogTemp, Display, TEXT("Player Name: %s"), *PlayerName);
 	}
 }
 

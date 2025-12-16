@@ -212,6 +212,9 @@ protected:
 	
 	virtual void SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent);
 	
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_ChangeName(const FString& NewPlayerName);
+	
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
