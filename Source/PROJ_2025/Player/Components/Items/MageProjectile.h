@@ -70,7 +70,7 @@ protected:
 	UPROPERTY(Replicated)
 	float ProjectileSpeed = 3000.0f;
 	
-	float LifeTime = 50.0f;
+	float LifeTime = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	UNiagaraSystem* ImpactParticles;

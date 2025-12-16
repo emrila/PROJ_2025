@@ -68,10 +68,7 @@ protected:
 	FTransform ProjectileSpawnTransform;
 	
 	UPROPERTY(Replicated)
-	float ProjectileSpeed = 2000.f;
-	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float ProjectileSpeedUpgradeAmount = 100.f;
+	float ProjectileSpeed = 3000.f;
 	
 	UFUNCTION(Server, Reliable)
 	void Server_Debugging();

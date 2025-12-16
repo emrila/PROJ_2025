@@ -78,14 +78,14 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		}
 	}
 
-	if (IFrame)
+	/*if (IFrame)
 	{
 		// Possibly add visual effects or indicators for I-frames here
 		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
 #if WITH_EDITOR
 		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
 #endif		
-	}
+	}*/
 }
 
 void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -266,13 +266,25 @@ void APlayerCharacterBase::EndSprint()
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
-	OnIFrameStarted.Broadcast(IFrame);
+	OnIFrameChanged.Broadcast(IFrame);
+}
+
+void APlayerCharacterBase::StartIFrameVisuals()
+{
+	IFrame = true;
+	OnIFrameChangedVisuals.Broadcast(true);
 }
 
 void APlayerCharacterBase::ResetIFrame()
 {
 	IFrame = false;
-	OnIFrameStarted.Broadcast(IFrame);
+	OnIFrameChanged.Broadcast(IFrame);
+}
+
+void APlayerCharacterBase::ResetIFrameVisuals()
+{
+	IFrame = false;
+	OnIFrameChangedVisuals.Broadcast(false);
 }
 
 void APlayerCharacterBase::SetIsAlive(const bool NewIsAlive)
@@ -460,8 +472,12 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (!bIsAlive)
+	if (!bIsAlive || IFrame)
 	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		}
 		return 0.f;
 	}
 	const float NewDamageAmount = DamageAmount * DefenceStat;

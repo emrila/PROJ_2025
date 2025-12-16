@@ -24,7 +24,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDash);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
 
+UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChangedVisuals, bool, bIFrameActive);
 
 UCLASS()
 class PROJ_2025_API APlayerCharacterBase : public ACharacter
@@ -76,14 +80,23 @@ public:
 	//Handle Damage
 	virtual void StartIFrame();
 	
+	virtual void StartIFrameVisuals();
+	
 	virtual void ResetIFrame();
+	
+	virtual void ResetIFrameVisuals();
 
 	virtual bool IsAlive() const { return bIsAlive; }
 
 	virtual void SetIsAlive(const bool NewIsAlive);
 
 	FOnPlayerDied OnPlayerDied;
-	FOnIFrameChanged OnIFrameStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnIFrameChanged OnIFrameChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnIFrameChangedVisuals OnIFrameChangedVisuals;
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnDash OnDash;
