@@ -38,6 +38,9 @@ public:
 	{
 		MouseSensitivity = NewSensitivity;
 	}
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetLanPlayerName(const FString& NewName);
 
 protected:
 	virtual void BeginPlay() override;
