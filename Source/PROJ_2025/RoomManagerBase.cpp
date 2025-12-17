@@ -296,7 +296,7 @@ void ARoomManagerBase::SpawnLoot()
 			}
 		}else
 		{
-			if (FMath::FRand() <= 0.333f)
+			if (FMath::FRand() <= 0.2f)
 			{
 				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 				FName RandomLoot = FLootPicker::PickLoot();
