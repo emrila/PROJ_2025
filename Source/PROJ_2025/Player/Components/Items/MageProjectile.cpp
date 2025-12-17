@@ -162,25 +162,19 @@ void AMageProjectile::Server_SetProjectileSpeed_Implementation(const float NewPr
 		return;
 	}
 	
-	if (NewProjectileSpeed <= ProjectileSpeed)
+	if (FMath::IsNearlyEqual(NewProjectileSpeed, ProjectileSpeed, 0.01f))
 	{
 		return;
 	}
 	
 	if (ProjectileMovementComponent)
 	{
-		// WIP
-		/*UE_LOG(LogTemp, Warning, TEXT("Current Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
-		ProjectileMovementComponent->Velocity = ProjectileMovementComponent->Velocity * NewProjectileSpeed;
-		/*ProjectileMovementComponent->InitialSpeed = NewProjectileSpeed;
-		ProjectileMovementComponent->MaxSpeed = NewProjectileSpeed;
-
-		if (const FVector NewVelocity = ProjectileMovementComponent->Velocity; NewVelocity.SizeSquared() > KINDA_SMALL_NUMBER)
-		{
-			const FVector NewVelocityDir = NewVelocity.GetSafeNormal();
-			ProjectileMovementComponent->Velocity = NewVelocityDir * NewProjectileSpeed;
-			UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
-		}#1#*/
+		UE_LOG(LogTemp, Warning, TEXT("New Projectile Speed: %f"), NewProjectileSpeed);
+		UE_LOG(LogTemp, Warning, TEXT("Current Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
+		FVector CurrentVelocity = ProjectileMovementComponent->Velocity;
+		FVector NewVelocity = CurrentVelocity * NewProjectileSpeed;
+		ProjectileMovementComponent->Velocity = NewVelocity;
+		UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
 	}
 }
 

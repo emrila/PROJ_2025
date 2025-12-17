@@ -17,7 +17,7 @@ UDashAttackComp::UDashAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	
-	DamageAmount = 20.f;
+	DamageAmount = 25.f;
 	AttackCooldown = 10.f;
 }
 
@@ -360,7 +360,6 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	}
 	
 	if (bIsDashing) { return; }
-	//OwnerCharacter->OnDash.Broadcast();
 	OwnerCharacter->SetInputActive(false);
 	DashElapsed = 0.0f;
 	
@@ -434,10 +433,10 @@ void UDashAttackComp::Server_SetWentThroughShield_Implementation(const bool Valu
 		{
 			GetWorld()->GetTimerManager().ClearTimer(IFrameTimer);
 		}
-		OwnerCharacter->StartIFrame();
+		OwnerCharacter->StartIFrameVisuals();
 		GetWorld()->GetTimerManager().SetTimer(IFrameTimer, [this]()
 		{
-			OwnerCharacter->ResetIFrame();
+			OwnerCharacter->ResetIFrameVisuals();
 		}, 7.f, false);
 	}
 }
@@ -461,12 +460,12 @@ void UDashAttackComp::Server_SetShouldRecast_Implementation(const bool bNewShoul
 	{
 		UE_LOG(LogTemp, Log, TEXT("%s Starting I-Frames after recasting."), *FString(__FUNCTION__));
 		OnCanRecast.Broadcast();
-		OwnerCharacter->StartIFrame();
+		OwnerCharacter->StartIFrameVisuals();
 		if (!GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
 		{
 			GetWorld()->GetTimerManager().SetTimer(IFrameTimer, [this]()
 		{
-			OwnerCharacter->ResetIFrame();
+			OwnerCharacter->ResetIFrameVisuals();
 		}, RecastDuration, false);
 		}
 	}

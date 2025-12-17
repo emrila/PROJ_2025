@@ -73,13 +73,23 @@ void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
 	}
-
-	if (StaticMeshComponent && !StaticMeshComponent->GetStaticMesh() && Data.Mesh.IsValid())
+	
+	if (!StaticMeshComponent)
 	{
-		if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
-		{
-			StaticMeshComponent->SetStaticMesh(NewMesh);
-		}
+		constexpr float InRate = 0.2f;
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			FTimerDelegate::CreateLambda([this, Data]()
+			{
+				SetUpgradeDisplayData(Data);
+			}),
+			InRate, false);
+	}
+
+	if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
+	{
+		StaticMeshComponent->SetStaticMesh(NewMesh);
 	}
 }
 
@@ -107,7 +117,9 @@ void AUpgradeAlternative::Tick(float DeltaTime)
 	{
 		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
-		SetActorRotation(FMath::RInterpTo(GetActorRotation(), LookAtRotation, DeltaTime, InterpSpeed));
+		const FRotator TargetRotation = FRotator(LookAtRotation.Pitch, LookAtRotation.Yaw, GetActorRotation().Roll);
+		
+		SetActorRotation(TargetRotation);
 	}
 }
 

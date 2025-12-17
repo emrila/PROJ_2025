@@ -10,7 +10,7 @@ public:
 	static void Initialize(UDataTable* InDataTable);
 
 
-	static FName PickLoot();
+	static FName PickLoot(bool AtleastRare = false);
 
 	static FItemDataRow GetItem(const FName RowName);
 
