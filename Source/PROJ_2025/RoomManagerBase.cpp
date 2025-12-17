@@ -272,7 +272,7 @@ void ARoomManagerBase::SpawnLoot()
 			if (FMath::FRand() <= 0.5f)
 			{
 				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
-				FName RandomLoot = FLootPicker::PickLoot();
+				FName RandomLoot = FLootPicker::PickLoot(true);
 				FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
 				ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
 				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
@@ -281,7 +281,7 @@ void ARoomManagerBase::SpawnLoot()
 			}else
 			{
 				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
-				FName RandomLoot = FLootPicker::PickLoot();
+				FName RandomLoot = FLootPicker::PickLoot(true);
 				FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
 				ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
 				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
