@@ -25,6 +25,17 @@ void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotato
 	SetControlRotation(NewRot);
 }
 
+void APlayerControllerBase::Server_SetLanPlayerName_Implementation(const FString& NewName)
+{
+	AWizardPlayerState* PS = GetPlayerState<AWizardPlayerState>();
+	if (PS)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s, Player state found: %s"), *FString(__FUNCTION__), *PS->GetName());
+		PS->SetPlayerName(NewName);
+		PS->ForceNetUpdate();
+	}
+}
+
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -43,16 +54,6 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	{
 		SetupInputComponent();
 	}
-	/*FString PlayerName = "";
-	if (APlayerState* PlayerState = GetPlayerState())
-	{
-		PlayerName = PlayerState->GetPlayerName();
-	}
-	
-	if (!PlayerName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Display, TEXT("Player Name: %s"), *PlayerName);
-	}*/
 }
 
 void APlayerControllerBase::Server_RegisterModifierClient_Implementation(URoomModifierBase* Modifier)

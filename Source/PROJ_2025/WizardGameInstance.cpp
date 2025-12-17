@@ -1,13 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "WizardGameInstance.h"
 
-#include "LobbyGameMode.h"
 #include "LootPicker.h"
-#include "RoomLoader.h"
-#include "AssetRegistry/AssetRegistryModule.h"
+
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
+#include "Player/Controllers/PlayerControllerBase.h"
 
 
 FItemDataRow UWizardGameInstance::GetItem(FName RowName)
@@ -69,6 +67,8 @@ void UWizardGameInstance::Host_LanSession(FString SessionName)
 	SessionSettings->bUseLobbiesIfAvailable = false;
 	
 	SessionSettings->Set(FName(TEXT("SESSION_NAME")), SessionName, EOnlineDataAdvertisementType::ViaOnlineService);
+	
+	bIsLanGame = true;
 
 	SessionInterface->CreateSession(0, ActiveSessionName, *SessionSettings);
 }
@@ -130,6 +130,7 @@ void UWizardGameInstance::Join_LanSession(int32 SessionIndex)
 	
 	ULocalPlayer* Player = GetFirstGamePlayer();
 	int32 LocalUserNum = Player ? Player->GetControllerId() : 0;
+	bIsLanGame = true;
 	SessionInterface->JoinSession(LocalUserNum, NAME_GameSession, Result);
 }
 
@@ -220,6 +221,13 @@ void UWizardGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSu
 {
 	if (bWasSuccessful)
 	{
+		if (APlayerController* PC = GetWorld()->GetFirstPlayerController())
+		{
+			if (APlayerControllerBase* MyPC = Cast<APlayerControllerBase>(PC))
+			{
+				MyPC->Server_SetLanPlayerName(LanPlayerName);
+			}
+		}
 		if (SessionInterface.IsValid())
 		{
 			ULocalPlayer* Player = GetFirstGamePlayer();
@@ -282,6 +290,14 @@ void UWizardGameInstance::OnJoinSessionCompleted(FName SessionName, EOnJoinSessi
 		{
 			PC->ClientTravel(ConnectString, TRAVEL_Absolute);
 		}
+		
+		if (APlayerController* LocalPC = GetWorld()->GetFirstPlayerController())
+		{
+			if (APlayerControllerBase* MyPC = Cast<APlayerControllerBase>(LocalPC))
+			{
+				MyPC->Server_SetLanPlayerName(LanPlayerName);
+			}
+		}
 	}
 }
 
@@ -327,6 +343,12 @@ void UWizardGameInstance::TriggerDestroySession()
 			PendingMainMenuMap.Empty();
 		}
 	}
+}
+
+void UWizardGameInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(UWizardGameInstance, ActiveSessionName);
 }
 
 

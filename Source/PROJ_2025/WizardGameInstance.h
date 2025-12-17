@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AdvancedFriendsGameInstance.h"
-#include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
 #include "RoomModifierBase.h"
 #include "WizardGameInstance.generated.h"
@@ -112,6 +111,8 @@ public:
 
 	void TriggerDestroySession();
 	
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
 	IOnlineSessionPtr SessionInterface;
 	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
@@ -122,5 +123,10 @@ public:
 	FTimerHandle DestroySessionTimerHandle;
 	float DestroySessionDelaySeconds = 1.f;
 	FString PendingMainMenuMap;
-
+	
+	UPROPERTY(BlueprintReadWrite, Replicated)
+	FString LanPlayerName = TEXT("LanPlayerName");
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsLanGame = false;
 };
