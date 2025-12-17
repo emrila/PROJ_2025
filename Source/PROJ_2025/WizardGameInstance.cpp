@@ -225,7 +225,7 @@ void UWizardGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSu
 		{
 			if (APlayerControllerBase* MyPC = Cast<APlayerControllerBase>(PC))
 			{
-				MyPC->Server_SetLanPlayerName(LanPlayerName);
+				//MyPC->Server_SetLanPlayerName(LanPlayerName);
 			}
 		}
 		if (SessionInterface.IsValid())
@@ -295,7 +295,7 @@ void UWizardGameInstance::OnJoinSessionCompleted(FName SessionName, EOnJoinSessi
 		{
 			if (APlayerControllerBase* MyPC = Cast<APlayerControllerBase>(LocalPC))
 			{
-				MyPC->Server_SetLanPlayerName(LanPlayerName);
+				//MyPC->Server_SetLanPlayerName(LanPlayerName);
 			}
 		}
 	}
@@ -343,12 +343,6 @@ void UWizardGameInstance::TriggerDestroySession()
 			PendingMainMenuMap.Empty();
 		}
 	}
-}
-
-void UWizardGameInstance::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UWizardGameInstance, ActiveSessionName);
 }
 
 

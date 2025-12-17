@@ -3,6 +3,7 @@
 #include "AdvancedSessionsLibrary.h"
 #include "EnhancedInputSubsystems.h"
 #include "RoomModifierBase.h"
+#include "WizardGameInstance.h"
 #include "WizardPlayerState.h"
 
 APlayerControllerBase::APlayerControllerBase()
@@ -31,14 +32,29 @@ void APlayerControllerBase::Server_SetLanPlayerName_Implementation(const FString
 	if (PS)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%s, Player state found: %s"), *FString(__FUNCTION__), *PS->GetName());
-		PS->SetPlayerName(NewName);
-		PS->ForceNetUpdate();
+		PS->LanPlayerName = NewName;
+		//PS->ForceNetUpdate();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, Player state not found."), *FString(__FUNCTION__));
 	}
 }
 
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (IsLocalController())
+	{
+		if (UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance()))
+		{
+			if (GI->bIsLanGame)
+			{
+				Server_SetLanPlayerName(GI->LanPlayerName);
+			}
+		}
+	}
 }
 
 void APlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)

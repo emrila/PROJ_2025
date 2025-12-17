@@ -15,6 +15,7 @@ class PROJ_2025_API AWizardPlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
+	AWizardPlayerState();
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -38,6 +39,15 @@ public:
 	
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	float GetDamageDealt();
+	
+	UPROPERTY(BlueprintReadWrite, Category = "PlayerInfo", Replicated)
+	FString LanPlayerName;
+	
+	/*UFUNCTION()
+	void OnRep_LanPlayerName();*/
+	
+	UFUNCTION(BlueprintCallable, Category = "PlayerInfo")
+	FString GetWizardPlayerName() const { return LanPlayerName; }
 
 protected:
 	UPROPERTY(Replicated)

@@ -111,8 +111,6 @@ public:
 
 	void TriggerDestroySession();
 	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
 	IOnlineSessionPtr SessionInterface;
 	
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
@@ -124,7 +122,7 @@ public:
 	float DestroySessionDelaySeconds = 1.f;
 	FString PendingMainMenuMap;
 	
-	UPROPERTY(BlueprintReadWrite, Replicated)
+	UPROPERTY(BlueprintReadWrite)
 	FString LanPlayerName = TEXT("LanPlayerName");
 	
 	UPROPERTY(BlueprintReadWrite)
