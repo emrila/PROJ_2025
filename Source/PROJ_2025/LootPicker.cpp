@@ -44,7 +44,7 @@ void FLootPicker::InitPools()
     }
 }
 
-FName FLootPicker::PickLoot()
+FName FLootPicker::PickLoot(bool AtleastRare)
 {
     if (!ItemDataTable)
         return FName();
@@ -55,10 +55,18 @@ FName FLootPicker::PickLoot()
     if (TierRoll < 0.7f) // 70%common
     {
         Pool = &CommonPool;
+        if (AtleastRare)
+        {
+            Pool = &RarePool;
+        }
     }
     else if (TierRoll < 0.95f) // 25%rare
     {
         Pool = &RarePool;
+        if (AtleastRare)
+        {
+            Pool = &LegendaryPool;
+        }
     }
     else // 5% legendary
     {
