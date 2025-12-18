@@ -27,8 +27,10 @@ public:
 
 	virtual float GetAttackCooldown() const override;
 
+	UFUNCTION(BlueprintCallable)
 	virtual float GetDamageAmount() const override;
 
+	UFUNCTION(BlueprintCallable)
 	virtual float GetDurability();
 
 	virtual float GetRecoveryRate();
