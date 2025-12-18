@@ -1,8 +1,7 @@
 ﻿#include "PlayerControllerBase.h"
-
-#include "AdvancedSessionsLibrary.h"
 #include "EnhancedInputSubsystems.h"
 #include "RoomModifierBase.h"
+#include "WizardGameInstance.h"
 #include "WizardPlayerState.h"
 
 APlayerControllerBase::APlayerControllerBase()
@@ -25,9 +24,35 @@ void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotato
 	SetControlRotation(NewRot);
 }
 
+void APlayerControllerBase::Server_SetLanPlayerName_Implementation(const FString& NewName)
+{
+	AWizardPlayerState* PS = GetPlayerState<AWizardPlayerState>();
+	if (PS)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s, Player state found: %s"), *FString(__FUNCTION__), *PS->GetName());
+		PS->LanPlayerName = NewName;
+		//PS->ForceNetUpdate();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s, Player state not found."), *FString(__FUNCTION__));
+	}
+}
+
 void APlayerControllerBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	if (IsLocalController())
+	{
+		if (UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance()))
+		{
+			if (GI->bIsLanGame)
+			{
+				Server_SetLanPlayerName(GI->LanPlayerName);
+			}
+		}
+	}
 }
 
 void APlayerControllerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -43,16 +68,6 @@ void APlayerControllerBase::OnPossess(APawn* InPawn)
 	{
 		SetupInputComponent();
 	}
-	/*FString PlayerName = "";
-	if (APlayerState* PlayerState = GetPlayerState())
-	{
-		PlayerName = PlayerState->GetPlayerName();
-	}
-	
-	if (!PlayerName.IsEmpty())
-	{
-		UE_LOG(LogTemp, Display, TEXT("Player Name: %s"), *PlayerName);
-	}*/
 }
 
 void APlayerControllerBase::Server_RegisterModifierClient_Implementation(URoomModifierBase* Modifier)

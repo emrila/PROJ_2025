@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "AdvancedFriendsGameInstance.h"
-#include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
 #include "RoomModifierBase.h"
 #include "WizardGameInstance.generated.h"
@@ -122,5 +121,10 @@ public:
 	FTimerHandle DestroySessionTimerHandle;
 	float DestroySessionDelaySeconds = 1.f;
 	FString PendingMainMenuMap;
-
+	
+	UPROPERTY(BlueprintReadWrite)
+	FString LanPlayerName = TEXT("LanPlayerName");
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsLanGame = false;
 };
