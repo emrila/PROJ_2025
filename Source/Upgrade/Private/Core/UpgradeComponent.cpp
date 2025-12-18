@@ -269,6 +269,41 @@ FAttributeData* UUpgradeComponent::GetByKey(UObject* Owner, FProperty* Property)
 
 }
 
+TArray<FUpgradeDisplayData> UUpgradeComponent::GetPlayerUpgrades()
+{
+	TArray<FUpgradeDisplayData> Out;
+
+	TArray<FAttributeUpgradeData*> UpgradeDataArrayCopy;
+
+	if (!UpgradeDataTable)
+	{
+		Server_LoadDataTable();
+		if (!UpgradeDataTable)
+		{
+			return Out;
+		}
+	}
+
+	UpgradeDataTable->ForeachRow<FAttributeUpgradeData>( __FUNCTION__ , [this, &Out](const FName& Key, const FAttributeUpgradeData& Value)
+	{
+		if (!Value.IsMatch(static_cast<int32>(EUpgradeFlag::Team)))
+		{
+			for (const FAttributeData* ByRow : GetByRow(Key))
+			{
+				FUpgradeDisplayData ValueCopy = Value.UpgradeDisplayData;
+				if (ByRow)
+				{
+					UPGRADE_DISPLAY(TEXT("%hs: Found player attribute for row %s with current upgrade level %d."), __FUNCTION__,*Key.ToString(), ByRow->CurrentUpgradeLevel);
+					ValueCopy.CurrentUpgradeLevel = ByRow->CurrentUpgradeLevel;
+				}
+				Out.Add(ValueCopy);
+			}
+		}
+	});
+
+	return Out;
+}
+
 const FAttributeData* UUpgradeComponent::GetByCategory(FName Category, FName RowName) const
 {
 	const TArray<FAttributeData*>* Attributes = AttributesByCategory.Find(Category);
