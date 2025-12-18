@@ -16,17 +16,14 @@ AMageProjectile::AMageProjectile()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-	this->SetActorScale3D(FVector(5, 5,5));
-
-	CollisionComponent->SetCollisionProfileName(FName("Projectile"));
-	RootComponent = CollisionComponent;
-
-	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	ProjectileMesh->SetupAttachment(CollisionComponent);
+	WorldStaticCollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("WorldStaticCollisionComp"));
+	RootComponent = WorldStaticCollisionComponent;
+	
+	EnemyCollisionComponent = CreateDefaultSubobject<USphereComponent>("EnemyCollisionComp");
+	EnemyCollisionComponent->SetupAttachment(WorldStaticCollisionComponent);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-	ProjectileMovementComponent->UpdatedComponent = CollisionComponent;
+	ProjectileMovementComponent->UpdatedComponent = WorldStaticCollisionComponent;
 	ProjectileMovementComponent->InitialSpeed = ProjectileSpeed;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
 	ProjectileMovementComponent->bShouldBounce = false; 
@@ -43,7 +40,7 @@ void AMageProjectile::Tick(float DeltaTime)
 	AlphaElapsed += DeltaTime;
 	const float DashAlpha = FMath::Clamp(AlphaElapsed / ScaleDuration, 0.0f, 1.0f);
 	const FVector TheNewScale = FMath::Lerp(CurrentScale, CurrentScale * ScaleFactor, DashAlpha);
-	SetActorScale3D(TheNewScale);
+	EnemyCollisionComponent->SetWorldScale3D(TheNewScale);
 	
 	if (DashAlpha >= 1.f)
 	{
@@ -57,10 +54,10 @@ void AMageProjectile::BeginPlay()
 	
 	SetReplicateMovement(true);
 
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
-	CollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
+	EnemyCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
+	WorldStaticCollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
 	
-	CurrentScale = GetActorScale3D();
+	CurrentScale = EnemyCollisionComponent->GetComponentScale();
 }
 
 void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
@@ -78,9 +75,9 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 		AShield* Shield = Cast<AShield>(OtherActor);
 		if (Shield)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("%s hit shield"), *GetOwner()->GetName());
 			const float OldDamageAmount = DamageAmount;
 			DamageAmount += Shield->GetDamageAmount();
-			//TODO: Change visuals
 			SetActorTickEnabled(true);
 		}
 	}
