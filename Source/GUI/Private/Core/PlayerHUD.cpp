@@ -123,10 +123,11 @@ void APlayerHUD::ToggleMenuWidget(T* Widget)
 		
 
 		APlayerController* Controller = GetOwningPlayerController();
-		Controller->SetInputMode(FInputModeGameAndUI());
+		Controller->SetInputMode(FInputModeGameAndUI().SetWidgetToFocus(MenuWidget->TakeWidget()));
 		Controller->SetIgnoreMoveInput(true);
 		Controller->FlushPressedKeys();
 		Controller->SetShowMouseCursor(true);
+		
 		GUI_DISPLAY(TEXT("%hs: HUDWidget: Visible | Widget: Collapsed"), __FUNCTION__);
 	}	
 }
