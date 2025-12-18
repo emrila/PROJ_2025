@@ -146,7 +146,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
 	bSelected = true;
-    UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
+   // UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
     SelectUpgrade();
 
 	if (OwningSpawner)
