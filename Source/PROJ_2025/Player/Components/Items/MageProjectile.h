@@ -59,13 +59,13 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	USphereComponent* CollisionComponent;
+	USphereComponent* EnemyCollisionComponent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USphereComponent* WorldStaticCollisionComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UProjectileMovementComponent* ProjectileMovementComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMeshComponent* ProjectileMesh;
 
 	UPROPERTY(Replicated)
 	float ProjectileSpeed = 3000.0f;
