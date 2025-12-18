@@ -85,11 +85,13 @@ protected:
 	APlayerCharacterBase* OwnerCharacter;
 	
 	bool bCanAttack = true;
-	
+
+	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
 	float DamageAmount = 10.0f;
 	
 	float DamageAmountToStore= 0.f;
-	
+
+	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
 	float AttackCooldown = 1.f;
 
 	float AttackCooldownToStore = 0.f;

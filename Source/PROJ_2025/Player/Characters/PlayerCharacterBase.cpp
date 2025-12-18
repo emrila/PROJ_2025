@@ -325,7 +325,11 @@ void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	if (GetCharacterMovement())
+	{
+		BaseMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	}
+
 	if (HasAuthority())
 	{
 		if (BasicAttackComponentClass)
@@ -465,6 +469,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 	DOREPLIFETIME(APlayerCharacterBase, IFrame);
+	DOREPLIFETIME(APlayerCharacterBase, BaseMaxWalkSpeed)
 	
 	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
 	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
