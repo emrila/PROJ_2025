@@ -42,6 +42,9 @@ public:
 
 	FAttributeData* GetByKey(UObject* Owner, FProperty* Property) const;
 
+	UFUNCTION(BlueprintPure)
+	TArray<FUpgradeDisplayData> GetPlayerUpgrades();
+
 protected:
 	const FAttributeData* GetByCategory(FName Category, FName RowName) const;
 	TArray<const FAttributeData*> GetByRow(FName RowName) const;
