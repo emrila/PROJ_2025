@@ -105,7 +105,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Replicated, meta = (AllowPrivateAccess = "true"))
 	float AttackDamageModifier = 1.f;
 	
-	bool bDrawDebug = false;
+	bool bDrawDebug = true;
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_Debug();

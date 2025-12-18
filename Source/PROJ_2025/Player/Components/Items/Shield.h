@@ -100,7 +100,7 @@ protected:
 	float RecoveryRate = 1.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float PlayerMovementSpeedMultiplier = 0.5f;
+	float PlayerMovementSpeedMultiplier = 0.75f;
 	
 	UPROPERTY(Replicated)
 	APlayerCharacterBase* OwnerCharacter;
