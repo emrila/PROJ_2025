@@ -70,6 +70,9 @@ private:
 	UPROPERTY(Replicated)
 	class AUpgradeSpawner* LootSpawnLocation;
 
+	FTimerHandle LootFailSafeTimerHandle;
+	bool ExitsEnabled = false;
+
 	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
 
