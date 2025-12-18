@@ -64,6 +64,12 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnDurabilityChanged OnDurabilityChanged;
+	
+	UFUNCTION(BlueprintCallable)
+	float GetAttackSpeedModifier() const { return AttackSpeedModifier; }
+	
+	UFUNCTION(BlueprintCallable)
+	float GetAttackDamageModifier() const { return AttackDamageModifier; }
 
 protected:
 	virtual void BeginPlay() override;
