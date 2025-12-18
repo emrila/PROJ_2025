@@ -10,11 +10,26 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-void ACactusCharacter::Server_ShootProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+void ACactusCharacter::Server_ShootProjectile_Implementation()
 {
 	if (!HasAuthority()) return;
 	
-	Multicast_PlayAttackMontage();
+	if (!bIsPlayingAnimation)
+	{
+		Multicast_PlayAttackMontage();
+		if (!GetWorld()->GetTimerManager().IsTimerActive(AnimationTimer))
+		{
+			float Delay = 1.5f;
+			if (AttackAnim)
+			{
+				Delay = AttackAnim->GetPlayLength() / 2.f;
+			}
+			GetWorld()->GetTimerManager().SetTimer(AnimationTimer, [this] ()
+			{
+				bIsPlayingAnimation = false;
+			}, Delay, false);
+		}
+	}
 }
 
 void ACactusCharacter::Server_SpawnSpikeExplosion_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
@@ -32,6 +47,11 @@ void ACactusCharacter::Server_HandleOnAttackAnimNotify_Implementation(const FVec
 	ForceNetUpdate();
 	
 	if (CurrentProjectileSocketLocation.IsNearlyZero())
+	{
+		return;
+	}
+	
+	if (ProjectileSpawnRotation.IsNearlyZero())
 	{
 		return;
 	}
@@ -60,7 +80,8 @@ void ACactusCharacter::Multicast_PlayAttackMontage_Implementation()
 {
 	if (AttackAnim)
 	{
-		PlayAnimMontage(AttackAnim);
+		PlayAnimMontage(AttackAnim, 2.f);
+		bIsPlayingAnimation = true;
 	}
 }
 
@@ -80,28 +101,6 @@ void ACactusCharacter::BeginPlay()
 	Super::BeginPlay();
 	
 	OnAttackAnimNotify.AddDynamic(this, &ACactusCharacter::Server_HandleOnAttackAnimNotify);
-	
-	/*if (GetMesh())
-	{
-		if (GetMesh()->DoesSocketExist(FirestProjectileSocketName))
-		{
-			FirstProjectileSocketLocation = GetMesh()->GetSocketLocation(FirestProjectileSocketName);
-		}
-		if (GetMesh()->DoesSocketExist(SecondProjectileSocketName))
-		{
-			SecondProjectileSocketLocation = GetMesh()->GetSocketLocation(SecondProjectileSocketName);
-		}
-		
-		if (HasAuthority())
-		{
-			bUsingFirstProjectileSocket = true;
-			CurrentProjectileSocketLocation = FirstProjectileSocketLocation;
-		}
-		else
-		{
-			CurrentProjectileSocketLocation = FirstProjectileSocketLocation;
-		}
-	}*/
 }
 
 void ACactusCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -109,10 +108,8 @@ void ACactusCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ACactusCharacter, bIsBurrowing);
-	DOREPLIFETIME(ACactusCharacter, FirstProjectileSocketLocation);
-	DOREPLIFETIME(ACactusCharacter, SecondProjectileSocketLocation);
 	DOREPLIFETIME(ACactusCharacter, CurrentProjectileSocketLocation);
-	DOREPLIFETIME(ACactusCharacter, bUsingFirstProjectileSocket);
+	DOREPLIFETIME(ACactusCharacter, bIsPlayingAnimation);
 	DOREPLIFETIME(ACactusCharacter, ProjectileSpawnRotation);
 	DOREPLIFETIME(ACactusCharacter, TargetActorLocation);
 }

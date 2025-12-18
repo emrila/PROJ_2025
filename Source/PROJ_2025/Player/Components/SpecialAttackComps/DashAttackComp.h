@@ -76,13 +76,6 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Dash();
 	
-	void StartTickTeleport();
-	
-	void TickTeleportPlayer();
-	
-	UFUNCTION(Server, Reliable)
-	void Server_StartTickTeleport();
-	
 	void HandlePostAttackState();
 	
 	UFUNCTION(Server, Reliable)
@@ -143,5 +136,4 @@ protected:
 	
 	FTimerHandle RecastTimer;
 	FTimerHandle IFrameTimer;
-	FTimerHandle DashTimer;
 };

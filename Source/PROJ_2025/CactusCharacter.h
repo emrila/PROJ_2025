@@ -21,7 +21,7 @@ class PROJ_2025_API ACactusCharacter : public AEnemyBase
 public:
 
 	UFUNCTION(Server, Reliable)
-	void Server_ShootProjectile(FVector SpawnLocation, FRotator SpawnRotation);
+	void Server_ShootProjectile();
 
 	UFUNCTION(Server, Reliable)
 	void Server_SpawnSpikeExplosion(FVector SpawnLocation, FRotator SpawnRotation);
@@ -48,28 +48,16 @@ public:
 	float InterpSpeed = 1.5f;
 	
 	UPROPERTY(Replicated)
-	FVector FirstProjectileSocketLocation;
-	
-	UPROPERTY(Replicated)
-	FVector SecondProjectileSocketLocation;
-	
-	UPROPERTY(Replicated)
 	FVector CurrentProjectileSocketLocation;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName FirestProjectileSocketName;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName SecondProjectileSocketName;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FRotator ProjectileSpawnRotation;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
 	FVector TargetActorLocation;
 	
 	UPROPERTY(Replicated)
-	bool bUsingFirstProjectileSocket = true;
+	bool bIsPlayingAnimation = false;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UAnimMontage* AttackAnim;

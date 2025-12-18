@@ -48,7 +48,7 @@ EBTNodeResult::Type UBTT_CactusShoot::ExecuteTask(UBehaviorTreeComponent& OwnerC
 
 	CactusCharacter->Server_SetProjectileSpawnRotation(Target_Location);
 
-	CactusCharacter->Server_ShootProjectile(AI_Location, ShootRot);
+	CactusCharacter->Server_ShootProjectile();
 	
 	return EBTNodeResult::Succeeded;
 }
