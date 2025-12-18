@@ -27,6 +27,13 @@ public:
 	virtual void StartAttack() override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION(BlueprintCallable)
+	virtual float GetAttackRadius();
+
+	UFUNCTION(BlueprintCallable)
+	virtual float GetDamageAmount() const override;
+	
 
 protected:
 	virtual void BeginPlay() override;
@@ -59,12 +66,9 @@ protected:
 
 	virtual float GetChronoDuration() const;
 
-	virtual float GetAttackRadius();
-
 	virtual float GetAttackCooldown() const override;
 
-	virtual float GetDamageAmount() const override;
-	
+
 	UFUNCTION(Server, Reliable)
 	void Server_SetIndicatorRadius(const float NewRadius);
 	

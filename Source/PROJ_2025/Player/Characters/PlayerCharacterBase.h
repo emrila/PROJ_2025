@@ -138,6 +138,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> DamageVignetteWidget;
 
+	UPROPERTY(BlueprintReadOnly,Replicated)
+	float BaseMaxWalkSpeed = 0.f;
+
 protected:
 	//Handle override parent functions
 	virtual void BeginPlay() override;
