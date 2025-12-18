@@ -10,19 +10,27 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-void ACactusCharacter::Server_ShootProjectile_Implementation()
+void ACactusCharacter::Server_ShootProjectile_Implementation(const FVector& NewTargetLocation)
 {
 	if (!HasAuthority()) return;
 	
+	TargetActorLocation = NewTargetLocation;
+	
 	if (!bIsPlayingAnimation)
 	{
-		Multicast_PlayAttackMontage();
+		if (!GetWorld()->GetTimerManager().IsTimerActive(InitialAttackTimer))
+		{
+			GetWorld()->GetTimerManager().SetTimer(InitialAttackTimer, [this] ()
+			{
+				Multicast_PlayAttackMontage();
+			}, 0.5f, false);
+		}
 		if (!GetWorld()->GetTimerManager().IsTimerActive(AnimationTimer))
 		{
 			float Delay = 1.5f;
 			if (AttackAnim)
 			{
-				Delay = AttackAnim->GetPlayLength() / 2.f;
+				Delay = AttackAnim->GetPlayLength() / 2.f + 0.5f;
 			}
 			GetWorld()->GetTimerManager().SetTimer(AnimationTimer, [this] ()
 			{
@@ -51,11 +59,18 @@ void ACactusCharacter::Server_HandleOnAttackAnimNotify_Implementation(const FVec
 		return;
 	}
 	
-	if (ProjectileSpawnRotation.IsNearlyZero())
+	if (TargetActorLocation.IsNearlyZero())
 	{
 		return;
 	}
 	
+	ProjectileSpawnRotation = UKismetMathLibrary::FindLookAtRotation(CurrentProjectileSocketLocation, TargetActorLocation);
+	ForceNetUpdate();
+	
+	if (ProjectileSpawnRotation.IsNearlyZero())
+	{
+		return;
+	}
 	
 	AEnemySubAttack* Projectile = Cast<AEnemySubAttack>(
 	UGameplayStatics::BeginDeferredActorSpawnFromClass(
@@ -82,17 +97,6 @@ void ACactusCharacter::Multicast_PlayAttackMontage_Implementation()
 	{
 		PlayAnimMontage(AttackAnim, 2.f);
 		bIsPlayingAnimation = true;
-	}
-}
-
-
-void ACactusCharacter::Server_SetProjectileSpawnRotation_Implementation(const FVector& NewTargetActorLocation)
-{
-	if (!HasAuthority()) return;
-	if (!CurrentProjectileSocketLocation.IsNearlyZero())
-	{
-		ProjectileSpawnRotation = UKismetMathLibrary::FindLookAtRotation(CurrentProjectileSocketLocation, NewTargetActorLocation);
-		ForceNetUpdate();
 	}
 }
 

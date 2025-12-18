@@ -21,7 +21,7 @@ class PROJ_2025_API ACactusCharacter : public AEnemyBase
 public:
 
 	UFUNCTION(Server, Reliable)
-	void Server_ShootProjectile();
+	void Server_ShootProjectile(const FVector& NewTargetLocation);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SpawnSpikeExplosion(FVector SpawnLocation, FRotator SpawnRotation);
@@ -31,9 +31,6 @@ public:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayAttackMontage();
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetProjectileSpawnRotation(const FVector& NewTargetActorLocation);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileClass;
@@ -66,6 +63,7 @@ public:
 	FOnAttackAnimNotify OnAttackAnimNotify;
 	
 	FTimerHandle AnimationTimer;
+	FTimerHandle InitialAttackTimer;
 
 protected:
 	virtual void BeginPlay() override;
