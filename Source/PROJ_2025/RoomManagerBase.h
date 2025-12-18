@@ -58,7 +58,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SpawnLoot();
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual void EnableExits();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -69,9 +69,6 @@ private:
 
 	UPROPERTY(Replicated)
 	class AUpgradeSpawner* LootSpawnLocation;
-
-	FTimerHandle LootFailSafeTimerHandle;
-	bool ExitsEnabled = false;
 
 	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
