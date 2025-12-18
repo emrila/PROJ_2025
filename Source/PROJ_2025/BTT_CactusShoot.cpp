@@ -46,6 +46,7 @@ EBTNodeResult::Type UBTT_CactusShoot::ExecuteTask(UBehaviorTreeComponent& OwnerC
 	FRotator ShootRot = FRotator(RotToPlayer.Pitch, AIPawn->GetActorRotation().Yaw, AIPawn->GetActorRotation().Roll);
 
 
+	CactusCharacter->Server_SetProjectileSpawnRotation(Target_Location);
 
 	CactusCharacter->Server_ShootProjectile(AI_Location, ShootRot);
 	

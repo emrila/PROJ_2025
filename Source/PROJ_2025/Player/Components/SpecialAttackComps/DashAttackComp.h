@@ -25,6 +25,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
@@ -74,6 +75,13 @@ protected:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_Dash();
+	
+	void StartTickTeleport();
+	
+	void TickTeleportPlayer();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_StartTickTeleport();
 	
 	void HandlePostAttackState();
 	
@@ -135,4 +143,5 @@ protected:
 	
 	FTimerHandle RecastTimer;
 	FTimerHandle IFrameTimer;
+	FTimerHandle DashTimer;
 };

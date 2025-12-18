@@ -18,7 +18,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 25.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 2.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -29,11 +29,11 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return;
 	}
-	
+
 	if (bHasLockedTargetLocation && bCanAttack)
 	{
 		TryLockingTargetLocation();
-		
+
 		if (!IndicatorLocation.IsNearlyZero())
 		{
 #if WITH_EDITOR
@@ -44,55 +44,6 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 #endif
 		}
 	}
-	
-	
-	if (!bIsDashing) { return; }
-	
-	DashElapsed += DeltaTime;
-	const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
-	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
-	
-	FHitResult HitResult;
-	
-	if (OwnerCharacter->GetCharacterMovement())
-	{
-		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
-	}
-		
-	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
-	
-	if (HitResult.bBlockingHit)
-	{
-		if (!OwnerCharacter->HasAuthority())
-		{
-			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
-			Server_SetIsDashing(false);
-		}
-		else
-		{
-			bIsDashing = false;
-			TargetSweepLocation = HitResult.ImpactPoint;
-			
-		}
-		Server_PerformSweep();
-		HandlePostAttackState();
-		return;
-	}
-		
-	if (DashAlpha >= 1.0f)
-	{
-		if (OwnerCharacter->HasAuthority())
-		{
-			bIsDashing = false;
-		}else
-		{
-			Server_SetIsDashing(false);
-		}
-		Server_SetTargetSweepLocation(TargetLocation);
-		Server_PerformSweep();
-		HandlePostAttackState();
-	}
-
 }
 
 void UDashAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
@@ -163,17 +114,25 @@ void UDashAttackComp::BeginPlay()
 	
 	if (!Ribbon)
 	{
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = OwnerCharacter;
-		SpawnParams.Instigator = OwnerCharacter->GetInstigator();
-		Ribbon = Cast<AShadowStrikeRibbon>(
-			GetWorld()->SpawnActor<AShadowStrikeRibbon>(RibbonClass, SpawnParams));
-		
-		if (!Ribbon)
+		if (GetOwner() && GetOwner()->HasAuthority())
 		{
-			UE_LOG(ShadowStrikeLog, Error, TEXT("%s Ribbon is Null after spawning."), *FString(__FUNCTION__));
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = OwnerCharacter;
+			SpawnParams.Instigator = OwnerCharacter->GetInstigator();
+			Ribbon = Cast<AShadowStrikeRibbon>(
+				GetWorld()->SpawnActor<AShadowStrikeRibbon>(RibbonClass, SpawnParams));
+			
+			if (!Ribbon)
+			{
+				UE_LOG(ShadowStrikeLog, Error, TEXT("%s Ribbon is Null after spawning."), *FString(__FUNCTION__));
+			}
 		}
 	}
+}
+
+void UDashAttackComp::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
 }
 
 void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -232,7 +191,7 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 		return;
 	}
 
-	/*if (OwnerCharacter->HasAuthority())
+	if (OwnerCharacter->HasAuthority())
 	{
 		TargetLocation = FVector::ZeroVector;
 		StartLocation = FVector::ZeroVector;
@@ -242,7 +201,7 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 		Server_SetStartAndTargetLocation(FVector::ZeroVector, FVector::ZeroVector);
 		TargetLocation = FVector::ZeroVector;
 		StartLocation = FVector::ZeroVector;
-	}*/
+	}
 
 	bHasLockedTargetLocation = false;
 	StartAttack();
@@ -361,17 +320,93 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	
 	if (bIsDashing) { return; }
 	OwnerCharacter->SetInputActive(false);
+	OwnerCharacter->StartIFrame();
 	DashElapsed = 0.0f;
 	
 	if (OwnerCharacter->GetMesh() &&
 			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
 	{
 		OwnerCharacter->GetMesh()->SetVisibility(false, true);
-		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	}
 	
 	bIsDashing = true;
+	
+	StartTickTeleport();
+}
+
+void UDashAttackComp::StartTickTeleport()
+{
+	if (OwnerCharacter&& OwnerCharacter->HasAuthority())
+	{
+		GetWorld()->GetTimerManager().SetTimer(DashTimer, this, &UDashAttackComp::TickTeleportPlayer, 0.01f, true);
+	} else if (OwnerCharacter && OwnerCharacter->IsLocallyControlled()) { Server_StartTickTeleport();}
+}
+
+void UDashAttackComp::TickTeleportPlayer()
+{
+	if (!bIsDashing)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(DashTimer);
+		return;
+	}
+
+	DashElapsed += 0.01;
+	const float DashAlpha = FMath::Clamp(DashElapsed / DashDuration, 0.0f, 1.0f);
+	const FVector NewLocation = FMath::Lerp(StartLocation, TargetLocation, DashAlpha);
+
+	FHitResult HitResult;
+
+	if (OwnerCharacter->GetCharacterMovement())
+	{
+		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
+	}
+
+	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
+
+	if (HitResult.bBlockingHit)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s Hit %s"), *FString(__FUNCTION__), *HitResult.GetActor()->GetName());
+		if (OwnerCharacter->HasAuthority())
+		{
+			bIsDashing = false;
+			TargetSweepLocation = HitResult.ImpactPoint;
+			Server_PerformSweep();
+			HandlePostAttackState();
+		}
+		else if (OwnerCharacter->IsLocallyControlled())
+		{
+			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
+			Server_SetIsDashing(false);
+			Server_PerformSweep();
+			HandlePostAttackState();
+		}
+		return;
+	}
+
+	if (DashAlpha >= 1.0f)
+	{
+		if (OwnerCharacter->HasAuthority())
+		{
+			bIsDashing = false;
+			TargetSweepLocation = TargetLocation;
+			Server_PerformSweep();
+			HandlePostAttackState();
+		}
+		else if (OwnerCharacter->IsLocallyControlled())
+		{
+			Server_SetIsDashing(false);
+			Server_SetTargetSweepLocation(TargetLocation);
+			Server_PerformSweep();
+			HandlePostAttackState();
+		}
+	}
+}
+
+void UDashAttackComp::Server_StartTickTeleport_Implementation()
+{
+	GetWorld()->GetTimerManager().SetTimer(DashTimer, this, &UDashAttackComp::TickTeleportPlayer, 0.01f, true);
 }
 
 void UDashAttackComp::HandlePostAttackState()
@@ -382,11 +417,12 @@ void UDashAttackComp::HandlePostAttackState()
 		return;
 	}
 	
+	
 	if (OwnerCharacter->HasAuthority())
 	{
 		Multicast_HandlePostAttackState();
 	}
-	else
+	else if (OwnerCharacter->IsLocallyControlled())
 	{
 		Server_HandlePostAttackState();
 	}
@@ -409,6 +445,11 @@ void UDashAttackComp::Multicast_HandlePostAttackState_Implementation()
 		OwnerCharacter->SetInputActive(true);
 		OwnerCharacter->GetMesh()->SetVisibility(true, true);
 		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	}
+	
+	if (!GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
+	{
+		OwnerCharacter->ResetIFrame();
 	}
 }
 
@@ -528,6 +569,10 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 		{
 			Ribbon->BP_SpawnRibbon(StartLocation, TargetSweepLocation, DashDuration);
 		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s Ribbon is Null."), *FString(__FUNCTION__));
+		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
@@ -578,7 +623,7 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 void UDashAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
-	Server_SetStartAndTargetLocation_Implementation(FVector::ZeroVector, FVector::ZeroVector);
+	Server_SetStartAndTargetLocation(FVector::ZeroVector, FVector::ZeroVector);
 	Server_SetTargetSweepLocation(FVector::ZeroVector);
 	Server_SetShouldRecast(false);
 	Server_SetDidRecast(false);

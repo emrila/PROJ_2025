@@ -9,12 +9,14 @@
 /**
  * 
  */
+
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnAttackAnimNotify, FVector, SpawnLocation);
+
 UCLASS()
 class PROJ_2025_API ACactusCharacter : public AEnemyBase
 {
 	GENERATED_BODY()
-
-	
 
 public:
 
@@ -23,6 +25,15 @@ public:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SpawnSpikeExplosion(FVector SpawnLocation, FRotator SpawnRotation);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_HandleOnAttackAnimNotify(const FVector SpawnLocation);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAttackMontage();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetProjectileSpawnRotation(const FVector& NewTargetActorLocation);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AActor> ProjectileClass;
@@ -35,9 +46,41 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float InterpSpeed = 1.5f;
+	
+	UPROPERTY(Replicated)
+	FVector FirstProjectileSocketLocation;
+	
+	UPROPERTY(Replicated)
+	FVector SecondProjectileSocketLocation;
+	
+	UPROPERTY(Replicated)
+	FVector CurrentProjectileSocketLocation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName FirestProjectileSocketName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName SecondProjectileSocketName;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FRotator ProjectileSpawnRotation;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector TargetActorLocation;
+	
+	UPROPERTY(Replicated)
+	bool bUsingFirstProjectileSocket = true;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UAnimMontage* AttackAnim;
+	
+	UPROPERTY(BlueprintCallable)
+	FOnAttackAnimNotify OnAttackAnimNotify;
+	
+	FTimerHandle AnimationTimer;
 
 protected:
-
+	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Tick(float DeltaSeconds) override;
 	
