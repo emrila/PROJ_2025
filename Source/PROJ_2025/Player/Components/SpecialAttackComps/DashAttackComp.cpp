@@ -58,7 +58,6 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 	{
 		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	}
-		
 	OwnerCharacter->SetActorLocation(NewLocation, true, &HitResult);
 	
 	if (HitResult.bBlockingHit)
@@ -67,6 +66,8 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 		{
 			Server_SetTargetSweepLocation(HitResult.ImpactPoint);
 			Server_SetIsDashing(false);
+			TargetLocation = HitResult.ImpactPoint;
+			bIsDashing = false;
 		}
 		else
 		{
@@ -238,6 +239,11 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& ActionInstance)
 	{
 		return;
 	}
+	
+	if (bIsDashing)
+	{
+		return;
+	}
 
 	if (OwnerCharacter->HasAuthority())
 	{
@@ -374,7 +380,7 @@ void UDashAttackComp::Multicast_Dash_Implementation()
 	if (OwnerCharacter->GetMesh() &&
 			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
 	{
-		OwnerCharacter->GetMesh()->SetVisibility(false, true);
+		//OwnerCharacter->GetMesh()->SetVisibility(false, true);
 		OwnerCharacter->GetCharacterMovement()->Velocity = FVector::ZeroVector;
 		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 	}
