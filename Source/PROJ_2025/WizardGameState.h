@@ -61,7 +61,7 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int32 PlayersInStartDungeon;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	float LifeStealMultiplier = 1.f;
 
 	UPROPERTY(BlueprintAssignable)

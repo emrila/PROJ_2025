@@ -44,6 +44,7 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
 	DOREPLIFETIME(AWizardGameState, CurrentPlayerCount);
 	DOREPLIFETIME(AWizardGameState, PlayersInStartDungeon);
+	DOREPLIFETIME(AWizardGameState, LifeStealMultiplier);
 	
 }
 
