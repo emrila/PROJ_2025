@@ -13,6 +13,8 @@
 
 UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHealthChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuddenDeath);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuddenDeathEnd);
 UCLASS()
 class PROJ_2025_API AWizardGameState : public AGameStateBase
 {
@@ -66,5 +68,11 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnHealthChangedDelegate;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnSuddenDeath;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnSuddenDeathEnd;
 	
 };

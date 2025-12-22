@@ -67,6 +67,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 			if (Player->GetPawn())
 			{
 				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+				OnSuddenDeath.Broadcast();
 			}
 		}
 	}
@@ -98,6 +99,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
+					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}
@@ -134,6 +136,7 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
+					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}
