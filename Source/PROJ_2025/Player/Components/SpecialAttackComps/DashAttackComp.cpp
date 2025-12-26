@@ -18,7 +18,7 @@ UDashAttackComp::UDashAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	
 	DamageAmount = 25.f;
-	AttackCooldown = 10.f;
+	AttackCooldown = 1.f;
 }
 
 void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -75,7 +75,7 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			TargetSweepLocation = HitResult.ImpactPoint;
 			
 		}
-		Server_PerformSweep();
+		//Server_PerformSweep();
 		HandlePostAttackState();
 		return;
 	}
@@ -90,7 +90,7 @@ void UDashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType, FActor
 			Server_SetIsDashing(false);
 		}
 		Server_SetTargetSweepLocation(TargetLocation);
-		Server_PerformSweep();
+		//Server_PerformSweep();
 		HandlePostAttackState();
 	}
 }
@@ -213,6 +213,8 @@ void UDashAttackComp::PerformAttack()
 		UE_LOG(LogTemp, Error, TEXT("%s TargetLocation is Zero."), *FString(__FUNCTION__));
 		return;
 	}
+	
+	Server_PerformSweep();
 	
 	Dash();
 }
@@ -508,7 +510,12 @@ void UDashAttackComp::Server_SetDidRecast_Implementation(const bool bNewDidRecas
 
 void UDashAttackComp::Server_PerformSweep_Implementation()
 {
-	if (TargetSweepLocation.IsNearlyZero())
+	/*if (TargetSweepLocation.IsNearlyZero())
+	{
+		return;
+	}*/
+	
+	if (TargetLocation.IsNearlyZero())
 	{
 		return;
 	}
@@ -516,6 +523,17 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 	if (!OwnerCharacter)
 	{
 		return;
+	}
+	
+	if (Ribbon)
+	{
+		Ribbon->SetActorLocation(StartLocation);
+		Ribbon->SetActorRotation(OwnerCharacter->GetActorForwardVector().Rotation());
+		Ribbon->BP_SpawnRibbon(StartLocation, TargetLocation, DashDuration);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Ribbon is Null."), *FString(__FUNCTION__));
 	}
 
 	TArray<FHitResult> HitResults;
@@ -528,31 +546,25 @@ void UDashAttackComp::Server_PerformSweep_Implementation()
 
 	if (GetWorld())
 	{
+		
+		const float Radius = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius();
+		const float HalfHeight = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 		bool bHit = GetWorld()->SweepMultiByObjectType(
 			HitResults,
 			StartLocation,
-			TargetSweepLocation,
+			TargetLocation,
 			FQuat::Identity,
 			ObjectQueryParams,
-			FCollisionShape::MakeSphere(50.f),
+			FCollisionShape::MakeCapsule(Radius, HalfHeight),
 			Params
 		);
 		
 #if WITH_EDITOR
 		if (bDrawDebug)
 		{
-			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetSweepLocation, 50.f, FColor::Red, false, 5.f);
+			DrawDebugSweptSphere(GetWorld(), StartLocation, TargetLocation, 50.f, FColor::Red, false, 5.f);
 		}
 #endif
-		
-		if (Ribbon)
-		{
-			Ribbon->BP_SpawnRibbon(StartLocation, TargetSweepLocation, DashDuration);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Error, TEXT("%s Ribbon is Null."), *FString(__FUNCTION__));
-		}
 		
 		TSet<AActor*> Enemies;
 		if (bHit)
