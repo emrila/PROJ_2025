@@ -347,7 +347,7 @@ void APlayerCharacterBase::BeginPlay()
 		{
 			SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
 		
-			if (SpecialAttackComponentClass)
+			if (SpecialAttackComponent)
 			{
 				SpecialAttackComponent->SetIsReplicated(true);
 				SpecialAttackComponent->RegisterComponent();
