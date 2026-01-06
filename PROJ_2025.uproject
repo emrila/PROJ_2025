@@ -29,6 +29,11 @@
 			"Name": "GUI",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "Selection",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -97,6 +102,18 @@
 		},
 		{
 			"Name": "SoundUtilities",
+			"Enabled": true
+		},
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "AbilitySystemGameFeatureActions",
+			"Enabled": true
+		},
+		{
+			"Name": "NetworkPrediction",
 			"Enabled": true
 		}
 	]
