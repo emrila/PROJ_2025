@@ -75,11 +75,11 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Server_PerformSweep();
 
-	virtual void ResetAttackCooldown() override;
+	/*virtual void ResetAttackCooldown() override;
 
 	virtual float GetAttackCooldown() const override;
 
-	virtual float GetDamageAmount() const override;
+	virtual float GetDamageAmount() const override;*/
 
 	virtual float GetAttackRange() const;
 	

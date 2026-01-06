@@ -1,299 +1,99 @@
 ﻿#include "ChronoRiftComp.h"
 
-#include "Net/UnrealNetwork.h"
-#include "EnhancedInputComponent.h"
-#include "Golem.h"
-#include "GameFramework/Character.h"
+#include "InputAction.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/ChronoRiftZone.h"
-
 
 UChronoRiftComp::UChronoRiftComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+	
 	DamageAmount = 2.f;
 	AttackCooldown = 15.f;
-
-	// ...
 }
 
-void UChronoRiftComp::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	if (bIsLockingTargetArea && bCanAttack)
-	{
-		TryLockingTargetArea();
-		if (TargetAreaCenter != FVector::ZeroVector)
-		{
-			if (LovesMesh)
-			{
-				const FVector SpawnLocation = FVector(TargetAreaCenter.X, TargetAreaCenter.Y, TargetAreaCenter.Z + 5.f);
-				LovesMesh->SetActorLocation(SpawnLocation);
-			}
-		}
-	}
-}
-
-void UChronoRiftComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
-{
-	if (OwnerInputComp && OwnerInputAction)
-	{
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this,
-								   &UChronoRiftComp::OnStartLockingTargetArea);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this,
-								   &UChronoRiftComp::OnTargetAreaLocked);
-	}
-}
-
-void UChronoRiftComp::StartAttack()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter->IsAlive())
-	{
-		return;
-	}
-	
-	TryLockingTargetArea();
-
-	if (TargetAreaCenter != FVector::ZeroVector)
-	{
-		PerformAttack();
-		Super::StartAttack();
-		Server_Debuging();
-	}
-}
-
-void UChronoRiftComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	DOREPLIFETIME(UChronoRiftComp, TargetAreaCenter);
-	DOREPLIFETIME(UChronoRiftComp, CurrentChronoRiftZone);
-	DOREPLIFETIME(UChronoRiftComp, IndicatorRadius);
-}
 
 void UChronoRiftComp::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	FTimerHandle TimerHandle; 
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this]()
+	{
+		if (!OwnerCharacter)
+		{
+			UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+			return;
+		}
+		if (IndicatorActorClass)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = OwnerCharacter;
+			SpawnParams.Instigator = OwnerCharacter;
+			IndicatorActor = GetWorld()->SpawnActor<AActor>(
+				IndicatorActorClass,
+				FTransform(FRotator::ZeroRotator, FVector::ZeroVector),
+				SpawnParams);
+			SetIndicatorHidden(true);
+		}
+	}, 1.5f, false);
+}
+
+void UChronoRiftComp::OnPreAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started || !bCanAttack)
+	{
+		return;
+	}
+	Super::OnPreAttack(InputActionInstance);
+	SetIndicatorHidden(false);
+}
+
+void UChronoRiftComp::OnStartAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed || !bCanAttack)
+	{
+		return;
+	}
+	
+	Super::OnStartAttack(InputActionInstance);
+	Super::StartAttack();
+	
+	PerformAttack();
+}
+
+void UChronoRiftComp::StartAttack()
+{
+	if (!bCanAttack || !OwnerCharacter || !OwnerCharacter->IsAlive() || !IndicatorActor)
+	{
+		return;
+	}
+	
+	if (IndicatorActor)
+	{
+		FVector IndicatorLocation = GetIndicatorActorLocation();
+		IndicatorLocation.Z += 5.f;
+		IndicatorActor->SetActorLocation(IndicatorLocation);
+	}
 }
 
 void UChronoRiftComp::PerformAttack()
 {
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-	PerformLaunch();
-}
-
-void UChronoRiftComp::TryLockingTargetArea()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
-		return;
-	}
-
-	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
-
-	if (!PC)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
-		return;
-	}
-
-	APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
-
-	if (!CameraManager)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
-		return;
-	}
-
-	FVector CameraLocation = CameraManager->GetCameraLocation();
-	FRotator CameraRotation = CameraManager->GetCameraRotation();
-
-	FVector TraceStart = CameraLocation;
-	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * LockOnRange);
-	
-	FHitResult HitResult;
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
-	
-	//Line trace to find the ground location
-	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
-		HitResult, 
-		TraceStart, 
-		TraceEnd, 
-		ObjectQueryParams
-		);
-	
-	if (bHit && HitResult.GetActor())
-	{
-		if (HitResult.GetActor()->IsA(AGolem::StaticClass()))
-		{
-			if (OwnerCharacter->HasAuthority())
-			{
-				TargetAreaCenter = FVector::ZeroVector;
-			}
-			else
-			{
-				Server_SetTargetAreaCenter(FVector::ZeroVector);
-				TargetAreaCenter = FVector::ZeroVector;
-			}
-			return;
-		}
-		if (OwnerCharacter->HasAuthority())
-		{
-			TargetAreaCenter = HitResult.ImpactPoint;
-		}
-		else
-		{
-			Server_SetTargetAreaCenter(HitResult.ImpactPoint);
-			TargetAreaCenter = HitResult.ImpactPoint;
-		}
-	}
-	
-}
-
-void UChronoRiftComp::OnStartLockingTargetArea(const FInputActionInstance& InputActionInstance)
-{
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
-	{
-		return;
-	}
-
-	if (!bCanAttack)
-	{
-		return;
-	}
-	if (!LovesMesh)
-	{
-		if (ChronoRiftIndicatorClass)
-		{
-			LovesMesh = GetWorld()->SpawnActor<AActor>(ChronoRiftIndicatorClass, TargetAreaCenter, FRotator::ZeroRotator);
-			SetIndicatorHidden(true);
-		}
-	}
-	UpdateIndicatorScale();
-	bIsLockingTargetArea = true;
-	PrepareForLaunch();
-}
-
-void UChronoRiftComp::OnTargetAreaLocked(const FInputActionInstance& InputActionInstance)
-{
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
-	{
-		return;
-	}
-
-	if (!bIsLockingTargetArea)
-	{
-		return;
-	}
-	
-	bIsLockingTargetArea = false;
 	SetIndicatorHidden(true);
-	StartAttack();
+	RequestSpawnChronoRiftZone();
 }
 
-void UChronoRiftComp::PrepareForLaunch()
+void UChronoRiftComp::UpdateIndicatorScale() const
 {
-	if (!OwnerCharacter || !Cast<APlayerCharacterBase>(OwnerCharacter)->IsAlive())
+	if (!IndicatorActor)
 	{
-		return;
-	}
-	SetIndicatorHidden(false);
-}
-
-void UChronoRiftComp::ResetAttackCooldown()
-{
-	Super::ResetAttackCooldown();
-	bIsLockingTargetArea = false;
-	TargetAreaCenter = FVector::ZeroVector;
-}
-
-void UChronoRiftComp::PerformLaunch()
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s, No Indicator Actor"), *FString(__FUNCTION__));
 		return;
 	}
 	
-	if (OwnerCharacter->HasAuthority())
-	{
-		SpawnChronoRiftZone();
-	}
-	else
-	{
-		Server_PerformLaunch();
-	}
-}
-
-void UChronoRiftComp::SpawnChronoRiftZone()
-{
-	if (ChronoRiftZoneClass && OwnerCharacter)
-	{
-		FActorSpawnParameters Params;
-		Params.Owner = OwnerCharacter;
-	
-		Params.Instigator = OwnerCharacter;
-		
-		CurrentChronoRiftZone = GetWorld()->SpawnActor<AChronoRiftZone>(ChronoRiftZoneClass, TargetAreaCenter, FRotator::ZeroRotator, Params);
-		
-		if (CurrentChronoRiftZone)
-		{
-			CurrentChronoRiftZone->SetOwnerCharacter(OwnerCharacter);
-			CurrentChronoRiftZone->SetInitialValues(
-				GetAttackRadius(),
-				GetChronoDuration(),
-				GetDamageAmount()
-				);
-		}
-	}
-}
-
-void UChronoRiftComp::Server_PerformLaunch_Implementation()
-{
-	SpawnChronoRiftZone();
-}
-
-void UChronoRiftComp::SetIndicatorHidden(const bool bIsHidden)
-{
-	if (!LovesMesh)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No Mesh"));
-		return;
-	}
-	
-	LovesMesh->SetActorHiddenInGame(bIsHidden);
-}
-
-void UChronoRiftComp::UpdateIndicatorScale()
-{
-	if (!LovesMesh)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s, No Mesh"), *FString(__FUNCTION__));
-		return;
-	}
-	
-	UE_LOG(LogTemp, Warning, TEXT("%s, Updating Indicator Scale"), *FString(__FUNCTION__));
-
-	if (UStaticMeshComponent* MeshComp = LovesMesh->FindComponentByClass<UStaticMeshComponent>())
+	if (UStaticMeshComponent* MeshComp = IndicatorActor->FindComponentByClass<UStaticMeshComponent>())
 	{
 		if (!MeshComp->IsRegistered())
 		{
@@ -322,7 +122,7 @@ void UChronoRiftComp::UpdateIndicatorScale()
 
 		if (CurrentWorldDiameterXY > KINDA_SMALL_NUMBER)
 		{
-			GetAttackRadius();
+			const float IndicatorRadius = GetAttackRadius();
 			const float NewIndicatorRadius = IndicatorRadius * 2.0f;
 			const float DesiredDiameter = NewIndicatorRadius;
 			const float ScaleFactor = DesiredDiameter / CurrentWorldDiameterXY;
@@ -332,56 +132,140 @@ void UChronoRiftComp::UpdateIndicatorScale()
 	}
 }
 
-float UChronoRiftComp::GetChronoDuration() const
+void UChronoRiftComp::SetIndicatorHidden(const bool Value) const
 {
-	return ChronoDuration;
+	if (!IndicatorActor)
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s, No Indicator Actor"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	IndicatorActor->SetActorHiddenInGame(Value);
+	UpdateIndicatorScale();
 }
 
-float UChronoRiftComp::GetAttackRadius()
+void UChronoRiftComp::RequestSpawnChronoRiftZone()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	
+	const FVector SpawnLocation = GetIndicatorActorLocation();
+	
+	if (OwnerCharacter->HasAuthority())
+	{
+		SpawnChronoRiftZone(SpawnLocation);
+	}
+	else
+	{
+		Server_SpawnChronoRiftZone(SpawnLocation);
+	}
+}
+
+void UChronoRiftComp::SpawnChronoRiftZone(const FVector& SpawnLocation) const
+{
+	if (ChronoRiftZoneClass && OwnerCharacter)
+	{
+		FActorSpawnParameters Params;
+		Params.Owner = OwnerCharacter;
+	
+		Params.Instigator = OwnerCharacter;
+		
+		const FTransform SpawnTransform(FRotator::ZeroRotator, SpawnLocation);
+		
+		AChronoRiftZone* CurrentChronoRiftZone = 
+			GetWorld()->SpawnActorDeferred<AChronoRiftZone>(
+				ChronoRiftZoneClass, 
+				SpawnTransform, 
+				OwnerCharacter, 
+				OwnerCharacter, 
+				ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+		
+		if (CurrentChronoRiftZone)
+		{
+			CurrentChronoRiftZone->SetOwnerCharacter(OwnerCharacter);
+			CurrentChronoRiftZone->SetInitialValues(
+				GetAttackRadius(),
+				ChronoDuration,
+				GetDamageAmount()
+				);
+			UGameplayStatics::FinishSpawningActor(CurrentChronoRiftZone, SpawnTransform);
+		}
+	}
+}
+
+void UChronoRiftComp::Server_SpawnChronoRiftZone_Implementation(const FVector& SpawnLocation)
+{
+	SpawnChronoRiftZone(SpawnLocation);
+}
+
+FVector UChronoRiftComp::GetIndicatorActorLocation() const
+{
+	if (!OwnerCharacter)
+	{
+		UE_LOG(AttackComponentLog, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return FVector::ZeroVector;
+	}
+
+	if (!OwnerCharacter->IsLocallyControlled())
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
+			   *FString(__FUNCTION__));
+		return FVector::ZeroVector;
+	}
+	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
+
+	if (!PC)
+	{
+		UE_LOG(AttackComponentLog, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
+		return FVector::ZeroVector;
+	}
+
+	APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
+
+	if (!CameraManager)
+	{
+		UE_LOG(AttackComponentLog, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
+		return FVector::ZeroVector;
+	}
+	FVector CameraLocation = CameraManager->GetCameraLocation();
+	FRotator CameraRotation = CameraManager->GetCameraRotation();
+
+	FVector TraceStart = CameraLocation;
+	FVector TraceEnd = TraceStart + (CameraRotation.Vector() * 3000.f);  //Replace 3000.f with the desired range
+	
+	FHitResult HitResult;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+	
+	const bool bHit = GetWorld()->LineTraceSingleByObjectType(
+		HitResult, 
+		TraceStart, 
+		TraceEnd, 
+		ObjectQueryParams
+		);
+	
+	if (bHit && HitResult.GetActor())
+	{
+		return HitResult.ImpactPoint;
+	}
+	return FVector::ZeroVector;
+}
+
+float UChronoRiftComp::GetAttackRadius() const
 {
 	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f))
 	{
 		return TargetAreaRadius;
 	}
-	float NewRadius = TargetAreaRadius + (AttackDamageModifier * 50.f);
-	Server_SetIndicatorRadius(NewRadius);
+	const float NewRadius = TargetAreaRadius + (AttackDamageModifier * 50.f);
 	return NewRadius;
 }
 
-float UChronoRiftComp::GetAttackCooldown() const
+void UChronoRiftComp::Debug()
 {
-	return Super::GetAttackCooldown() * AttackSpeedModifier;
-}
-
-float UChronoRiftComp::GetDamageAmount() const
-{
-	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f))
-	{
-		return Super::GetDamageAmount();
-	}
-	return Super::GetDamageAmount() + AttackDamageModifier;
-}
-
-void UChronoRiftComp::Server_Debuging_Implementation()
-{
-	if (bDrawDebug)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Current radius: %f"), GetAttackRadius());
-	}
-}
-
-void UChronoRiftComp::Server_SetIndicatorRadius_Implementation(const float NewRadius)
-{
-	IndicatorRadius = NewRadius;
-}
-
-void UChronoRiftComp::Server_SetTargetAreaCenter_Implementation(const FVector& TargetCenter)
-{
-	if (TargetCenter.IsNearlyZero())
-	{
-		TargetAreaCenter = FVector::ZeroVector;
-		return;
-	}
-	
-	TargetAreaCenter = TargetCenter;
+	Super::Debug();
+	UE_LOG(AttackComponentLog, Warning, TEXT("Current radius: %f"), GetAttackRadius());
+	UE_LOG(AttackComponentLog, Warning, TEXT("Current duration: %f"), ChronoDuration);
 }

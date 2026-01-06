@@ -22,7 +22,7 @@ UShadowStrikeVariant2::UShadowStrikeVariant2()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DamageAmount = 20.f;
-	AttackCooldown = 10.f;
+	//AttackCooldown = 10.f;
 	// ...
 }
 
@@ -281,7 +281,7 @@ void UShadowStrikeVariant2::Server_SetShouldRecast_Implementation(const bool bNe
 	bShouldRecast = bNewShouldRecast;
 	if (bShouldRecast)
 	{
-		OnCanRecast.Broadcast();
+		//OnCanRecast.Broadcast();
 		OwnerCharacter->StartIFrame();
 		GetWorld()->GetTimerManager().SetTimer(RecastIFrameTimerHandle, [this]()
 		{
@@ -300,7 +300,7 @@ void UShadowStrikeVariant2::Server_SetDidRecast_Implementation(const bool BNewDi
 	bDidRecast = BNewDidRecast;
 	if (bDidRecast)
 	{
-		OnRecast.Broadcast();
+		//OnRecast.Broadcast();
 	}
 }
 
@@ -385,7 +385,7 @@ void UShadowStrikeVariant2::Server_TeleportPlayer_Implementation()
 
 	// Play disappear effect at current player location
 	DisappearLocation = CurrentPlayerLocation;
-	Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
+	//Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
 
 	// Cache player-to-camera offset for later camera interpolation (if a follow camera exists)
 	FVector PlayerToCameraVector = FVector::ZeroVector;
@@ -488,7 +488,7 @@ void UShadowStrikeVariant2::Multicast_TeleportPlayer_Implementation(
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
 		{
-			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
+			//Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
 			//OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
 			/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
@@ -809,7 +809,7 @@ void UShadowStrikeVariant2::Server_PerformSweep_Implementation()
 	
 }
 
-void UShadowStrikeVariant2::ResetAttackCooldown()
+/*void UShadowStrikeVariant2::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetLockedTarget(nullptr);
@@ -821,25 +821,25 @@ void UShadowStrikeVariant2::ResetAttackCooldown()
 	bWentThroughShield = false;
 	bShouldRecast = false;
 	bDidRecast = false;
-}
+}*/
 
-float UShadowStrikeVariant2::GetAttackCooldown() const
+/*float UShadowStrikeVariant2::GetAttackCooldown() const
 {
-	if (AttackCooldown <= 5.f)
+	/*if (AttackCooldown <= 5.f)
 	{
 		return 5.f;
 	}
-	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?
-}
+	return Super::GetAttackCooldown() * AttackSpeedModifier; // / AttackCooldown; ??👀 Was this a mistake?#1#
+}*/
 
-float UShadowStrikeVariant2::GetDamageAmount() const
+/*float UShadowStrikeVariant2::GetDamageAmount() const
 {
 	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
 	{
 		return Super::GetDamageAmount();
 	}
 	return Super::GetDamageAmount() + (AttackDamageModifier * 20.f);
-}
+}*/
 
 float UShadowStrikeVariant2::GetAttackRange() const
 {

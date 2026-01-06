@@ -7,7 +7,6 @@
 #include "Components/SphereComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 
 
@@ -29,8 +28,6 @@ AMageProjectile::AMageProjectile()
 	ProjectileMovementComponent->bShouldBounce = false; 
 
 	InitialLifeSpan = LifeTime;
-	
-	Tags.Add(TEXT("Projectile"));
 }
 
 void AMageProjectile::Tick(float DeltaTime)
@@ -48,11 +45,28 @@ void AMageProjectile::Tick(float DeltaTime)
 	}
 }
 
+void AMageProjectile::SetDamageAmount(const float NewDamageAmount)
+{
+	DamageAmount = NewDamageAmount;
+}
+
+void AMageProjectile::SetProjectileSpeed(const float NewProjectileSpeed) const
+{
+	if (FMath::IsNearlyEqual(NewProjectileSpeed, ProjectileSpeed, 0.01f))
+	{
+		return;
+	}
+	
+	if (ProjectileMovementComponent)
+	{
+		ProjectileMovementComponent->InitialSpeed = NewProjectileSpeed;
+		ProjectileMovementComponent->MaxSpeed = NewProjectileSpeed;
+	}
+}
+
 void AMageProjectile::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	SetReplicateMovement(true);
 
 	EnemyCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
 	WorldStaticCollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
@@ -60,24 +74,25 @@ void AMageProjectile::BeginPlay()
 	CurrentScale = EnemyCollisionComponent->GetComponentScale();
 }
 
-void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
+void AMageProjectile::OnProjectileOverlap(
+	UPrimitiveComponent* OverlappedComponent, 
+	AActor* OtherActor, 
+	UPrimitiveComponent* OtherComp, 
+	int32 OtherBodyIndex, 
+	bool bFromSweep, 
+	const FHitResult& SweepResult
+	)
 {
 	if (!HasAuthority())
 	{
 		return;
 	}
-	if (OtherActor == this)
-	{
-		return;
-	}
+	
 	if (OtherActor->IsA(AShield::StaticClass()))
 	{
-		AShield* Shield = Cast<AShield>(OtherActor);
-		if (Shield)
+		if (AShield* Shield = Cast<AShield>(OtherActor))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("%s hit shield"), *GetOwner()->GetName());
-			const float OldDamageAmount = DamageAmount;
-			DamageAmount += Shield->GetDamageAmount();
+			DamageAmount += Shield->GetDamageAmount(); // Correct damage amount?
 			SetActorTickEnabled(true);
 		}
 	}
@@ -89,8 +104,6 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 		{
 			return;
 		}
-		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
-
 		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
 		HitEnemies.Add(OtherActor);
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
@@ -105,7 +118,11 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if (OtherActor && OtherActor->IsA(AMageProjectile::StaticClass()))
+	if (!HasAuthority())
+	{
+		return;
+	}
+	if (OtherActor && OtherActor->IsA(StaticClass()))
 	{
 		return;
 	}
@@ -120,59 +137,6 @@ void AMageProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 void AMageProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AMageProjectile, DamageAmount);
-	DOREPLIFETIME(AMageProjectile, ImpactParticles);
-	DOREPLIFETIME(AMageProjectile, ProjectileSpeed);
-	DOREPLIFETIME(AMageProjectile, PiercingAmount);
-	DOREPLIFETIME(AMageProjectile, HitEnemies);
-	
-	DOREPLIFETIME(AMageProjectile, CurrentScale);
-	DOREPLIFETIME(AMageProjectile, ScaleFactor);
-	DOREPLIFETIME(AMageProjectile, AlphaElapsed);
-	DOREPLIFETIME(AMageProjectile, ScaleDuration);
-}
-
-void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)
-{
-	ImpactParticles = Particles;
-}
-
-void AMageProjectile::Server_SetDamageAmount_Implementation(const float NewDamageAmount)
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority())
-	{
-		return;
-	}
-	
-	if (NewDamageAmount <= 0)
-	{
-		return;
-	}
-	
-	this->DamageAmount = NewDamageAmount;
-}
-
-void AMageProjectile::Server_SetProjectileSpeed_Implementation(const float NewProjectileSpeed)
-{
-	if (!GetOwner() || !GetOwner()->HasAuthority())
-	{
-		return;
-	}
-	
-	if (FMath::IsNearlyEqual(NewProjectileSpeed, ProjectileSpeed, 0.01f))
-	{
-		return;
-	}
-	
-	if (ProjectileMovementComponent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("New Projectile Speed: %f"), NewProjectileSpeed);
-		UE_LOG(LogTemp, Warning, TEXT("Current Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
-		FVector CurrentVelocity = ProjectileMovementComponent->Velocity;
-		FVector NewVelocity = CurrentVelocity * NewProjectileSpeed;
-		ProjectileMovementComponent->Velocity = NewVelocity;
-		UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
-	}
 }
 
 

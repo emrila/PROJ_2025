@@ -4,22 +4,15 @@
 #include "Components/ActorComponent.h"
 #include "AttackComponentBase.generated.h"
 
+
 class UNiagaraSystem;
-class UInputAction;
-class UEnhancedInputComponent;
+struct FInputActionInstance;
 class APlayerCharacterBase;
+class UInputAction;
 
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownTimerStarted, float, CurrentCoolDownTime);
+DECLARE_LOG_CATEGORY_EXTERN(AttackComponentLog, Log, All);
 
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCanRecast);
-
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecast);
-
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDurabilityChanged, float, CurrentDurability, float, MaxDurability);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCooldownStarted, float, CurrentCooldownDuration);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PROJ_2025_API UAttackComponentBase : public UActorComponent
@@ -29,77 +22,71 @@ class PROJ_2025_API UAttackComponentBase : public UActorComponent
 public:
 	UAttackComponentBase();
 	
-	virtual void StartAttack();
-	
-	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown);
-
-	virtual bool GetCanAttack() const { return bCanAttack; }
-	
-	virtual bool SetCanAttack(const bool bNewCanAttack) { bCanAttack = bNewCanAttack; return bCanAttack; }
-
-	virtual void SetDamageAmount(const float Value) { DamageAmount = Value; }
-
-	virtual float GetDamageAmount() const { return DamageAmount; }
-
-	virtual float GetAttackCooldown() const { return AttackCooldown; }
-
-	virtual void SetAttackCooldown(const float Value) { AttackCooldown = Value; }
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction);
 	
-	UFUNCTION(Server, Reliable)
-	void Server_SpawnEffect(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect);
+	UFUNCTION(BlueprintCallable)
+	virtual float GetCooldownDuration();
 	
-	UPROPERTY(BlueprintAssignable)
-	FOnCooldownTimerStarted OnCooldownTimerStarted;
+	UFUNCTION(BlueprintCallable)
+	float GetDamageAmount() const;
 	
-	UPROPERTY(BlueprintAssignable)
-	FOnCanRecast OnCanRecast;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnRecast OnRecast;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnDurabilityChanged OnDurabilityChanged;
+	float GetCurrentAnimationLength() const;
 	
 	UFUNCTION(BlueprintCallable)
 	float GetAttackSpeedModifier() const { return AttackSpeedModifier; }
 	
 	UFUNCTION(BlueprintCallable)
 	float GetAttackDamageModifier() const { return AttackDamageModifier; }
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnCooldownStarted OnCooldownStarted;
 
 protected:
 	virtual void BeginPlay() override;
-
-	virtual void PerformAttack() {}
-
-	//UFUNCTION(Server, Reliable)
-	virtual void ResetAttackCooldown();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	UPROPERTY(Replicated)
+	
+	virtual void OnPreAttack(const FInputActionInstance& InputActionInstance);
+	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance);
+	
+	virtual void StartAttack();
+	virtual void PerformAttack();
+	
+	void PlayAttackAnimation();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_PlayAttackAnimation();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAttackAnimation();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SpawnImpactParticles(const FVector& ImpactLocation);
+	
+	void SetCurrentAnimationIndex();
+	
+	virtual void Reset();
+	
+	UPROPERTY()
 	APlayerCharacterBase* OwnerCharacter;
 	
-	bool bCanAttack = true;
-
-	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
-	float DamageAmount = 10.0f;
+	FTimerHandle InitialDelayTimerHandle;
+	FTimerHandle CooldownTimerHandle;
+	FTimerHandle SweepTimerHandle;
 	
-	float DamageAmountToStore= 0.f;
-
-	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
-	float AttackCooldown = 1.f;
-
-	float AttackCooldownToStore = 0.f;
-
-	FTimerHandle AttackCooldownTimerHandle;
-
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
+	bool bCanAttack = true;
+	bool bIsAttacking = false;
+	bool bIsFirstAttackAnimSet = false;
+	
+	float AttackSweepRadius = 200.f;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AttackCooldown = 0.5f;
+	
+	UPROPERTY(BlueprintReadOnly)
+	float DamageAmount = 10.f;
 	
 	UPROPERTY(BlueprintReadOnly, Replicated,meta = (AllowPrivateAccess = "true"))
 	float AttackSpeedModifier = 1.f;
@@ -107,8 +94,22 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Replicated, meta = (AllowPrivateAccess = "true"))
 	float AttackDamageModifier = 1.f;
 	
-	bool bDrawDebug = true;
+	UPROPERTY(EditDefaultsOnly, Category = "Attack Animations")
+	TArray<UAnimMontage*> AttackAnimations;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Effects")
+	UNiagaraSystem* ImpactParticles;
+	
+	int32 CurrentAnimIndex = 0;
+	
+	float CurrentAnimationPlayRate = 1.f;  //Check if this works without replication
+	
+	bool bDebug = true;
+	
+	virtual void RequestDebug();
+	
+	virtual void Debug();
 	
 	UFUNCTION(Server, Reliable)
-	virtual void Server_Debug();
+	void Server_Debug();
 };

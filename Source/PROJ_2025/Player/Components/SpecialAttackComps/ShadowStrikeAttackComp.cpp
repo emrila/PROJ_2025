@@ -19,7 +19,7 @@ UShadowStrikeAttackComp::UShadowStrikeAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	DamageAmount = 20.f;
-	AttackCooldown = 5.f;
+	//AttackCooldown = 5.f;
 }
 
 void UShadowStrikeAttackComp::StartAttack()
@@ -304,7 +304,7 @@ void UShadowStrikeAttackComp::Server_TeleportPlayer_Implementation()
 
 	// TODO: Play VFX before teleporting the player
 	DisappearLocation = OwnerCharacter->GetActorLocation();
-	Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
+	//Server_SpawnEffect_Implementation(DisappearLocation, DisappearEffect);
 
 	//Teleport player but cache current player location relative to the camera
 	FVector PlayerToCameraVector = CurrentPlayerCameraLocation - OwnerCharacter->GetActorLocation();
@@ -398,7 +398,7 @@ void UShadowStrikeAttackComp::Multicast_TeleportPlayer_Implementation(
 	{
 		if (OwnerCharacter && OwnerCharacter->GetMesh())
 		{
-			Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
+			//Server_SpawnEffect_Implementation(AppearLocation, AppearEffect);
 			OwnerCharacter->GetMesh()->SetHiddenInGame(false, true);
 			OwnerCharacter->GetCapsuleComponent()->SetCapsuleSize(CapsuleRadius, CapsuleHalfHeight, true);
 			/*UE_LOG(LogTemp, Warning, TEXT("%s CapsuleRadius is: %f. Capsule HalfHeight is: %f"), *FString(__FUNCTION__),
@@ -669,7 +669,7 @@ void UShadowStrikeAttackComp::Server_PerformSweep_Implementation()
 	}
 }
 
-void UShadowStrikeAttackComp::ResetAttackCooldown()
+/*void UShadowStrikeAttackComp::ResetAttackCooldown()
 {
 	Super::ResetAttackCooldown();
 	Server_SetLockedTarget_Implementation(nullptr);
@@ -692,7 +692,7 @@ float UShadowStrikeAttackComp::GetDamageAmount() const
 		return Super::GetDamageAmount();
 	}
 	return Super::GetDamageAmount() + (AttackDamageModifier * 20.f);
-}
+}*/
 
 float UShadowStrikeAttackComp::GetAttackRange() const
 {

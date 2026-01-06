@@ -201,7 +201,7 @@ void AMageController::DoShoot()
 		return;
 	}
 
-	MageCharacter->GetAttackComponent()->StartAttack();
+	//MageCharacter->GetAttackComponent()->StartAttack();
 }
 
 void AMageController::OnPossess_Implementation(APawn* InPawn)

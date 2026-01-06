@@ -1,10 +1,10 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "../AttackComponentBase.h"
+#include "Player/Components/AttackComponentBase.h"
 #include "RangeAttackComp.generated.h"
 
-struct FInputActionInstance;
+
 class AMageProjectile;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -14,62 +14,25 @@ class PROJ_2025_API URangeAttackComp : public UAttackComponentBase
 
 public:
 	URangeAttackComp();
-
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
-	virtual void StartAttack() override;
-	
-	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
-	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	float GetProjectileSpeed() const;
 
 protected:
-	virtual void BeginPlay() override;
-	
-	virtual void OnStartAttack(const FInputActionInstance& Instance);
-	
-	virtual void OnAttackEnd(const FInputActionInstance& Instance);
-	
+	virtual void StartAttack() override;
 	virtual void PerformAttack() override;
 	
-	void SpawnProjectile(const FTransform SpawnTransform);
-
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SpawnProjectile(const FTransform SpawnTransform);
+	void RequestSpawnProjectile();
 	
-	void PlayAttackAnim();
+	void SpawnProjectile(const FTransform& SpawnTransform) const;
 	
 	UFUNCTION(Server, Reliable)
-	void Server_PlayAttackAnim();
+	void Server_SpawnProjectile(const FTransform& SpawnTransform);
 	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayAttackAnim();
-
-	virtual FTransform GetProjectileTransform();
-
-	virtual float GetAttackCooldown() const override;
-
-	virtual float GetDamageAmount() const override;
+	FTransform GetProjectileTransform() const;
 	
-	virtual float GetProjectileSpeed();
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AMageProjectile> ProjectileClass;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ProjectileOffsetDistanceInFront = 120.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UAnimMontage* AttackAnimation;
-	
-	bool bIsAttacking = false;
-	
-	UPROPERTY(Replicated)
-	FTransform ProjectileSpawnTransform;
-	
-	UPROPERTY(Replicated)
-	float ProjectileSpeed = 3000.f;
-	
-	UFUNCTION(Server, Reliable)
-	void Server_Debugging();
+	float ProjectileOffsetDistanceInFront = 250.f;
+	float DefaultProjectileSpeed = 3000.f;
 };
