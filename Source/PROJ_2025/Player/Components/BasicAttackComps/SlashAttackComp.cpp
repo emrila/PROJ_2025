@@ -10,7 +10,7 @@ USlashAttackComp::USlashAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	DamageAmount = 15.f;
-	AttackCooldown = 0.5f;
+	//AttackCooldown = 0.5f;
 }
 
 void USlashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -41,7 +41,7 @@ void USlashAttackComp::StartAttack()
 	PerformAttack();
 }
 
-void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
+/*void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
 {
 	if (!bCanAttack)
 	{
@@ -60,10 +60,10 @@ void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewA
 		return;
 	}
 	
-	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
+	//Super::StartAttack(NewDamageAmount, NewAttackCooldown);
 	
 	PerformAttack();
-}
+}*/
 
 void USlashAttackComp::Server_StartAttack_Implementation(const float NewDamageAmount, float NewAttackCooldown)
 {
@@ -73,7 +73,7 @@ void USlashAttackComp::Server_StartAttack_Implementation(const float NewDamageAm
 		return;
 	}
 
-	Super::StartAttack(NewDamageAmount, NewAttackCooldown);
+	//Super::StartAttack(NewDamageAmount, NewAttackCooldown);
 	
 	PerformAttack();
 }
@@ -139,7 +139,7 @@ void USlashAttackComp::CheckForCollisionWithEnemies()
 	Sweep(OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * AttackRadius);
 }
 
-float USlashAttackComp::GetAttackCooldown() const
+/*float USlashAttackComp::GetAttackCooldown() const
 {
 	return Super::GetAttackCooldown() * AttackSpeedModifier;
 }
@@ -147,7 +147,7 @@ float USlashAttackComp::GetAttackCooldown() const
 float USlashAttackComp::GetDamageAmount() const
 {
 	return Super::GetDamageAmount() * AttackDamageModifier;
-}
+}*/
 
 void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 {
@@ -175,7 +175,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 		QueryParams);
 	
 #if WITH_EDITOR
-	if (bDrawDebug)
+	/*if (bDrawDebug)
 	{
 		DrawDebugSphere(
 			GetWorld(),
@@ -186,7 +186,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 			false,
 			2.0f
 			);
-	}
+	}*/
 #endif
 
 	if (bHit)
@@ -199,7 +199,7 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 				UniqueHitActors.Add(Hit.GetActor());
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)
 				{
-					SpawnParticles(PlayerCharacter, Hit);
+					//SpawnParticles(PlayerCharacter, Hit);
 				}
 			}
 		}
@@ -236,7 +236,7 @@ void USlashAttackComp::Multicast_PlayAttackAnim_Implementation()
 		return;
 	}
 
-	if (AttackMontage)
+	/*if (AttackMontage)
 	{
 		float PlayRate = 1.f;
 		if (AttackMontage->GetPlayLength() > GetAttackCooldown())
@@ -245,5 +245,5 @@ void USlashAttackComp::Multicast_PlayAttackAnim_Implementation()
 			PlayRate = AnimLength / GetAttackCooldown();
 		}
 		OwnerCharacter->PlayAnimMontage(AttackMontage, PlayRate);
-	}
+	}*/
 }

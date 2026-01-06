@@ -19,7 +19,7 @@ public:
 
 	virtual void StartAttack() override;
 	
-	virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
+	//virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
 
 	UFUNCTION(Server, Reliable)
 	virtual void Server_StartAttack(const float NewDamageAmount, float NewAttackCooldown);
@@ -46,9 +46,9 @@ protected:
 	UFUNCTION(Server, Reliable)
 	virtual void Sweep(FVector SweepLocation);
 
-	virtual float GetAttackCooldown() const override;
+	/*virtual float GetAttackCooldown() const override;
 
-	virtual float GetDamageAmount() const override;
+	virtual float GetDamageAmount() const override;*/
 
 	FTimerHandle SweepTimerHandle;
 

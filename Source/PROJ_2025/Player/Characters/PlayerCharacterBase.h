@@ -138,6 +138,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> DamageVignetteWidget;
 
+	//Handle movement speed
 	UPROPERTY(BlueprintReadOnly,Replicated)
 	float BaseMaxWalkSpeed = 0.f;
 
@@ -222,6 +223,7 @@ protected:
 	
 	bool bShouldUseMoveInput = true;
 	
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="Input|Movement")
 	bool bIsInputActive = true;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")

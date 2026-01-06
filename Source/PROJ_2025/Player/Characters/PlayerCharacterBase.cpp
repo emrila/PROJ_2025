@@ -473,6 +473,8 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	
 	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
 	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
+	
+	DOREPLIFETIME(APlayerCharacterBase, bIsInputActive);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
