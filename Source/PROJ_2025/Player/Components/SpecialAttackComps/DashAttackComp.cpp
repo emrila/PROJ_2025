@@ -178,13 +178,6 @@ void UDashAttackComp::Dash(const FVector& NewTargetLocation)
 	OwnerCharacter->StartIFrame();
 	DashElapsed = 0.0f;
 	
-	// TODO: do pawn really need to block player and vice versa?
-	if (OwnerCharacter->GetMesh() &&
-			OwnerCharacter->GetCharacterMovement() && OwnerCharacter->GetCapsuleComponent())
-	{
-		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-	}
-	
 	bIsDashing = true;
 }
 
@@ -416,6 +409,7 @@ void UDashAttackComp::HandlePostAttackState() const
 	}
 	
 	OwnerCharacter->SetInputActive(true);
+	// Check whether the iframe timer has been started by going through a shield
 	if (!GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
 	{
 		OwnerCharacter->ResetIFrame();
