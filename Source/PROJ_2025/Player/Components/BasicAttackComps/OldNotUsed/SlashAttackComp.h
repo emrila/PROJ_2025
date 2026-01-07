@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "../AttackComponentBase.h"
+#include "../../AttackComponentBase.h"
 #include "SlashAttackComp.generated.h"
 
 
@@ -18,18 +18,12 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	virtual void StartAttack() override;
-	
-	//virtual void StartAttack(const float NewDamageAmount, float NewAttackCooldown) override;
-
-	UFUNCTION(Server, Reliable)
-	virtual void Server_StartAttack(const float NewDamageAmount, float NewAttackCooldown);
-
 protected:
 	virtual void BeginPlay() override;
 	
 	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
 	
-	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance);
+	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance) override;
 	
 	virtual void OnEndAttack(const FInputActionInstance& InputActionInstance);
 
