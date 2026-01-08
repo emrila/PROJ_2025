@@ -47,6 +47,10 @@ void UChronoRiftComp::OnPreAttack(const FInputActionInstance& InputActionInstanc
 	{
 		return;
 	}
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->RequestSetIsAttacking(true);
+	}
 	Super::OnPreAttack(InputActionInstance);
 	SetIndicatorHidden(false);
 }
@@ -56,6 +60,11 @@ void UChronoRiftComp::OnStartAttack(const FInputActionInstance& InputActionInsta
 	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed || !bCanAttack)
 	{
 		return;
+	}
+	
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->RequestSetIsAttacking(false);
 	}
 	
 	Super::OnStartAttack(InputActionInstance);
