@@ -5,6 +5,8 @@
 #include "GameFramework/Actor.h"
 #include "ChronoRiftZone.generated.h"
 
+class UNiagaraComponent;
+class APlayerCharacterBase;
 class ACharacter;
 class UNiagaraSystem;
 class USphereComponent;
@@ -17,42 +19,22 @@ class PROJ_2025_API AChronoRiftZone : public AActor
 public:
 	AChronoRiftZone();
 	
-	virtual void Tick(float DeltaTime) override;
-	
-	virtual void SetOwnerCharacter(ACharacter* NewOwnerCharacter);
+	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
 
-	virtual void SetInitialValues(
+	void SetInitialValues(
 		const float NewRadius,
 		const float NewLifetime,
 		const float NewDamageAmount
 		);
 
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	UFUNCTION(BlueprintImplementableEvent)
-	void BP_SpawnEffect(const float NewChronoDuration, const float BaseRadius, const float CurrentRadius);
-
 protected:
 	virtual void BeginPlay() override;
-
-	virtual void MakeInitialSphereSweep();
-
-	virtual void DestroySelf();
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SlowEnemy(AActor* Enemy); 
-	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SlowEnemy(AActor* Enemy);
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_ResetEnemiesPreEnd();
-	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_ResetEnemiesPreEnd();
+	void MakeInitialSphereSweep();
+	void TickDamage();
+	void HandleDestroySelf();
 	
 	UFUNCTION()
-	virtual void OnOverlapBegin(
+	void OnOverlapBegin(
 		UPrimitiveComponent* OverlappedComp,
 		AActor* OtherActor, 
 		UPrimitiveComponent* OtherComp, 
@@ -60,51 +42,48 @@ protected:
 		bool bFromSweep,
 		const FHitResult& SweepResult
 		);
-
+	
+	void HandleOverlapBegin(AActor* OtherActor);
+	
 	UFUNCTION()
-	virtual void OnOverlapEnd(
+	void OnOverlapEnd(
 		UPrimitiveComponent* OverlappedComp,
 		AActor* OtherActor, 
 		UPrimitiveComponent* OtherComp, 
 		int32 OtherBodyIndex
 		);
+	
+	void HandleOverlapEnd(AActor* OtherActor);
+	
+	void RequestSpawnEffect();
+	void SpawnEffect(const float NewChronoDuration, const float BaseRadius, const float CurrentRadius) const;
 
 	UFUNCTION(Server, Reliable)
-	virtual void Server_SpawnEffect();
+	void Server_SpawnEffect(const float NewLifeTime, const float BaseRadius, const float CurrentRadius);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_SpawnEffect();  
-	
-	virtual void TickDamage();
+	void Multicast_SpawnEffect(const float NewLifeTime, const float BaseRadius, const float CurrentRadius);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* SphereComponent;
 	
-	UPROPERTY(Replicated)
-	float Radius = 200;
+	float Radius = 400;
+	float InitialRadius = 400;
 	
-	UPROPERTY(Replicated)
 	float Lifetime = 4.f;
 	
-	UPROPERTY(Replicated)
 	float DamageAmount = 2;
 	
 	float EnemyTimeDilationFactor = 0.3f;
 	
-	FTimerHandle ResetEnemiesTimerHandle;
 	FTimerHandle TickDamageTimerHandle;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY()
+	APlayerCharacterBase* OwnerCharacter;
+	
+	UPROPERTY()
+	TSet<AActor*> OverlappedEnemies;
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UNiagaraSystem* ChronoRiftEffect;
-	
-	UPROPERTY()
-	TSet<AActor*> EnemiesToGiveDamage;
-	
-	UPROPERTY()
-	TSet<AActor*> EnemiesSLowedDown;
-	
-	UPROPERTY()
-	ACharacter* OwnerCharacter;
-
-	bool bIsFirstTick = true;
 };

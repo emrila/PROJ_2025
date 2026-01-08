@@ -77,15 +77,6 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 			bIsInterpolatingCamera = false;
 		}
 	}
-
-	/*if (IFrame)
-	{
-		// Possibly add visual effects or indicators for I-frames here
-		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
-#if WITH_EDITOR
-		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
-#endif		
-	}*/
 }
 
 void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -266,7 +257,6 @@ void APlayerCharacterBase::EndSprint()
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
-	OnIFrameChanged.Broadcast(IFrame);
 }
 
 void APlayerCharacterBase::StartIFrameVisuals()
@@ -278,7 +268,6 @@ void APlayerCharacterBase::StartIFrameVisuals()
 void APlayerCharacterBase::ResetIFrame()
 {
 	IFrame = false;
-	OnIFrameChanged.Broadcast(IFrame);
 }
 
 void APlayerCharacterBase::ResetIFrameVisuals()
@@ -347,7 +336,7 @@ void APlayerCharacterBase::BeginPlay()
 		{
 			SpecialAttackComponent = NewObject<UAttackComponentBase>(this, SpecialAttackComponentClass);
 		
-			if (SpecialAttackComponentClass)
+			if (SpecialAttackComponent)
 			{
 				SpecialAttackComponent->SetIsReplicated(true);
 				SpecialAttackComponent->RegisterComponent();
@@ -473,6 +462,8 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	
 	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
 	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
+	
+	DOREPLIFETIME(APlayerCharacterBase, bIsInputActive);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -709,15 +700,6 @@ void APlayerCharacterBase::Server_SetSprint_Implementation(const bool bNewSprint
 			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
 		}
 	}
-}
-
-void APlayerCharacterBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
-{
-}
-
-void APlayerCharacterBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation)
-{
-	
 }
 
 void APlayerCharacterBase::StartSuddenDeath()

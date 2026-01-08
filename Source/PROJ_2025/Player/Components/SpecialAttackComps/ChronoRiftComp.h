@@ -1,15 +1,9 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "../AttackComponentBase.h"
+#include "Player/Components/AttackComponentBase.h"
 #include "ChronoRiftComp.generated.h"
 
-
-class AChronoRiftZone;
-class UChronoRiftDamageType;
-class AEnemyBase;
-struct FInputActionInstance;
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UChronoRiftComp : public UAttackComponentBase
@@ -19,88 +13,41 @@ class PROJ_2025_API UChronoRiftComp : public UAttackComponentBase
 public:
 	UChronoRiftComp();
 	
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-							   FActorComponentTickFunction* ThisTickFunction) override;
-	
-	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
-	
-	virtual void StartAttack() override;
-	
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	
 	UFUNCTION(BlueprintCallable)
-	virtual float GetAttackRadius();
-
-	UFUNCTION(BlueprintCallable)
-	virtual float GetDamageAmount() const override;
-	
+	float GetAttackRadius() const;
 
 protected:
 	virtual void BeginPlay() override;
 	
+	virtual void OnPreAttack(const FInputActionInstance& InputActionInstance) override;
+	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance) override;
+	
+	virtual void StartAttack() override;
 	virtual void PerformAttack() override;
 	
-	virtual void TryLockingTargetArea();
+	void UpdateIndicatorScale() const;
+	void SetIndicatorHidden(const bool Value) const;
 	
-	virtual void OnStartLockingTargetArea(const FInputActionInstance& InputActionInstance);
-	
-	virtual void OnTargetAreaLocked(const FInputActionInstance& InputActionInstance);
-	
-	virtual void PrepareForLaunch();
-	
-	virtual void ResetAttackCooldown() override;
-	
-	void PerformLaunch();
+	void RequestSpawnChronoRiftZone();
+	void SpawnChronoRiftZone(const FVector& SpawnLocation) const;
 	
 	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch();
+	void Server_SpawnChronoRiftZone(const FVector& SpawnLocation);
 	
-	void SpawnChronoRiftZone();
-	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
-
-	virtual void SetIndicatorHidden(const bool bIsHidden);
-	
-	void UpdateIndicatorScale();
-
-	virtual float GetChronoDuration() const;
-
-	virtual float GetAttackCooldown() const override;
-
-
-	UFUNCTION(Server, Reliable)
-	void Server_SetIndicatorRadius(const float NewRadius);
+	FVector GetIndicatorActorLocation() const;
 	
 	UPROPERTY()
-	AActor* LovesMesh;
+	AActor* IndicatorActor;
 	
-	UPROPERTY(editAnywhere, BlueprintReadWrite)
-	TSubclassOf<AActor> ChronoRiftIndicatorClass;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> IndicatorActorClass;
 	
-	UPROPERTY(Replicated)
-	FVector TargetAreaCenter;
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<AActor> ChronoRiftZoneClass;
 	
 	float TargetAreaRadius = 400.f;
-	
-	UPROPERTY(Replicated)
-	float IndicatorRadius = 400.f;
-	
-	bool bIsLockingTargetArea = false;
-
-	//Not changed by the upgrade system
+	float ChronoDuration = 4.f;
 	float LockOnRange = 30000.f;
 	
-	float ChronoDuration = 4.f;
-	
-	float EnemyTimeDilationFactor = 0.3f;
-
-	UPROPERTY(Replicated)
-	AChronoRiftZone* CurrentChronoRiftZone;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
-	
-	UFUNCTION(Server, Reliable)
-	void Server_Debuging();
+	virtual void Debug() override;
 };

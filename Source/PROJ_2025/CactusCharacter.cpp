@@ -7,28 +7,37 @@
 #include "EnemySubAttack.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
-void ACactusCharacter::Server_ShootProjectile_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
+void ACactusCharacter::Server_ShootProjectile_Implementation(const FVector& NewTargetLocation)
 {
-	AEnemySubAttack* Projectile = Cast<AEnemySubAttack>(
-	UGameplayStatics::BeginDeferredActorSpawnFromClass(
-		this,
-		ProjectileClass,
-		FTransform(SpawnRotation, SpawnLocation),
-		ESpawnActorCollisionHandlingMethod::AlwaysSpawn
-		)
-	);
-	if (Projectile)
+	if (!HasAuthority()) return;
+	
+	TargetActorLocation = NewTargetLocation;
+	
+	if (!bIsPlayingAnimation)
 	{
-		Projectile->DamageMultiplier = DamageMultiplier;
-
-		UGameplayStatics::FinishSpawningActor(
-			Projectile,
-			FTransform(SpawnRotation, SpawnLocation)
-		);
+		if (!GetWorld()->GetTimerManager().IsTimerActive(InitialAttackTimer))
+		{
+			GetWorld()->GetTimerManager().SetTimer(InitialAttackTimer, [this] ()
+			{
+				Multicast_PlayAttackMontage();
+			}, 0.5f, false);
+		}
+		if (!GetWorld()->GetTimerManager().IsTimerActive(AnimationTimer))
+		{
+			float Delay = 1.5f;
+			if (AttackAnim)
+			{
+				Delay = AttackAnim->GetPlayLength() / 2.f + 0.5f;
+			}
+			GetWorld()->GetTimerManager().SetTimer(AnimationTimer, [this] ()
+			{
+				bIsPlayingAnimation = false;
+			}, Delay, false);
+		}
 	}
-
 }
 
 void ACactusCharacter::Server_SpawnSpikeExplosion_Implementation(FVector SpawnLocation, FRotator SpawnRotation)
@@ -39,11 +48,74 @@ void ACactusCharacter::Server_SpawnSpikeExplosion_Implementation(FVector SpawnLo
 	Cast<AEnemySubAttack>(Explosion)->DamageMultiplier = DamageMultiplier;
 }
 
+void ACactusCharacter::Server_HandleOnAttackAnimNotify_Implementation(const FVector SpawnLocation)
+{
+	if (!HasAuthority()) return;
+	CurrentProjectileSocketLocation = SpawnLocation;
+	ForceNetUpdate();
+	
+	if (CurrentProjectileSocketLocation.IsNearlyZero())
+	{
+		return;
+	}
+	
+	if (TargetActorLocation.IsNearlyZero())
+	{
+		return;
+	}
+	
+	ProjectileSpawnRotation = UKismetMathLibrary::FindLookAtRotation(CurrentProjectileSocketLocation, TargetActorLocation);
+	ForceNetUpdate();
+	
+	if (ProjectileSpawnRotation.IsNearlyZero())
+	{
+		return;
+	}
+	
+	AEnemySubAttack* Projectile = Cast<AEnemySubAttack>(
+	UGameplayStatics::BeginDeferredActorSpawnFromClass(
+		this,
+		ProjectileClass,
+		FTransform(ProjectileSpawnRotation, CurrentProjectileSocketLocation),
+		ESpawnActorCollisionHandlingMethod::AlwaysSpawn
+		)
+	);
+	if (Projectile)
+	{
+		Projectile->DamageMultiplier = DamageMultiplier;
+
+		UGameplayStatics::FinishSpawningActor(
+			Projectile,
+			FTransform(ProjectileSpawnRotation, CurrentProjectileSocketLocation)
+		);
+	}
+}
+
+void ACactusCharacter::Multicast_PlayAttackMontage_Implementation()
+{
+	if (AttackAnim)
+	{
+		PlayAnimMontage(AttackAnim, 2.f);
+		bIsPlayingAnimation = true;
+	}
+}
+
+void ACactusCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	OnAttackAnimNotify.AddDynamic(this, &ACactusCharacter::Server_HandleOnAttackAnimNotify);
+}
+
 void ACactusCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ACactusCharacter, bIsBurrowing);
+	DOREPLIFETIME(ACactusCharacter, CurrentProjectileSocketLocation);
+	DOREPLIFETIME(ACactusCharacter, bIsPlayingAnimation);
+	DOREPLIFETIME(ACactusCharacter, ProjectileSpawnRotation);
+	DOREPLIFETIME(ACactusCharacter, TargetActorLocation);
 }
 
 void ACactusCharacter::Tick(float DeltaSeconds)

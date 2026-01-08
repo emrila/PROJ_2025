@@ -1,175 +1,265 @@
 ﻿#include "AttackComponentBase.h"
 
 #include "EnhancedInputComponent.h"
-#include "BasicAttackComps/MeleeAttackComp.h"
+#include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/Characters/PlayerCharacterBase.h"
 
+DEFINE_LOG_CATEGORY(AttackComponentLog);
 
 UAttackComponentBase::UAttackComponentBase()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
 	SetIsReplicatedByDefault(true);
 }
 
-void UAttackComponentBase::StartAttack()
+void UAttackComponentBase::TickComponent(float DeltaTime, ELevelTick TickType,
+	FActorComponentTickFunction* ThisTickFunction)
 {
-	if (!OwnerCharacter)
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
-		return;
-	}
-	
-	if (!bCanAttack || !OwnerCharacter->IsAlive())
-	{
-		return;
-	}
-	
-	bCanAttack = false;
-
-
-	const float CurrentCoolDownTime = GetAttackCooldown();
-	if (OnCooldownTimerStarted.IsBound())
-	{
-		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
-	}
-	
-	if (CurrentCoolDownTime > 0.f)
-	{
-		GetWorld()->GetTimerManager().SetTimer(
-		AttackCooldownTimerHandle,
-		this,
-		&UAttackComponentBase::ResetAttackCooldown,
-		CurrentCoolDownTime,
-		false
-		);
-	}
-	else
-	{
-		ResetAttackCooldown();
-	}
-	
-	if (bDrawDebug)
-	{
-		Server_Debug();
+		StartAttack();
 	}
 }
 
-void UAttackComponentBase::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComponentBase, OwnerCharacter is NULL!"));
-		return;
-	}
-	
-	if (!bCanAttack || !OwnerCharacter->IsAlive())
-	{
-		return;
-	}
-	
-	DamageAmountToStore = DamageAmount;
-	DamageAmount = NewDamageAmount;
-
-	AttackCooldownToStore = AttackCooldown;
-	AttackCooldown = NewAttackCooldown;
-
-	bCanAttack = false;
-
-	const float CurrentCoolDownTime = GetAttackCooldown();
-	if (OnCooldownTimerStarted.IsBound())
-	{
-		OnCooldownTimerStarted.Broadcast(CurrentCoolDownTime);
-	}
-
-	GetWorld()->GetTimerManager().SetTimer(
-		AttackCooldownTimerHandle,
-		this,
-		&UAttackComponentBase::ResetAttackCooldown,
-		CurrentCoolDownTime,
-		false
-		);
-}
-
-void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
-                                                  UInputAction* OwnerInputAction)
+void UAttackComponentBase::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UAttackComponentBase::StartAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &UAttackComponentBase::OnPreAttack);
+		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &UAttackComponentBase::OnStartAttack);
 	}
 }
 
-void UAttackComponentBase::Server_SpawnEffect_Implementation(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect)
+float UAttackComponentBase::GetCooldownDuration()
 {
-	if (!OwnerCharacter)
+	return AttackCooldown * AttackSpeedModifier;
+}
+
+float UAttackComponentBase::GetDamageAmount() const
+{
+	return DamageAmount * AttackDamageModifier;
+}
+
+float UAttackComponentBase::GetCurrentAnimationLength() const
+{
+	if (AttackAnimations.Num() == 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
-		return;
+		return 0.f;
 	}
 	
-	if (!Effect)
+	if (AttackAnimations.IsValidIndex(CurrentAnimIndex) && AttackAnimations[CurrentAnimIndex])
 	{
-		//UE_LOG(LogTemp, Error, TEXT("%s, Effect is NULL!"), *FString(__FUNCTION__));
-		return;
+		return AttackAnimations[CurrentAnimIndex]->GetPlayLength();
 	}
-	if (!OwnerCharacter->HasAuthority() || EffectSpawnLocation.IsNearlyZero())
-	{
-		return;
-	}
-	Multicast_SpawnEffect_Implementation(EffectSpawnLocation, Effect);
-}
-
-void UAttackComponentBase::Multicast_SpawnEffect_Implementation(const FVector& EffectSpawnLocation, UNiagaraSystem* Effect)
-{
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, Effect, EffectSpawnLocation);
+	return 0.f;
 }
 
 void UAttackComponentBase::BeginPlay()
 {
 	Super::BeginPlay();
-
-	OwnerCharacter = Cast<APlayerCharacterBase>(GetOwner());
-}
-
-void UAttackComponentBase::ResetAttackCooldown()
-{
-	bCanAttack = true;
-	if (DamageAmountToStore > 0.f)
+	
+	if (GetWorld())
 	{
-		DamageAmount = DamageAmountToStore;
-		DamageAmountToStore = 0.f;
-	}
-
-	if (AttackCooldownToStore > 0.f)
-	{
-		AttackCooldown = AttackCooldownToStore;
-		AttackCooldownToStore = 0.f;
+		GetWorld()->GetTimerManager().SetTimer(InitialDelayTimerHandle, [this]
+		{
+			OwnerCharacter = Cast<APlayerCharacterBase>(GetOwner());
+		}, 1.f, false);
 	}
 }
 
 void UAttackComponentBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UAttackComponentBase, OwnerCharacter);
-	DOREPLIFETIME(UAttackComponentBase, AttackDamageModifier);
 	DOREPLIFETIME(UAttackComponentBase, AttackSpeedModifier);
+	DOREPLIFETIME(UAttackComponentBase, AttackDamageModifier);
+}
+
+void UAttackComponentBase::OnPreAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
+	{
+		return;
+	}
+	bIsAttacking = true;
+}
+
+void UAttackComponentBase::OnStartAttack(const FInputActionInstance& InputActionInstance)
+{
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
+	{
+		return;
+	}
+	if (!bIsAttacking)
+	{
+		return;
+	}
+	bIsAttacking = false;
+}
+
+void UAttackComponentBase::StartAttack()
+{
+	if (!OwnerCharacter || !bCanAttack || !OwnerCharacter->IsAlive())
+	{
+		return;
+	}
+	
+	bCanAttack = false;
+	
+	if (const float CurrentCooldownDuration = GetCooldownDuration(); 
+		!FMath::IsNearlyEqual(CurrentCooldownDuration, 0.f, 0.01f))
+	{
+		OnCooldownStarted.Broadcast(CurrentCooldownDuration);
+		GetWorld()->GetTimerManager().SetTimer(
+		CooldownTimerHandle, this, &UAttackComponentBase::Reset, CurrentCooldownDuration, false);
+	}
+	else
+	{
+		bCanAttack = true;
+	}
+	
+	if (bDebug)
+	{
+		RequestDebug();
+	}
+}
+
+void UAttackComponentBase::PerformAttack()
+{
+	SetCurrentAnimationIndex();
+	PlayAttackAnimation();
+}
+
+void UAttackComponentBase::PlayAttackAnimation()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	
+	if (OwnerCharacter->HasAuthority())
+	{
+		Multicast_PlayAttackAnimation();
+	}
+	else
+	{
+		Server_PlayAttackAnimation();
+	}
+}
+
+void UAttackComponentBase::Server_PlayAttackAnimation_Implementation()
+{
+	Multicast_PlayAttackAnimation();
+}
+
+void UAttackComponentBase::Multicast_PlayAttackAnimation_Implementation()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	if (GetCurrentAnimationLength() > 0.f)
+	{
+		if (GetCurrentAnimationLength() > GetCooldownDuration())
+		{
+			if (const float PlayRate = GetCurrentAnimationLength() / GetCooldownDuration(); PlayRate > 3.f)
+			{
+				CurrentAnimationPlayRate = 3.f;  // Higher than this will make the current animations barely visible
+			}
+			else
+			{
+				CurrentAnimationPlayRate = PlayRate;
+			}
+		}
+		else
+		{
+			CurrentAnimationPlayRate = 1.f;
+		}
+		if (OwnerCharacter->GetMesh() && OwnerCharacter->GetMesh()->GetAnimInstance())
+		{
+			OwnerCharacter->PlayAnimMontage(AttackAnimations[CurrentAnimIndex], CurrentAnimationPlayRate);
+		}
+	}
+}
+
+void UAttackComponentBase::Multicast_SpawnImpactParticles_Implementation(const FVector& ImpactLocation)
+{
+	if (!ImpactParticles || !GetWorld())
+	{
+		return;
+	} 
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, ImpactLocation);
+}
+
+void UAttackComponentBase::SetCurrentAnimationIndex()
+{
+	if (AttackAnimations.Num() == 0)
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s, Attack animations list is empty, no animation will be played."), *FString(__FUNCTION__));
+		CurrentAnimIndex = 0;
+		return;
+	}
+	
+	if (!bIsFirstAttackAnimSet || AttackAnimations.Num() == 1)
+	{
+		bIsFirstAttackAnimSet = true;
+		CurrentAnimIndex = 0;
+		return;
+	}
+	
+	if (AttackAnimations.Num() == (CurrentAnimIndex + 1))
+	{
+		CurrentAnimIndex = 0;
+		return;
+	}
+	++CurrentAnimIndex;
+}
+
+void UAttackComponentBase::Reset()
+{
+	bCanAttack = true;
+}
+
+void UAttackComponentBase::RequestDebug()
+{
+	if (OwnerCharacter)
+	{
+		if (OwnerCharacter->HasAuthority())
+		{
+			UE_LOG(AttackComponentLog, Warning, TEXT("----- Has Authority -----"));
+			Debug();
+		}
+		else
+		{
+			UE_LOG(AttackComponentLog, Warning, TEXT("----- No Authority -----"));
+			Server_Debug();
+		}
+	}
+}
+
+void UAttackComponentBase::Debug()
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
+	
+	UE_LOG(AttackComponentLog, Warning, TEXT("%s, Attacked with: %s"), *OwnerCharacter->GetName(), *GetName());
+	UE_LOG(AttackComponentLog, Warning, TEXT("Current damage amount: %f"), GetDamageAmount());
+	UE_LOG(AttackComponentLog, Warning, TEXT("Current Cooldown time: %f"), GetCooldownDuration());
+	
+	if (OwnerCharacter->GetCharacterMovement())
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("Current Movement speed: %f"), OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
+	}
 }
 
 void UAttackComponentBase::Server_Debug_Implementation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("%s, Attacked with: %s"), *OwnerCharacter->GetName(), *GetName());
-	UE_LOG(LogTemp, Warning, TEXT("Current damage amount: %f"), GetDamageAmount());
-	UE_LOG(LogTemp, Warning, TEXT("Current Cooldown time: %f"), GetAttackCooldown());
-	
-	if (OwnerCharacter && OwnerCharacter->GetCharacterMovement())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Current Movement speed: %f"), OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
-	}
+	Debug();
 }
 
-void UAttackComponentBase::SpawnParticles_Implementation(APlayerCharacterBase* PlayerCharacter, FHitResult Hit)
-{
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PlayerCharacter->ImpactParticles, Hit.ImpactPoint);
-	
-}
+

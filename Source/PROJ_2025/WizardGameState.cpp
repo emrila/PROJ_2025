@@ -44,7 +44,18 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
 	DOREPLIFETIME(AWizardGameState, CurrentPlayerCount);
 	DOREPLIFETIME(AWizardGameState, PlayersInStartDungeon);
+	DOREPLIFETIME(AWizardGameState, LifeStealMultiplier);
 	
+}
+
+void AWizardGameState::Multicast_EndSuddenDeath_Implementation()
+{
+	OnSuddenDeathEnd.Broadcast();
+}
+
+void AWizardGameState::Multicast_SuddenDeath_Implementation()
+{
+	OnSuddenDeath.Broadcast();
 }
 
 
@@ -68,6 +79,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
 			}
 		}
+		Multicast_SuddenDeath();
 	}
 	else if (HealthPercent <= 0){
 		for (APlayerState* Player : PlayerArray)
@@ -101,6 +113,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				}
 			}
 		}
+		Multicast_EndSuddenDeath();
 	}
 	if (HealthPercent <= 0)
 	{
@@ -111,6 +124,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
 			}
 		}
+		Multicast_SuddenDeath();
 	}
 	OnRep_Health();
 	ForceNetUpdate();
@@ -137,7 +151,9 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 				}
 			}
 		}
+		Multicast_EndSuddenDeath();
 	}
+	
 	OnRep_Health();
 	ForceNetUpdate();
 }

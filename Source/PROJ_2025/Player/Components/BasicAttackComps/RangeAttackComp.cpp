@@ -1,41 +1,41 @@
 ﻿#include "RangeAttackComp.h"
 
-#include "EnhancedInputComponent.h"
-#include "../Items/MageProjectile.h"
-#include "GameFramework/Character.h"
-#include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
+#include "Player/Components/Items/MageProjectile.h"
 
 
 URangeAttackComp::URangeAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-
-	DamageAmountToStore = 10.f;
+	PrimaryComponentTick.bStartWithTickEnabled = true;
+	
+	DamageAmount = 10.f;
 	AttackCooldown = 0.5f;
 }
 
-void URangeAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
-	FActorComponentTickFunction* ThisTickFunction)
+float URangeAttackComp::GetProjectileSpeed() const
 {
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (bIsAttacking)
+	if (FMath::IsNearlyEqual(AttackSpeedModifier, 1.f, 0.001f))
 	{
-		StartAttack();
+		return DefaultProjectileSpeed;
 	}
+	
+	float const NewSpeedMultiplier = 2.f - AttackSpeedModifier;
+	return DefaultProjectileSpeed * NewSpeedMultiplier;
 }
 
 void URangeAttackComp::StartAttack()
 {
 	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
+		UE_LOG(AttackComponentLog, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
 	
 	if (!ProjectileClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("MageFirstAttackComp, StartAttack, ProjectileClass is NULL!"));
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s, ProjectileClass is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
 	
@@ -46,163 +46,82 @@ void URangeAttackComp::StartAttack()
 	
 	Super::StartAttack();
 	
-	Server_Debugging();
-	
 	PerformAttack();
-}
-
-void URangeAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
-{
-	if (OwnerInputComp && OwnerInputAction)
-	{
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Started, this, &URangeAttackComp::OnStartAttack);
-		OwnerInputComp->BindAction(OwnerInputAction, ETriggerEvent::Completed, this, &URangeAttackComp::OnAttackEnd);
-	}
-}
-
-void URangeAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(URangeAttackComp, ProjectileSpawnTransform);
-	DOREPLIFETIME(URangeAttackComp, ProjectileSpeed);
-}
-
-void URangeAttackComp::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
-void URangeAttackComp::OnStartAttack(const FInputActionInstance& Instance)
-{
-	if (Instance.GetTriggerEvent() != ETriggerEvent::Started)
-	{
-		return;
-	}
-	bIsAttacking = true;
-}
-
-void URangeAttackComp::OnAttackEnd(const FInputActionInstance& Instance)
-{
-	if (Instance.GetTriggerEvent() != ETriggerEvent::Completed)
-	{
-		return;
-	}
-	if (!bIsAttacking)
-	{
-		return;
-	}
-	bIsAttacking = false;
 }
 
 void URangeAttackComp::PerformAttack()
 {
+	Super::PerformAttack();
+	RequestSpawnProjectile();
+}
+
+void URangeAttackComp::RequestSpawnProjectile()
+{
 	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("MageFirstAttackComp, PerformAttack, OwnerCharacter is NULL!"));
 		return;
 	}
 	
-	PlayAttackAnim();
-	
-	const FTransform SpawnTransform = GetProjectileTransform();
-	
+	if (OwnerCharacter->HasAuthority())
+	{
+		SpawnProjectile(GetProjectileTransform());
+	}
+	else
+	{
+		Server_SpawnProjectile(GetProjectileTransform());
+	}
+}
+
+void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform& SpawnTransform)
+{
 	SpawnProjectile(SpawnTransform);
 }
 
-void URangeAttackComp::SpawnProjectile(const FTransform SpawnTransform)
+void URangeAttackComp::SpawnProjectile(const FTransform& SpawnTransform) const
 {
 	if (!OwnerCharacter || !ProjectileClass)
 	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
-		return;
-	}
-	if (OwnerCharacter->HasAuthority())
-	{
-		ProjectileSpawnTransform = SpawnTransform;
-		FActorSpawnParameters SpawnParameters;
-		SpawnParameters.Owner = OwnerCharacter;
-		SpawnParameters.Instigator = OwnerCharacter;
-		AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
-			ProjectileClass, SpawnTransform, SpawnParameters);
-	
-		if (Projectile)
-		{
-			Projectile->Server_SetDamageAmount(GetDamageAmount());
-			Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
-			//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
-		}
-	}
-	else
-	{
-		Server_SpawnProjectile(SpawnTransform);
-	}
-}
-
-void URangeAttackComp::Server_SpawnProjectile_Implementation(const FTransform SpawnTransform)
-{
-	if (!OwnerCharacter || !ProjectileClass)
-	{
-		UE_LOG(LogTemp, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
+		UE_LOG(AttackComponentLog, Error, TEXT("AttackComp, SpawnProjectile, OwnerCharacter || ProjectileClass is NULL!"));
 		return;
 	}
 	
-	ProjectileSpawnTransform = SpawnTransform;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = OwnerCharacter;
 	SpawnParameters.Instigator = OwnerCharacter;
-	AMageProjectile* Projectile = GetWorld()->SpawnActor<AMageProjectile>(
-		ProjectileClass, SpawnTransform, SpawnParameters);
+	
+	if (SpawnTransform.GetLocation().IsNearlyZero())
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s, SpawnTransform is zero! no projectiles will be spawned"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	AMageProjectile* Projectile = GetWorld()->SpawnActorDeferred<AMageProjectile>(
+		ProjectileClass, 
+		SpawnTransform, 
+		OwnerCharacter, 
+		OwnerCharacter, 
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
 	
 	if (Projectile)
 	{
-		Projectile->Server_SetDamageAmount(GetDamageAmount());
-		Projectile->Server_SetProjectileSpeed(GetProjectileSpeed());
-		//Projectile->SetImpactParticle(OwnerCharacter->ImpactParticles);
+		Projectile->SetDamageAmount(GetDamageAmount());
+		Projectile->SetProjectileSpeed(GetProjectileSpeed());
+		
+		UGameplayStatics::FinishSpawningActor(Projectile, SpawnTransform);
 	}
 }
 
-void URangeAttackComp::PlayAttackAnim()
-{
-	if (OwnerCharacter && OwnerCharacter->HasAuthority())
-	{
-		Multicast_PlayAttackAnim();
-	}
-	else
-	{
-		Server_PlayAttackAnim();
-	}
-}
-
-void URangeAttackComp::Server_PlayAttackAnim_Implementation()
-{
-	Multicast_PlayAttackAnim();
-}
-
-void URangeAttackComp::Multicast_PlayAttackAnim_Implementation()
-{
-	if (AttackAnimation && OwnerCharacter)
-	{
-		float PlayRate = 1.f;
-		if (AttackAnimation->GetPlayLength() > GetAttackCooldown())
-		{
-			const float AnimLength = AttackAnimation->GetPlayLength();
-			PlayRate = AnimLength / GetAttackCooldown();
-		}
-		OwnerCharacter->PlayAnimMontage(AttackAnimation, PlayRate);
-	}
-}
-
-FTransform URangeAttackComp::GetProjectileTransform()
+FTransform URangeAttackComp::GetProjectileTransform() const
 {
 	if (!OwnerCharacter)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		UE_LOG(AttackComponentLog, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
 		return FTransform::Identity;
 	}
 
 	if (!OwnerCharacter->IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
+		UE_LOG(AttackComponentLog, Warning, TEXT("%s Pawn is not locally controlled; skipping camera-based locking."),
 			   *FString(__FUNCTION__));
 		return FTransform::Identity;
 	}
@@ -210,7 +129,7 @@ FTransform URangeAttackComp::GetProjectileTransform()
 	APlayerController* PC = Cast<APlayerController>(OwnerCharacter->GetController());
 	if (!PC)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
+		UE_LOG(AttackComponentLog, Error, TEXT("%s PlayerController is Null."), *FString(__FUNCTION__));
 		return FTransform::Identity;
 	}
 
@@ -218,43 +137,16 @@ FTransform URangeAttackComp::GetProjectileTransform()
 
 	if (!CameraManager)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
+		UE_LOG(AttackComponentLog, Error, TEXT("%s CameraManager is Null."), *FString(__FUNCTION__));
 		return FTransform::Identity;
 	}
 
 	FVector CameraLocation = CameraManager->GetCameraLocation() + (CameraManager->GetActorForwardVector() * ProjectileOffsetDistanceInFront);
 	FRotator CameraRotation = CameraManager->GetCameraRotation();
 	
-	
 	return FTransform(CameraRotation, CameraLocation);
 }
 
-float URangeAttackComp::GetAttackCooldown() const
-{
-	return Super::GetAttackCooldown() * AttackSpeedModifier;
-}
 
-float URangeAttackComp::GetDamageAmount() const
-{
-	return Super::GetDamageAmount() * AttackDamageModifier;
-}
 
-float URangeAttackComp::GetProjectileSpeed()
-{
-	if (FMath::IsNearlyEqual(AttackSpeedModifier, 1.f, 0.0001f))
-	{
-		return ProjectileSpeed;
-	}
-	return 2.f - AttackSpeedModifier;
-	//return ProjectileSpeed + ((2.f - AttackSpeedModifier) * ProjectileSpeedUpgradeAmount);*/
-	//return ProjectileSpeed;
-}
-
-void URangeAttackComp::Server_Debugging_Implementation()
-{
-	if (bDrawDebug)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Current Projectile Speed: %f"), GetProjectileSpeed());
-	}
-}
 

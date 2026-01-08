@@ -4,9 +4,12 @@
 #include "GameFramework/Actor.h"
 #include "Shield.generated.h"
 
+class UShieldAttackComp;
 class APlayerCharacterBase;
 class UStaticMeshComponent;
 class UBoxComponent;
+
+DECLARE_LOG_CATEGORY_EXTERN(ShieldLog, Log, All);
 
 UCLASS()
 class PROJ_2025_API AShield : public AActor
@@ -16,58 +19,19 @@ class PROJ_2025_API AShield : public AActor
 public:
 	AShield();
 	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void RequestActivateShield();
-
-	UFUNCTION(Server, Reliable)
-	virtual void Server_ActivateShield();
-
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_ActivateShield();
+	void ActivateShield();
 	
-	virtual void RequestDeactivateShield();
-
-	UFUNCTION(Server, Reliable)
-	virtual void Server_DeactivateShield();
-
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_DeactivateShield();
+	void DeactivateShield();
 	
-	void SetDamageAmount(const float Value) { DamageAmount = Value; }
+	void SetOwnerProperties(APlayerCharacterBase* NewOwnerCharacter, UShieldAttackComp* NewOwnerAttackComponent, const float NewDurability);
+	
+	void SetValuesPreActivation(const float NewDamageAmount, const float NewRecoveryRate);
 
 	float GetDamageAmount() const { return DamageAmount; }
-
-	void SetDurability(const float Value) { Durability = Value; }
-
-	void SetRecoveryRate(const float Value) { RecoveryRate = Value; }
-	
-	void ChangeDurability(bool bIncrease, const float AmountToChange);
-	
-	UFUNCTION(Server, Reliable)
-	void Server_BroadcastDurability(const float NewDurability);
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_BroadcastDurability(const float NewDurability);
-	
-	void SetOwnerCharacter(APlayerCharacterBase* NewOwnerCharacter);
-
-	APlayerCharacterBase* GetOwnerCharacter() const { return OwnerCharacter; }
-	
-	UFUNCTION()
-	virtual float TakeDamage(
-		float NewDamageAmount, 
-		struct FDamageEvent const& DamageEvent, 
-		class AController* EventInstigator,
-		AActor* DamageCauser
-		) override;
-	
-	float GetPlayerMovementSpeedMultiplier() const { return PlayerMovementSpeedMultiplier; }
+	float GetDurability() const { return Durability; }
 
 protected:
 	virtual void BeginPlay() override;
-
-	virtual void TickDurability();
 
 	virtual void TickRecovery();
 	
@@ -79,37 +43,33 @@ protected:
 		FVector NormalImpulse, 
 		const FHitResult& Hit
 		);
+	
+	UFUNCTION()
+	virtual float TakeDamage(
+		float NewDamageAmount, 
+		struct FDamageEvent const& DamageEvent, 
+		class AController* EventInstigator,
+		AActor* DamageCauser
+		) override;
+	
+	void ChangeDurability(bool bIncrease, const float AmountToChange);
 
 	virtual void ResetShouldGiveDamage();
-
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* ShieldMesh;
 	
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UBoxComponent* CollisionBox;*/
-	
-	UPROPERTY(Replicated)
 	float DamageAmount = 20.0f;
-
-	UPROPERTY(Replicated)
 	float Durability = 10.f;
-
-	UPROPERTY(Replicated)
 	float RecoveryRate = 1.f;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	float PlayerMovementSpeedMultiplier = 0.75f;
-	
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	APlayerCharacterBase* OwnerCharacter;
 	
-	FTimerHandle RecoveryTimerHandle;
-
-	UPROPERTY(Replicated)
-	bool bShouldGiveDamage = true;
+	UPROPERTY()
+	UShieldAttackComp* OwnerAttackComponent;
 	
-	UPROPERTY(Replicated)
-	bool bIsShieldActive = false;
+	FTimerHandle RecoveryTimerHandle;
+	
+	bool bShouldGiveDamage = true;
 };

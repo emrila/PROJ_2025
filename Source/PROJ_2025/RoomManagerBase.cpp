@@ -28,7 +28,6 @@ ARoomManagerBase::ARoomManagerBase()
 void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
-
 	
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
@@ -252,6 +251,7 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 void ARoomManagerBase::SpawnLoot()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
+	
 	if (!LootSpawnLocation)
 	{
 		LootSpawnLocation = Cast<AUpgradeSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass()));
@@ -329,9 +329,11 @@ void ARoomManagerBase::SpawnLoot()
 
 void ARoomManagerBase::EnableExits()
 {
+
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
+	
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);

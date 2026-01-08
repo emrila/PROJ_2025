@@ -58,7 +58,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SpawnLoot();
 	
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable)
 	virtual void EnableExits();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
