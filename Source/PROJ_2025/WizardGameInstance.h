@@ -87,7 +87,7 @@ public:
 	//LAN stuff
 	virtual void Init() override;
 	
-	virtual void InitDelay();
+	void HandleLanProperties();
 	
 	UFUNCTION(BlueprintCallable, Category = "LAN")
 	void Host_LanSession(FString SessionName);

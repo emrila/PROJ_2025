@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "NiagaraFunctionLibrary.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
@@ -19,13 +18,7 @@ class UAttackComponentBase;
 
 DECLARE_LOG_CATEGORY_EXTERN(PlayerBaseLog, Log, All);
 
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDash);
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
-
-UDELEGATE(Blueprintable)
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
 
 UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChangedVisuals, bool, bIFrameActive);
@@ -93,17 +86,7 @@ public:
 	FOnPlayerDied OnPlayerDied;
 	
 	UPROPERTY(BlueprintAssignable)
-	FOnIFrameChanged OnIFrameChanged;
-	
-	UPROPERTY(BlueprintAssignable)
 	FOnIFrameChangedVisuals OnIFrameChangedVisuals;
-	
-	UPROPERTY(BlueprintAssignable)
-	FOnDash OnDash;
-	
-	/*UFUNCTION(Client, Reliable)
-	virtual void Client_StartCameraInterpolation(
-		const FVector& TargetLocation, const FRotator& TargetRotation, const float LerpDuration);*/
 	
 	UFUNCTION(Client, Reliable)
 	virtual void Client_StartCameraInterpolation(
@@ -112,10 +95,6 @@ public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-
-	//TODO: This may be moved to the belonging attack component
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Particles")
-	UNiagaraSystem* ImpactParticles;
 
 	UFUNCTION()
 	void StartSuddenDeath();
@@ -216,9 +195,6 @@ protected:
 	
 	virtual void SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent);
 	
-	UFUNCTION(BlueprintImplementableEvent)
-	void BP_ChangeName(const FString& NewPlayerName);
-	
 	bool bShouldUseLookInput = true;
 	
 	bool bShouldUseMoveInput = true;
@@ -262,6 +238,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
 
 	//Handle components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
@@ -287,9 +266,6 @@ protected:
 	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category="Components|Misc")
 	void SetupBindAttributes();
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	bool bIsAttacking = false;
-	
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
@@ -312,14 +288,6 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName LeftHandSocket = TEXT("L_HandSocket");
-	
-	//TODO: Remove unused functions 
-	UFUNCTION(Server, Reliable)
-	void Server_SpawnEffect(const FVector& EffectSpawnLocation);
-
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
-
 private:
 	//Handle nametag	
 	UFUNCTION()

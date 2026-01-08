@@ -1,23 +1,20 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "../AttackComponentBase.h"
-#include "ShadowStrikeVariant2.generated.h"
+#include "../../AttackComponentBase.h"
+#include "ShadowStrikeAttackComp.generated.h"
 
 
-class AShadowStrikeRibbon;
 class UNiagaraSystem;
 struct FInputActionInstance;
 
-DECLARE_LOG_CATEGORY_EXTERN(ShadowStrikeLog, Log, All);
-
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class PROJ_2025_API UShadowStrikeVariant2 : public UAttackComponentBase
+class PROJ_2025_API UShadowStrikeAttackComp : public UAttackComponentBase
 {
 	GENERATED_BODY()
 
 public:
-	UShadowStrikeVariant2();
+	UShadowStrikeAttackComp();
 
 	virtual void StartAttack() override;
 	
@@ -51,12 +48,6 @@ protected:
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetWentThroughShield(const bool Value);
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetShouldRecast(const bool bNewShouldRecast);
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetDidRecast(const bool BNewDidRecast);
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetLockedLocation(FVector Location, FVector SweepStart);
@@ -82,36 +73,20 @@ protected:
 	virtual float GetDamageAmount() const override;*/
 
 	virtual float GetAttackRange() const;
-	
-	virtual void ResetRecast() {bShouldRecast = false;}
-	
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Attack Properties")
-	bool bShouldLockTarget = false;
 
 	//Handle target
 	bool bHasLockedTarget = false;
 
 	UPROPERTY()
 	AActor* LockedTarget;
-	
-	UPROPERTY(Replicated)
-	AShadowStrikeRibbon* Ribbon;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
-	TSubclassOf<AShadowStrikeRibbon> RibbonClass;
 
-	UPROPERTY(Replicated)
 	FVector LockedLocation;
 
-	UPROPERTY(Replicated)
 	FVector SweepStartLocation;
 	
-	float LockOnRange = 1000.f;
+	float LockOnRange = 2000.f;
 
-	//Maybe not needed
-	float MinimumDistanceToTarget = 400.f;
+	float MinimumDistanceToTarget = 200.f;
 	
 	FTimerHandle LockedTargetTickTimer;
 	
@@ -119,23 +94,14 @@ protected:
 
 	bool bCanTeleport = false;
 
-	UPROPERTY(Replicated)
 	bool bWentThroughShield = false;
-	
-	UPROPERTY(Replicated)
-	bool bShouldRecast = false;
-	
-	UPROPERTY(Replicated)
-	bool bDidRecast = false;
 
 	//Handle attack properties
 	float OffsetDistanceBehindTarget = 100.f;
 
 	float AcceptableAngelDegrees = 10.f;
 	
-	float StrikeDuration = 0.2f;
-	
-	float RecastDuration = 3.0f;
+	float StrikeDuration = 0.5f;
 	
 	//float StrikeDelay = 1.f;
 	
@@ -143,15 +109,13 @@ protected:
 	float TeleportDelay = 0.2f;
 	
 	FTimerHandle PlayerTeleportTimerHandle;
-	FTimerHandle RecastTimerHandle;
-	FTimerHandle RecastIFrameTimerHandle;
 	
 	//Handle camera interpolation
 	float CameraInterpDistanceBehind = 500.f;
 	
-	float CameraInterpDuration = 0.2f;
+	float CameraInterpDuration = 0.3f;
 	
-	float CameraInterpDelay = 0.f;
+	float CameraInterpDelay = 0.5f;
 	
 	//VFX
 	FVector DisappearLocation;
@@ -168,4 +132,3 @@ protected:
 
 	FTimerHandle PlayerIFrameTimer;
 };
-

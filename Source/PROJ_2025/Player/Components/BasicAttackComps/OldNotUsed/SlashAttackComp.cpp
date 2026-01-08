@@ -1,7 +1,6 @@
 ﻿#include "SlashAttackComp.h"
 #include "EnhancedInputComponent.h"
-#include "../SpecialAttackComps/ShadowStrikeAttackComp.h"
-#include "GameFramework/Character.h"
+#include "../../SpecialAttackComps/OldNotUsed/ShadowStrikeAttackComp.h"
 #include "Kismet/GameplayStatics.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 
@@ -10,7 +9,6 @@ USlashAttackComp::USlashAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	DamageAmount = 15.f;
-	//AttackCooldown = 0.5f;
 }
 
 void USlashAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
@@ -38,43 +36,6 @@ void USlashAttackComp::StartAttack()
 	}
 	
 	Super::StartAttack();
-	PerformAttack();
-}
-
-/*void USlashAttackComp::StartAttack(const float NewDamageAmount, const float NewAttackCooldown)
-{
-	if (!bCanAttack)
-	{
-		return;
-	}
-	
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
-		return;
-	}
-
-	if (!OwnerCharacter->HasAuthority())
-	{
-		Server_StartAttack(NewDamageAmount, NewAttackCooldown);
-		return;
-	}
-	
-	//Super::StartAttack(NewDamageAmount, NewAttackCooldown);
-	
-	PerformAttack();
-}*/
-
-void USlashAttackComp::Server_StartAttack_Implementation(const float NewDamageAmount, float NewAttackCooldown)
-{
-	if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
-		return;
-	}
-
-	//Super::StartAttack(NewDamageAmount, NewAttackCooldown);
-	
 	PerformAttack();
 }
 
@@ -197,10 +158,6 @@ void USlashAttackComp::Sweep_Implementation(FVector SweepLocation)
 			if (Hit.GetActor())
 			{
 				UniqueHitActors.Add(Hit.GetActor());
-				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(OwnerCharacter); PlayerCharacter->ImpactParticles)
-				{
-					//SpawnParticles(PlayerCharacter, Hit);
-				}
 			}
 		}
 		for (AActor* Actor : UniqueHitActors)

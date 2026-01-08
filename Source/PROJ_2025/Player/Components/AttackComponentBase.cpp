@@ -1,6 +1,7 @@
 ﻿#include "AttackComponentBase.h"
 
 #include "EnhancedInputComponent.h"
+#include "NiagaraFunctionLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
