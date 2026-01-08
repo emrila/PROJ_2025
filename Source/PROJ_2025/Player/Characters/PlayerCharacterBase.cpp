@@ -254,6 +254,24 @@ void APlayerCharacterBase::EndSprint()
 	}
 }
 
+void APlayerCharacterBase::RequestSetIsAttacking(bool bNewIsAttacking)
+{
+	if (!bIsAlive)
+	{
+		bNewIsAttacking = false;
+	}
+	bIsAttacking = bNewIsAttacking;
+	if (!HasAuthority())
+	{
+		Server_SetIsAttacking(bNewIsAttacking);
+	}
+}
+
+void APlayerCharacterBase::Server_SetIsAttacking_Implementation(const bool bNewIsAttacking)
+{
+	bIsAttacking = bNewIsAttacking;
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -464,6 +482,7 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
 	
 	DOREPLIFETIME(APlayerCharacterBase, bIsInputActive);
+	DOREPLIFETIME(APlayerCharacterBase, bIsAttacking);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)

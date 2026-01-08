@@ -81,23 +81,30 @@ void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 
 void UDashAttackComp::OnPreAttack(const FInputActionInstance& InputActionInstance)
 {
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started || !bCanAttack)
 	{
 		return;
 	}
-	
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->RequestSetIsAttacking(true);
+	}
 	bIsLockingTargetLocation = true;
 }
 
 void UDashAttackComp::OnStartAttack(const FInputActionInstance& InputActionInstance)
 {
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed || !bCanAttack)
 	{
 		return;
 	}
 	if (!bIsLockingTargetLocation)
 	{
 		return;
+	}
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->RequestSetIsAttacking(false);
 	}
 	bIsLockingTargetLocation = false;
 	StartAttack();
