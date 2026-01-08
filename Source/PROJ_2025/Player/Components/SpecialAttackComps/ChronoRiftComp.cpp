@@ -134,9 +134,19 @@ void UChronoRiftComp::UpdateIndicatorScale() const
 
 void UChronoRiftComp::SetIndicatorHidden(const bool Value) const
 {
+	if (!OwnerCharacter)
+	{
+		UE_LOG(AttackComponentLog, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
 	if (!IndicatorActor)
 	{
 		UE_LOG(AttackComponentLog, Warning, TEXT("%s, No Indicator Actor"), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!OwnerCharacter->IsAlive())
+	{
 		return;
 	}
 	
@@ -147,6 +157,12 @@ void UChronoRiftComp::SetIndicatorHidden(const bool Value) const
 void UChronoRiftComp::RequestSpawnChronoRiftZone()
 {
 	if (!OwnerCharacter)
+	{
+		UE_LOG(AttackComponentLog, Error, TEXT("%s OwnerCharacter is Null."), *FString(__FUNCTION__));
+		return;
+	}
+	
+	if (!OwnerCharacter->IsAlive())
 	{
 		return;
 	}
