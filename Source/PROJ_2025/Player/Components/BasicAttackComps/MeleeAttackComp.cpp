@@ -23,6 +23,11 @@ void UMeleeAttackComp::StartAttack()
 		return;
 	}
 	
+	if (OwnerCharacter->IsAttacking())
+	{
+		return;
+	}
+	
 	Super::StartAttack();
 	PerformAttack();
 }
