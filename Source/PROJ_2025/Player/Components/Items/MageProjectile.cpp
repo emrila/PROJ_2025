@@ -13,26 +13,39 @@
 
 AMageProjectile::AMageProjectile()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComponent"));
-	this->SetActorScale3D(FVector(5, 5,5));
-
-	CollisionComponent->SetCollisionProfileName(FName("Projectile"));
-	RootComponent = CollisionComponent;
-
-	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	ProjectileMesh->SetupAttachment(CollisionComponent);
+	WorldStaticCollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("WorldStaticCollisionComp"));
+	RootComponent = WorldStaticCollisionComponent;
+	
+	EnemyCollisionComponent = CreateDefaultSubobject<USphereComponent>("EnemyCollisionComp");
+	EnemyCollisionComponent->SetupAttachment(WorldStaticCollisionComponent);
 
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovementComponent"));
-	ProjectileMovementComponent->UpdatedComponent = CollisionComponent;
+	ProjectileMovementComponent->UpdatedComponent = WorldStaticCollisionComponent;
 	ProjectileMovementComponent->InitialSpeed = ProjectileSpeed;
 	ProjectileMovementComponent->bRotationFollowsVelocity = true;
-	ProjectileMovementComponent->bShouldBounce = false;  //TODO: Should it bounce?
+	ProjectileMovementComponent->bShouldBounce = false; 
 
 	InitialLifeSpan = LifeTime;
 	
 	Tags.Add(TEXT("Projectile"));
+}
+
+void AMageProjectile::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+	
+	AlphaElapsed += DeltaTime;
+	const float DashAlpha = FMath::Clamp(AlphaElapsed / ScaleDuration, 0.0f, 1.0f);
+	const FVector TheNewScale = FMath::Lerp(CurrentScale, CurrentScale * ScaleFactor, DashAlpha);
+	EnemyCollisionComponent->SetWorldScale3D(TheNewScale);
+	
+	if (DashAlpha >= 1.f)
+	{
+		SetActorTickEnabled(false);
+	}
 }
 
 void AMageProjectile::BeginPlay()
@@ -41,8 +54,10 @@ void AMageProjectile::BeginPlay()
 	
 	SetReplicateMovement(true);
 
-	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
-	CollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
+	EnemyCollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AMageProjectile::OnProjectileOverlap);
+	WorldStaticCollisionComponent->OnComponentHit.AddDynamic(this, &AMageProjectile::OnProjectileHit);
+	
+	CurrentScale = EnemyCollisionComponent->GetComponentScale();
 }
 
 void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex, [[maybe_unused]] bool bFromSweep,const FHitResult& SweepResult)
@@ -55,31 +70,35 @@ void AMageProjectile::OnProjectileOverlap([[maybe_unused]] UPrimitiveComponent* 
 	{
 		return;
 	}
-	AActor* DamageCauser = GetOwner() ? GetOwner() : this;
-	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
-
-		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
-
-		Destroy();
-		return;
-	}
-
 	if (OtherActor->IsA(AShield::StaticClass()))
 	{
 		AShield* Shield = Cast<AShield>(OtherActor);
 		if (Shield)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("%s hit shield"), *GetOwner()->GetName());
 			const float OldDamageAmount = DamageAmount;
-			UE_LOG(LogTemp, Warning, TEXT("Shield Damage: %f"), Shield->GetDamageAmount());
 			DamageAmount += Shield->GetDamageAmount();
-			//TODO: Change visuals
-
-			UE_LOG(LogTemp, Warning, TEXT("Damage boosted from %f: to:%f"), OldDamageAmount, DamageAmount);
+			SetActorTickEnabled(true);
 		}
+	}
+	
+	AActor* DamageCauser = GetOwner() ? GetOwner() : this;
+	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
+	{
+		if (HitEnemies.Contains(OtherActor))
+		{
+			return;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("%s hit %s for %f damage"), *GetOwner()->GetName(), *OtherActor->GetName(), DamageAmount);
+
+		UGameplayStatics::ApplyDamage(OtherActor, DamageAmount, GetOwner()->GetInstigatorController(), DamageCauser, nullptr);
+		HitEnemies.Add(OtherActor);
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ImpactParticles, SweepResult.ImpactPoint);
 		
+		if (HitEnemies.Num() >= PiercingAmount)
+		{
+			Destroy();
+		}
 	}
 }
 
@@ -103,6 +122,14 @@ void AMageProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AMageProjectile, DamageAmount);
 	DOREPLIFETIME(AMageProjectile, ImpactParticles);
+	DOREPLIFETIME(AMageProjectile, ProjectileSpeed);
+	DOREPLIFETIME(AMageProjectile, PiercingAmount);
+	DOREPLIFETIME(AMageProjectile, HitEnemies);
+	
+	DOREPLIFETIME(AMageProjectile, CurrentScale);
+	DOREPLIFETIME(AMageProjectile, ScaleFactor);
+	DOREPLIFETIME(AMageProjectile, AlphaElapsed);
+	DOREPLIFETIME(AMageProjectile, ScaleDuration);
 }
 
 void AMageProjectile::SetImpactParticle(UNiagaraSystem* Particles)
@@ -123,6 +150,29 @@ void AMageProjectile::Server_SetDamageAmount_Implementation(const float NewDamag
 	}
 	
 	this->DamageAmount = NewDamageAmount;
+}
+
+void AMageProjectile::Server_SetProjectileSpeed_Implementation(const float NewProjectileSpeed)
+{
+	if (!GetOwner() || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+	
+	if (FMath::IsNearlyEqual(NewProjectileSpeed, ProjectileSpeed, 0.01f))
+	{
+		return;
+	}
+	
+	if (ProjectileMovementComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("New Projectile Speed: %f"), NewProjectileSpeed);
+		UE_LOG(LogTemp, Warning, TEXT("Current Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
+		FVector CurrentVelocity = ProjectileMovementComponent->Velocity;
+		FVector NewVelocity = CurrentVelocity * NewProjectileSpeed;
+		ProjectileMovementComponent->Velocity = NewVelocity;
+		UE_LOG(LogTemp, Warning, TEXT("New Velocity: %f"), ProjectileMovementComponent->Velocity.Size());
+	}
 }
 
 

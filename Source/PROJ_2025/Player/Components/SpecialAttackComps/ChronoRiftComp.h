@@ -27,6 +27,13 @@ public:
 	virtual void StartAttack() override;
 	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	UFUNCTION(BlueprintCallable)
+	virtual float GetAttackRadius();
+
+	UFUNCTION(BlueprintCallable)
+	virtual float GetDamageAmount() const override;
+	
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,33 +46,31 @@ protected:
 	
 	virtual void OnTargetAreaLocked(const FInputActionInstance& InputActionInstance);
 	
-	virtual void OnStartLockingCanceled(const FInputActionInstance& InputActionInstance);
-	
 	virtual void PrepareForLaunch();
 	
 	virtual void ResetAttackCooldown() override;
 	
-	UFUNCTION(Server, Reliable)
-	virtual void Server_PerformLaunch(); 
+	void PerformLaunch();
 	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_PerformLaunch();
+	UFUNCTION(Server, Reliable)
+	virtual void Server_PerformLaunch();
+	
+	void SpawnChronoRiftZone();
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_SetTargetAreaCenter(const FVector& TargetCenter);
 
-	virtual void SetIndicatorHidden(bool bIsHidden);
+	virtual void SetIndicatorHidden(const bool bIsHidden);
+	
+	void UpdateIndicatorScale();
 
 	virtual float GetChronoDuration() const;
 
-	virtual float GetAttackRadius() const;
-
 	virtual float GetAttackCooldown() const override;
 
-	virtual float GetDamageAmount() const override;
-	
-	UFUNCTION(Client, Reliable)
-	void Client_SpawnChronoRiftIndicator();
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetIndicatorRadius(const float NewRadius);
 	
 	UPROPERTY()
 	AActor* LovesMesh;
@@ -77,6 +82,9 @@ protected:
 	FVector TargetAreaCenter;
 	
 	float TargetAreaRadius = 400.f;
+	
+	UPROPERTY(Replicated)
+	float IndicatorRadius = 400.f;
 	
 	bool bIsLockingTargetArea = false;
 
@@ -92,4 +100,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSubclassOf<AChronoRiftZone> ChronoRiftZoneClass;
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debuging();
 };

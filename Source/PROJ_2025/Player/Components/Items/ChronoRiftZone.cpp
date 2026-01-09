@@ -7,6 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "ChronoRiftDamageType.h"
+#include "TrapBase.h"
 
 AChronoRiftZone::AChronoRiftZone()
 {
@@ -40,12 +41,6 @@ void AChronoRiftZone::SetOwnerCharacter(ACharacter* NewOwnerCharacter)
 
 void AChronoRiftZone::SetInitialValues(const float NewRadius, const float NewLifetime, const float NewDamageAmount)
 {
-	/*if (!OwnerCharacter)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, OwnerCharacter is NULL!"), *FString(__FUNCTION__));
-		return;
-	}
-	SetOwner(OwnerCharacter);*/
 	Radius = NewRadius;
 	Lifetime = NewLifetime;
 	DamageAmount = NewDamageAmount;
@@ -70,11 +65,6 @@ void AChronoRiftZone::BeginPlay()
 	EnemiesSLowedDown.Empty();
 	
 	GetWorld()->GetTimerManager().SetTimer(TickDamageTimerHandle, this, &AChronoRiftZone::TickDamage, 1.f, true);
-	/*MakeInitialSphereSweep();
-	Server_SpawnEffect();
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapBegin);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AChronoRiftZone::OnOverlapEnd);
-	DestroySelf();*/
 	FTimerHandle InitialDelayTimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		InitialDelayTimerHandle,
@@ -94,8 +84,6 @@ void AChronoRiftZone::BeginPlay()
 void AChronoRiftZone::MakeInitialSphereSweep()
 {
 	SphereComponent->SetSphereRadius(Radius);
-	/*DrawDebugSphere(GetWorld(), SphereComponent->GetComponentLocation(),
-		SphereComponent->GetScaledSphereRadius(), 32, FColor::Purple, false, Lifetime);*/
 	TArray<AActor*> OverlappedActors;
 	SphereComponent->GetOverlappingActors(OverlappedActors);
 
@@ -104,6 +92,9 @@ void AChronoRiftZone::MakeInitialSphereSweep()
 		if (TheActor->IsA(AEnemyBase::StaticClass()))
 		{
 			EnemiesToGiveDamage.Add(TheActor);
+			Server_SlowEnemy(TheActor);
+		} else if (TheActor->IsA(ATrapBase::StaticClass()))
+		{
 			Server_SlowEnemy(TheActor);
 		}
 	}
@@ -116,19 +107,13 @@ void AChronoRiftZone::DestroySelf()
 		TimerHandle,
 		[this] ()
 		{
+			GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
+			EnemiesToGiveDamage.Empty();
+	
+			Server_ResetEnemiesPreEnd();
 			Destroy();
 		},
 		Lifetime + 0.2f, false);
-}
-
-void AChronoRiftZone::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	Super::EndPlay(EndPlayReason);
-	
-	GetWorld()->GetTimerManager().ClearTimer(TickDamageTimerHandle);
-	EnemiesToGiveDamage.Empty();
-	
-	Server_ResetEnemiesPreEnd();
 }
 
 void AChronoRiftZone::Server_SlowEnemy_Implementation(AActor* Enemy)
@@ -205,11 +190,18 @@ void AChronoRiftZone::Multicast_ResetEnemiesPreEnd_Implementation()
 void AChronoRiftZone::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
                                      UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->IsA(AEnemyBase::StaticClass()))
+	if (OtherActor)
 	{
-		EnemiesToGiveDamage.Add(OtherActor);
-		Server_SlowEnemy(OtherActor);
+		if (OtherActor->IsA(AEnemyBase::StaticClass()))
+		{
+			EnemiesToGiveDamage.Add(OtherActor);
+			Server_SlowEnemy(OtherActor);
+		}else if (OtherActor->IsA(ATrapBase::StaticClass()))
+		{
+			Server_SlowEnemy(OtherActor);
+		}
 	}
+	
 }
 
 void AChronoRiftZone::OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -233,10 +225,6 @@ void AChronoRiftZone::TickDamage()
 		}
 		if (IsValid(Enemy))
 		{
-			if (!OwnerCharacter )
-			{
-				
-			}
 			UGameplayStatics::ApplyDamage(
 			Enemy, 
 			DamageAmount, 
@@ -271,9 +259,5 @@ void AChronoRiftZone::Multicast_SpawnEffect_Implementation()
 		UE_LOG(LogTemp, Error, TEXT("%s, SphereComponent is NULL!"), *FString(__FUNCTION__));
 		return;
 	}
-	//Set Scale and Duration here before spawning
-	const FVector SpawnLocation = GetActorLocation();
-	//UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ChronoRiftEffect, SpawnLocation);
-	
 	BP_SpawnEffect(Lifetime, 400.f, Radius);
 }

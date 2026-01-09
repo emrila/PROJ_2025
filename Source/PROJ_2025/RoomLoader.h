@@ -7,6 +7,8 @@
 #include "Engine/LevelStreamingDynamic.h"
 #include "GameFramework/Actor.h"
 #include "RoomLoader.generated.h"
+class UInventoryWidget;
+class UInvAddWidget;
 class AFallingCarrot;
 class ALantern;
 
@@ -55,6 +57,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	float ChanceForModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInventoryWidget> InventoryWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<UInvAddWidget> InvAddWidgetClass;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<UUserWidget> ProgressWidgetClass;
@@ -67,6 +75,10 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TSubclassOf<ALantern> LanternActor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Rooms")
+	TSubclassOf<ADroppedItem> DroppedItemClass;
+	
 	
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void IncrementProgress(const bool CountAsClearedRoom);
@@ -78,7 +90,7 @@ public:
 
 	bool RollForChoiceRoom() const;
 
-	bool RollForBossRoom() const;
+	int RollForBossRoom() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Rooms")
 	void RemoveRoomFromPool(URoomData* RoomData);

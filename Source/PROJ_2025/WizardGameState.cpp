@@ -18,6 +18,11 @@ void AWizardGameState::BeginPlay()
 	SetHealth(MaxHealth);
 }
 
+void AWizardGameState::OnRep_Health() const
+{
+	OnHealthChangedDelegate.Broadcast();
+}
+
 void AWizardGameState::PlayerEnteredStartDungeon_Implementation(bool Entered)
 {
 	if (Entered)
@@ -39,6 +44,7 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AWizardGameState, SelectionWidgets);
 	DOREPLIFETIME(AWizardGameState, CurrentPlayerCount);
 	DOREPLIFETIME(AWizardGameState, PlayersInStartDungeon);
+	DOREPLIFETIME(AWizardGameState, LifeStealMultiplier);
 	
 }
 
@@ -61,6 +67,7 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 			if (Player->GetPawn())
 			{
 				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+				OnSuddenDeath.Broadcast();
 			}
 		}
 	}
@@ -92,6 +99,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
+					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}
@@ -128,6 +136,7 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
+					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}

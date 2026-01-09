@@ -30,16 +30,21 @@ struct FUpgradeDisplayData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<UTexture2D> Icon = TSoftObjectPtr<UTexture2D>(FSoftObjectPath(TEXT("/Engine/VREditor/Devices/Vive/UE4_Logo.UE4_Logo")));
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSoftObjectPtr<UStaticMesh> Mesh/* = TSoftObjectPtr<UStaticMesh>(FSoftObjectPath(TEXT("/Engine/BasicShapes/Cube.Cube")))*/;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	FName RowName = NAME_None;
 
+	/*UPROPERTY(BlueprintReadWrite)
+	FName TargetName = NAME_None;*/
+
 	UPROPERTY(BlueprintReadWrite)
-	FName TargetName = NAME_None;
+	int32 CurrentUpgradeLevel = 0;
 
 	bool operator==(const FUpgradeDisplayData& UpgradeData) const
 	{
-		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon ==
-			UpgradeData.Icon;
+		return RowName == UpgradeData.RowName && Title.EqualTo(UpgradeData.Title) && Description.EqualTo(UpgradeData.Description) && Icon == UpgradeData.Icon;
 	};
 
 	bool operator!=(const FUpgradeDisplayData& UpgradeData) const
@@ -49,7 +54,7 @@ struct FUpgradeDisplayData
 
 	FString ToString() const
 	{
-		return FString::Printf(TEXT("RowName: %s, Title: %s, Description: %s, TargetName: %s"), *RowName.ToString(), *Title.ToString(), *Description.ToString(), *TargetName.ToString());
+		return FString::Printf(TEXT("RowName: %s, Title: %s, Description: %s"), *RowName.ToString(), *Title.ToString(), *Description.ToString());
 	}
 };
 

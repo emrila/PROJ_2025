@@ -64,6 +64,12 @@ public:
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnDurabilityChanged OnDurabilityChanged;
+	
+	UFUNCTION(BlueprintCallable)
+	float GetAttackSpeedModifier() const { return AttackSpeedModifier; }
+	
+	UFUNCTION(BlueprintCallable)
+	float GetAttackDamageModifier() const { return AttackDamageModifier; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -79,11 +85,13 @@ protected:
 	APlayerCharacterBase* OwnerCharacter;
 	
 	bool bCanAttack = true;
-	
+
+	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
 	float DamageAmount = 10.0f;
 	
 	float DamageAmountToStore= 0.f;
-	
+
+	UPROPERTY(BlueprintReadOnly) //La in för att kunna räkna ut damage i UI
 	float AttackCooldown = 1.f;
 
 	float AttackCooldownToStore = 0.f;
@@ -93,12 +101,14 @@ protected:
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void SpawnParticles(APlayerCharacterBase* PlayerCharacter, FHitResult Hit);
 	
-	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Replicated,meta = (AllowPrivateAccess = "true"))
 	float AttackSpeedModifier = 1.f;
 	
-	UPROPERTY(BlueprintReadOnly,meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(BlueprintReadOnly, Replicated, meta = (AllowPrivateAccess = "true"))
 	float AttackDamageModifier = 1.f;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool bDrawDebug = true;
+	
+	UFUNCTION(Server, Reliable)
+	virtual void Server_Debug();
 };

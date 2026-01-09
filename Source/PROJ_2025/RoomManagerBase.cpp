@@ -3,10 +3,13 @@
 
 #include "RoomManagerBase.h"
 
+#include "DroppedItem.h"
+#include "ItemBase.h"
+#include "LootPicker.h"
+#include "RoomExit.h"
 #include "RoomLoader.h"
 #include "RoomSpawnPoint.h"
 #include "WizardGameInstance.h"
-#include "RoomExit.h"
 #include "WizardGameState.h"
 #include "Components/ArrowComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -25,7 +28,6 @@ ARoomManagerBase::ARoomManagerBase()
 void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 {
 	if (!HasAuthority()) return;
-
 	
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
@@ -36,9 +38,20 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		}
 		for (APlayerState* Player : GameState->PlayerArray)
 		{
-			Cast<APlayerCharacterBase>(Player->GetPlayerController()->GetPawn())->ResetIFrame();
+			if (Player)
+			{
+				if (APlayerController* PC = Player->GetPlayerController())
+				{
+					if (APlayerCharacterBase* Character =
+						Cast<APlayerCharacterBase>(PC->GetPawn()))
+					{
+						Character->ResetIFrame();
+					}
+				}
+			}
 		}
 	}
+	RoomModifiers.Empty();
 	for (TSubclassOf<URoomModifierBase> Mod : Room.ActiveModifierClasses)
 	{
 		if (!Mod) continue;
@@ -69,10 +82,10 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		AllRooms = GI->StaticDevMapPool;
 	}
-	bool BossRoom = GI->RoomLoader->RollForBossRoom();
+	int BossRoom = GI->RoomLoader->RollForBossRoom();
 	bool CampExit = false;
 	bool ChoiceRoom = false;
-	if (!BossRoom)
+	if (BossRoom == -1)
 	{
 		ChoiceRoom = GI->RoomLoader->RollForChoiceRoom();
 		if (!ChoiceRoom)
@@ -87,24 +100,26 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
-	TArray<ARoomExit*> RoomExits;
+	RoomExits.Empty();
 	for (AActor* Actor : FoundExits)
 	{
 		if (ARoomExit* Exit = Cast<ARoomExit>(Actor))
 		{
+			Exit->ResetExitState();
 			RoomExits.Add(Exit);
 		}
 	}
-	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom)
+	UE_LOG(LogTemp, Error, TEXT("room exits %d"), RoomExits.Num());
+	if (FMath::FRand() <= 0.75f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
-	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom)
+	if (!CampExit  && !ChoiceRoom && FMath::FRand() <= 0.1f && RoomExits.Num() > 1 || BossRoom != -1)
 	{
 		int32 IndexToDelete = FMath::RandRange(0, RoomExits.Num() - 1);
-		RoomExits[IndexToDelete]->Destroy();
+		RoomExits[IndexToDelete]->DisableExit();
 		RoomExits.RemoveAt(IndexToDelete);
 	}
 	
@@ -118,12 +133,12 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		ChosenRooms.Add(GI->ChoiceRoom);
 	}
-	if (BossRoom)
+	if (BossRoom != -1)
 	{
-		ChosenRooms.Add(GI->BossRoom);
+		ChosenRooms.Add(GI->BossRooms[BossRoom]);
 	}
 
-	if (Room.RoomData && AllRooms.Contains(Room.RoomData))
+	if (!GI->RoomLoader->IsDevTest && Room.RoomData && AllRooms.Contains(Room.RoomData))
 	{
 		AllRooms.Remove(Room.RoomData);
 	}
@@ -223,11 +238,20 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 	{
 		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
 	}
+	FTimerHandle EnableInputHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+	EnableInputHandle,
+	this,
+	&ARoomManagerBase::EnablePlayerInput, 
+	3.f,
+	false
+);
 }
 
 void ARoomManagerBase::SpawnLoot()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
+	
 	if (!LootSpawnLocation)
 	{
 		LootSpawnLocation = Cast<AUpgradeSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass()));
@@ -242,6 +266,46 @@ void ARoomManagerBase::SpawnLoot()
 		for (URoomModifierBase* Mod : RoomModifiers)
 		{
 			Mod->OnLootSpawned();
+		}
+		if (RoomModifiers.Num() > 0)
+		{
+			if (FMath::FRand() <= 0.5f)
+			{
+				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+				FName RandomLoot = FLootPicker::PickLoot(true);
+				FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
+				ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
+				DroppedItem->ItemRowName = RandomLoot;
+				DroppedItem->Initialize(1.f);
+			}else
+			{
+				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+				FName RandomLoot = FLootPicker::PickLoot(true);
+				FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
+				ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
+				DroppedItem->ItemRowName = RandomLoot;
+				DroppedItem->Initialize(1.f);
+				FName RandomLoot2 = FLootPicker::PickLoot();
+				FItemDataRow LootData2 = FLootPicker::GetItem(RandomLoot2);
+				ADroppedItem* DroppedItem2 = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+				DroppedItem2->ItemMesh->SetStaticMesh(LootData2.DroppedMesh);
+				DroppedItem2->ItemRowName = RandomLoot2;
+				DroppedItem2->Initialize(1.f);
+			}
+		}else
+		{
+			if (FMath::FRand() <= 0.2f)
+			{
+				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
+				FName RandomLoot = FLootPicker::PickLoot();
+				FItemDataRow LootData = FLootPicker::GetItem(RandomLoot);
+				ADroppedItem* DroppedItem = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
+				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
+				DroppedItem->ItemRowName = RandomLoot;
+				DroppedItem->Initialize(1.f);
+			}
 		}
 	}else
 	{
@@ -265,9 +329,11 @@ void ARoomManagerBase::SpawnLoot()
 
 void ARoomManagerBase::EnableExits()
 {
+
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
+	
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
@@ -277,6 +343,7 @@ void ARoomManagerBase::EnableExits()
 
 	for (URoomModifierBase* Mod : RoomModifiers)
 	{
+		if (!Mod) continue;
 		UE_LOG (LogTemp, Warning, TEXT("🔮 Mod OnExitsUnlocked called"));
 		Mod->OnExitsUnlocked();
 	}
@@ -297,6 +364,17 @@ void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
 	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
+}
+
+void ARoomManagerBase::EnablePlayerInput_Implementation()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (!PC) return;
+	
+	APawn* PlayerPawn = PC->GetPawn();
+	if (!PlayerPawn) return;
+
+	PlayerPawn->EnableInput(PC);
 }
 
 

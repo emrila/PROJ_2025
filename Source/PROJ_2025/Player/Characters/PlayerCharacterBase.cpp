@@ -2,11 +2,10 @@
 
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-#include "PlayerLoginSystem.h"
+#include "Inventory.h"
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
-#include "Components/CapsuleComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Core/UpgradeComponent.h"
 #include "Engine/ActorChannel.h"
@@ -14,7 +13,6 @@
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Interact/Public/InteractorComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -49,16 +47,11 @@ APlayerCharacterBase::APlayerCharacterBase()
 
 	InteractorComponent = CreateDefaultSubobject<UInteractorComponent>(TEXT("InteractorComponent"));
 	UpgradeComponent = CreateDefaultSubobject<UUpgradeComponent>(TEXT("UpgradeComponent"));
+	Inventory = CreateDefaultSubobject<UInventory>(TEXT("Inventory"));
 	
 	PlayerNameTagWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PlayerNameTagWidgetComponent"));
 	PlayerNameTagWidgetComponent->SetupAttachment(RootComponent);
 	PlayerNameTagWidgetComponent->AddLocalOffset(FVector(0.0f, 0.0f, 100.0f));
-
-	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
-	{
-		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
-	}
-	
 }
 
 void APlayerCharacterBase::Tick(float DeltaTime)
@@ -85,14 +78,14 @@ void APlayerCharacterBase::Tick(float DeltaTime)
 		}
 	}
 
-	if (IFrame)
+	/*if (IFrame)
 	{
 		// Possibly add visual effects or indicators for I-frames here
 		//DrawDebugSphere(GetWorld(), GetActorLocation(), GetCapsuleComponent()->GetScaledCapsuleRadius(), 12, FColor::Green, false, 0.1f);
 #if WITH_EDITOR
 		DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 12, FColor::Green, false, -0.1f, 0, 2.f);
 #endif		
-	}
+	}*/
 }
 
 void APlayerCharacterBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -249,16 +242,49 @@ void APlayerCharacterBase::SetInputActive(const bool bNewInputActive)
 	bIsInputActive = bNewInputActive;
 }
 
+void APlayerCharacterBase::SetShouldUseSprintInput(const bool bNewShouldUseInput)
+{
+	bShouldUseSprintInput = bNewShouldUseInput;
+	
+	if (!bShouldUseSprintInput)
+	{
+		EndSprint();
+	}
+}
+
+void APlayerCharacterBase::EndSprint()
+{
+	if (CurrentMaxWalkSpeed > 0.f)
+	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->MaxWalkSpeed = CurrentMaxWalkSpeed;
+		}
+	}
+}
+
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
-	OnIFrameStarted.Broadcast(IFrame);
+	OnIFrameChanged.Broadcast(IFrame);
+}
+
+void APlayerCharacterBase::StartIFrameVisuals()
+{
+	IFrame = true;
+	OnIFrameChangedVisuals.Broadcast(true);
 }
 
 void APlayerCharacterBase::ResetIFrame()
 {
 	IFrame = false;
-	OnIFrameStarted.Broadcast(IFrame);
+	OnIFrameChanged.Broadcast(IFrame);
+}
+
+void APlayerCharacterBase::ResetIFrameVisuals()
+{
+	IFrame = false;
+	OnIFrameChangedVisuals.Broadcast(false);
 }
 
 void APlayerCharacterBase::SetIsAlive(const bool NewIsAlive)
@@ -299,7 +325,11 @@ void APlayerCharacterBase::Client_ShowDamageVignette_Implementation()
 void APlayerCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	
+	if (GetCharacterMovement())
+	{
+		BaseMaxWalkSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	}
+
 	if (HasAuthority())
 	{
 		if (BasicAttackComponentClass)
@@ -334,16 +364,11 @@ void APlayerCharacterBase::BeginPlay()
 	}
 	
 	SetUpLocalCustomPlayerName();
-
-	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
-	{
-		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
-	}
-	
+	UE_LOG(PlayerBaseLog, Log, TEXT("BeginPLay"));
 	if (UpgradeComponent && IsLocallyControlled())
-	{
-		//UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
-		UpgradeComponent->BindAttribute(this, TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+	{	
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 		
@@ -352,7 +377,7 @@ void APlayerCharacterBase::BeginPlay()
 		
 		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
 		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
-
+		
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
@@ -382,12 +407,6 @@ void APlayerCharacterBase::BeginPlay()
 	{		
 	 	InteractorComponent->OnFinishedInteraction.AddDynamic(UpgradeComponent, &UUpgradeComponent::OnUpgradeReceived);
 	}
-
-	if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
-	{
-		MaxWalkSpeed = CharacterMovementComponent->MaxWalkSpeed;
-	}
-	
 }
 
 void APlayerCharacterBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -399,25 +418,10 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
 
+	UE_LOG(PlayerBaseLog, Log, TEXT("Possesed"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{
-		//UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
-		UpgradeComponent->BindAttribute(this, TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
-		if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(this, GetClass()->FindPropertyByName(TEXT("MaxWalkSpeed"))))
-		{
-			AttributeData->OnAttributeModified.AddWeakLambda(this, [this, NewController] 
-			{
-				if (!this || !NewController)
-				{
-					return;
-				}
-				if (UCharacterMovementComponent* CharacterMovementComponent = GetCharacterMovement())
-				{					
-					CharacterMovementComponent->MaxWalkSpeed = MaxWalkSpeed;
-					UE_LOG(PlayerBaseLog, Log, TEXT("%s, Updated MaxWalkSpeed to %f"), *FString(__FUNCTION__), CharacterMovementComponent->MaxWalkSpeed);
-				}
-			});				
-		}
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
@@ -465,16 +469,20 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	DOREPLIFETIME(APlayerCharacterBase, bIsAlive);
 	DOREPLIFETIME(APlayerCharacterBase, SuddenDeath);
 	DOREPLIFETIME(APlayerCharacterBase, IFrame);
-	DOREPLIFETIME(APlayerCharacterBase, MaxWalkSpeed);	
+	DOREPLIFETIME(APlayerCharacterBase, BaseMaxWalkSpeed)
+	
 	DOREPLIFETIME(APlayerCharacterBase, BasicAttackComponent);
 	DOREPLIFETIME(APlayerCharacterBase, SpecialAttackComponent);
-
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	if (!bIsAlive)
+	if (!bIsAlive || IFrame)
 	{
+		if (GetCharacterMovement())
+		{
+			GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		}
 		return 0.f;
 	}
 	const float NewDamageAmount = DamageAmount * DefenceStat;
@@ -760,6 +768,50 @@ bool APlayerCharacterBase::ReplicateSubobjects(class UActorChannel* Channel, cla
 	}
 
 	return WroteSomething;
+}
+
+void APlayerCharacterBase::SetupBindAttributes_Implementation()
+{
+	if (UpgradeComponent && IsLocallyControlled())
+	{
+		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+
+		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
+		const FName AttackDamageModifierPropName = "AttackDamageModifier";
+
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+
+		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
+		{
+			const FName MaxHealthPropName = "MaxHealth";
+			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
+
+			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+
+			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
+			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
+			{
+				AttributeData->OnAttributeModified.AddWeakLambda(GameState, [GameState]
+				{
+					if (!GameState)
+					{
+						return;
+					}
+					UE_LOG(PlayerBaseLog, Log, TEXT("Updating MaxHealth to %f"), GameState->MaxHealth);
+					GameState->SetMaxHealth(GameState->MaxHealth);
+				});
+
+			}
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
+			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
+
+		}
+	}
 }
 
 void APlayerCharacterBase::OnRep_CustomPlayerName()

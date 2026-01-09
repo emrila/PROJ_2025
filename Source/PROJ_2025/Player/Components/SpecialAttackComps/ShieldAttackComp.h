@@ -27,8 +27,10 @@ public:
 
 	virtual float GetAttackCooldown() const override;
 
+	UFUNCTION(BlueprintCallable)
 	virtual float GetDamageAmount() const override;
 
+	UFUNCTION(BlueprintCallable)
 	virtual float GetDurability();
 
 	virtual float GetRecoveryRate();
@@ -54,6 +56,8 @@ protected:
 	
 	bool bIsShieldActive = false;
 	
+	bool bShouldHandleSprint = false;
+	
 	UPROPERTY(EditDefaultsOnly)
 	TSubclassOf<class AShield> ShieldClass;
 	
@@ -77,4 +81,7 @@ protected:
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_HandleOwnerMovement(const float NewMoveSpeed);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_Debuging();
 };

@@ -39,19 +39,11 @@ protected:
 
 	virtual void DestroySelf();
 	
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
 	UFUNCTION(Server, Reliable)
-	virtual void Server_SlowEnemy(AActor* Enemy);
+	virtual void Server_SlowEnemy(AActor* Enemy); 
 	
 	UFUNCTION(NetMulticast, Reliable)
 	virtual void Multicast_SlowEnemy(AActor* Enemy);
-	
-	/*UFUNCTION(Server, Reliable)
-	virtual void Server_ResetEnemy(AActor* Enemy);
-	
-	UFUNCTION(NetMulticast, Reliable)
-	virtual void Multicast_ResetEnemy(AActor* Enemy);*/
 	
 	UFUNCTION(Server, Reliable)
 	virtual void Server_ResetEnemiesPreEnd();

@@ -4,12 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "AdvancedFriendsGameInstance.h"
-#include "Engine/GameInstance.h"
 #include "RoomManagerBase.h"
 #include "RoomModifierBase.h"
 #include "WizardGameInstance.generated.h"
 
 
+struct FItemDataRow;
 class UWidget;
 
 USTRUCT(BlueprintType)
@@ -57,10 +57,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Rooms")
 	class ARoomLoader* RoomLoader = nullptr;
 	
+	UFUNCTION(BlueprintCallable, Category = "Items")
+	FItemDataRow GetItem(FName RowName);
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TMap<ERoomType, FRoomModifierArray> AvailableModsForRoomType;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
+	UDataTable* ItemDataTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	URoomData* CampRoom;
@@ -69,7 +73,7 @@ public:
 	URoomData* ChoiceRoom;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
-	URoomData* BossRoom;
+	TArray<URoomData*> BossRooms;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rooms")
 	TArray<URoomData*> StaticNormalMapPool;
@@ -117,5 +121,10 @@ public:
 	FTimerHandle DestroySessionTimerHandle;
 	float DestroySessionDelaySeconds = 1.f;
 	FString PendingMainMenuMap;
-
+	
+	UPROPERTY(BlueprintReadWrite)
+	FString LanPlayerName = TEXT("LanPlayerName");
+	
+	UPROPERTY(BlueprintReadWrite)
+	bool bIsLanGame = false;
 };

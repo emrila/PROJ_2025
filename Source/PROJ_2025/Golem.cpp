@@ -49,9 +49,10 @@ void AGolem::HandleDeath()
 			{
 				Die();
 			},
-			(5),
+			0.77,
 			false
-			);		
+			);
+	Dead = true;
 	OnRep_Death();
 }
 

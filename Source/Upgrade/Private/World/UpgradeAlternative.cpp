@@ -60,6 +60,10 @@ AUpgradeAlternative::AUpgradeAlternative()
 
 	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
 	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
+	
+	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
+	StaticMeshComponent->SetupAttachment(RootComponent);
+	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 }
 
 void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
@@ -68,6 +72,24 @@ void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
 	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
 	{
 		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
+	}
+	
+	if (!StaticMeshComponent)
+	{
+		constexpr float InRate = 0.2f;
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			FTimerDelegate::CreateLambda([this, Data]()
+			{
+				SetUpgradeDisplayData(Data);
+			}),
+			InRate, false);
+	}
+
+	if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
+	{
+		StaticMeshComponent->SetStaticMesh(NewMesh);
 	}
 }
 
@@ -95,7 +117,9 @@ void AUpgradeAlternative::Tick(float DeltaTime)
 	{
 		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
-		SetActorRotation(FMath::RInterpTo(GetActorRotation(), LookAtRotation, DeltaTime, InterpSpeed));
+		const FRotator TargetRotation = FRotator(LookAtRotation.Pitch, LookAtRotation.Yaw, GetActorRotation().Roll);
+		
+		SetActorRotation(TargetRotation);
 	}
 }
 
@@ -122,7 +146,7 @@ void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
 	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
 	bSelected = true;
-    UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
+   // UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
     SelectUpgrade();
 
 	if (OwningSpawner)

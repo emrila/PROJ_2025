@@ -5,6 +5,7 @@
 #include "GameFramework/Character.h"
 #include "PlayerCharacterBase.generated.h"
 
+class UInventory;
 struct FInputActionInstance;
 class UUpgradeComponent;
 class UCameraComponent;
@@ -23,7 +24,11 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDash);
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDied, bool, bNewIsAlive);
 
+UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChanged, bool, bIFrameActive);
+
+UDELEGATE(BlueprintCallable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChangedVisuals, bool, bIFrameActive);
 
 UCLASS()
 class PROJ_2025_API APlayerCharacterBase : public ACharacter
@@ -44,6 +49,10 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	UAttackComponentBase* GetSpecialAttackComponent() const;
+
+	// Inventory pointer
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Inventory")
+	UInventory* Inventory;
 	
 	//Handle sockets
 	FVector GetRightHandSocketLocation() const;
@@ -60,21 +69,34 @@ public:
 	//Handle Input
 	virtual void SetInputActive(const bool bNewInputActive);
 	
+	virtual void SetShouldUseSprintInput(const bool bNewShouldUseInput);
+	
+	virtual void EndSprint();
+	
 	virtual bool IsInputActive() const { return bIsInputActive; }
+	
+	virtual bool GetShouldUseSprintInput() const { return bShouldUseSprintInput; }
 	
 	//Handle Damage
 	virtual void StartIFrame();
 	
+	virtual void StartIFrameVisuals();
+	
 	virtual void ResetIFrame();
+	
+	virtual void ResetIFrameVisuals();
 
 	virtual bool IsAlive() const { return bIsAlive; }
 
 	virtual void SetIsAlive(const bool NewIsAlive);
-	
-	virtual void EndIsAttacking() { bIsAttacking = false; }
 
 	FOnPlayerDied OnPlayerDied;
-	FOnIFrameChanged OnIFrameStarted;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnIFrameChanged OnIFrameChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnIFrameChangedVisuals OnIFrameChangedVisuals;
 	
 	UPROPERTY(BlueprintAssignable)
 	FOnDash OnDash;
@@ -101,8 +123,6 @@ public:
 	UFUNCTION()
 	void EndSuddenDeath();
 
-	virtual void Jump() override;
-
 	UFUNCTION(BlueprintImplementableEvent)
 	void HitFeedback();
 
@@ -117,6 +137,9 @@ public:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUserWidget> DamageVignetteWidget;
+
+	UPROPERTY(BlueprintReadOnly,Replicated)
+	float BaseMaxWalkSpeed = 0.f;
 
 protected:
 	//Handle override parent functions
@@ -135,7 +158,7 @@ protected:
 	UPROPERTY(Replicated)
 	bool IFrame = false;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Damage")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Damage")
 	float DefenceStat = 0.f;
 	//Handle nametag
 	virtual void TickNotLocal();
@@ -180,6 +203,10 @@ protected:
 
 	virtual void Look(const FInputActionValue& Value);
 	
+	virtual void Jump() override;
+	
+	FTimerHandle JumpTimerHandle;
+	
 	virtual void OnSprintBegin(const FInputActionInstance& ActionInstance);
 	
 	virtual void OnSprintEnd(const FInputActionInstance& ActionInstance);
@@ -187,6 +214,9 @@ protected:
 	virtual void Interact(const FInputActionValue& Value);
 	
 	virtual void SetupAttackComponentInput(UEnhancedInputComponent* EnhancedInputComponent);
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void BP_ChangeName(const FString& NewPlayerName);
 	
 	bool bShouldUseLookInput = true;
 	
@@ -199,10 +229,6 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Movement")
 	float SprintSpeedMultiplier = 1.5f;
-	
-	UPROPERTY(Replicated, BlueprintReadOnly, meta=(AllowPrivateAccess = true))
-	float MaxWalkSpeed = 600.f;
-
 	
 	bool bShouldSprint = false;
 	
@@ -238,7 +264,7 @@ protected:
 	//Handle components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* BasicAttackComponent;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
 	UAttackComponentBase* SpecialAttackComponent;
 	
@@ -255,6 +281,13 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UUpgradeComponent> UpgradeComponent;
+	
+	UFUNCTION(BlueprintCallable, NetMulticast, Reliable, Category="Components|Misc")
+	void SetupBindAttributes();
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsAttacking = false;
+	
 	//Handle nametag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Components|Misc")
 	TObjectPtr<UWidgetComponent> PlayerNameTagWidgetComponent;
@@ -271,9 +304,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(AllowPrivateAccess = true))
 	FText ClassDescription;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
-	bool bIsAttacking = false;
-	
 	//Handle sockets
 	UPROPERTY(VisibleAnywhere, Category="Socket Names")
 	FName RightHandSocket = TEXT("R_HandSocket");
@@ -287,8 +317,6 @@ protected:
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_SpawnEffect(const FVector& EffectSpawnLocation);
-
-
 
 private:
 	//Handle nametag	

@@ -10,6 +10,11 @@
 /**
  * 
  */
+
+UDELEGATE(Blueprintable)
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnHealthChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuddenDeath);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSuddenDeathEnd);
 UCLASS()
 class PROJ_2025_API AWizardGameState : public AGameStateBase
 {
@@ -26,8 +31,8 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, ReplicatedUsing = OnRep_Health)
 	float Health;
 
-	UFUNCTION(BlueprintImplementableEvent)
-	void OnRep_Health();
+	UFUNCTION()
+	void OnRep_Health() const;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	float HealthPercent = 1;
@@ -58,7 +63,16 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 	int32 PlayersInStartDungeon;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	float LifeStealMultiplier = 1.f;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnHealthChangedDelegate;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnSuddenDeath;
+	
+	UPROPERTY(BlueprintAssignable)
+	FOnHealthChanged OnSuddenDeathEnd;
 	
 };

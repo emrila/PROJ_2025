@@ -139,8 +139,8 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
 	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
-	FString LevelName = PendingNextRoomData.RoomData->RoomLevel.GetAssetName();
-
+	FName LevelName = PendingNextRoomData.RoomData->RoomLevel.GetLongPackageFName();
+	
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = FName("OnNextLevelLoaded");
@@ -149,14 +149,14 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 	
 	UGameplayStatics::LoadStreamLevel(
 		this,                  
-		FName(LevelName),             
+		LevelName,             
 		true,                 
 		true,                  
 		LatentInfo 
 	);
 	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
-	CurrentLoadedLevelName = FName(LevelName);
+	CurrentLoadedLevelName = LevelName;
 	CurrentRoom = PendingNextRoomData;
 	
 
@@ -211,13 +211,17 @@ bool ARoomLoader::RollForChoiceRoom() const
 	return false;
 }
 
-bool ARoomLoader::RollForBossRoom() const
+int ARoomLoader::RollForBossRoom() const
 {
 	if (ClearedRooms == 9)
 	{
-		return true;
+		return 0;
 	}
-	return false;
+	if (ClearedRooms == 19)
+	{
+		return 1;
+	}
+	return -1;
 }
 
 void ARoomLoader::RemoveRoomFromPool(URoomData* RoomData)
