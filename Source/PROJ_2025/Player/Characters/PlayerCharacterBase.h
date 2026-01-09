@@ -70,6 +70,13 @@ public:
 	
 	virtual bool GetShouldUseSprintInput() const { return bShouldUseSprintInput; }
 	
+	void RequestSetIsAttacking(bool bNewIsAttacking);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetIsAttacking(const bool bNewIsAttacking);
+	
+	bool IsAttacking() const { return bIsAttacking; }
+	
 	//Handle Damage
 	virtual void StartIFrame();
 	
@@ -239,7 +246,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Input|Misc")
 	UInputAction* InteractAction;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	UPROPERTY(Replicated, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	bool bIsAttacking = false;
 
 	//Handle components

@@ -102,8 +102,13 @@ void UAttackComponentBase::OnStartAttack(const FInputActionInstance& InputAction
 
 void UAttackComponentBase::StartAttack()
 {
-	if (!OwnerCharacter || !bCanAttack || !OwnerCharacter->IsAlive())
+	if (!OwnerCharacter || !bCanAttack)
 	{
+		return;
+	}
+	if (!OwnerCharacter->IsAlive())
+	{
+		bIsAttacking = false;
 		return;
 	}
 	

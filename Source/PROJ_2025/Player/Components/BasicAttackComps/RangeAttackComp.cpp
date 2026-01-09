@@ -44,6 +44,10 @@ void URangeAttackComp::StartAttack()
 		return;
 	}
 	
+	if (OwnerCharacter->IsAttacking())
+	{
+		return;
+	}
 	Super::StartAttack();
 	
 	PerformAttack();
