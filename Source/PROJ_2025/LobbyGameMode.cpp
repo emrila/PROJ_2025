@@ -13,6 +13,7 @@ void ALobbyGameMode::BeginPlay()
 	Super::BeginPlay();
 	//ShowLobbyWidget();
 	
+	 
 }
 
 void ALobbyGameMode::ShowLobbyWidget()
