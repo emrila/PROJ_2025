@@ -1,11 +1,10 @@
-﻿
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "NiagaraSystem.h"
 #include "GameFramework/Actor.h"
 #include "MageProjectile.generated.h"
 
+class UNiagaraSystem;
 class UProjectileMovementComponent;
 class USphereComponent;
 
@@ -18,15 +17,9 @@ public:
 	AMageProjectile();
 	
 	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(BlueprintCallable)
-	void SetImpactParticle(UNiagaraSystem* Particles);
 	
-	UFUNCTION(Server, Reliable)
-	void Server_SetDamageAmount(const float NewDamageAmount);
-	
-	UFUNCTION(Server, Reliable)
-	void Server_SetProjectileSpeed(const float NewProjectileSpeed);
+	void SetDamageAmount(const float NewDamageAmount);
+	void SetProjectileSpeed(const float NewProjectileSpeed) const;
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,12 +43,6 @@ protected:
 		const FHitResult& Hit
 	);
 	
-	UPROPERTY(Replicated)
-	float DamageAmount = 10.0f;
-
-	float GetDamageAmount() const { return DamageAmount; }
-	void SetDamageAmount(const float Value) { DamageAmount = Value; }
-	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -66,30 +53,26 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UProjectileMovementComponent* ProjectileMovementComponent;
-
-	UPROPERTY(Replicated)
+	
+	float DamageAmount = 10.0f;
+	
 	float ProjectileSpeed = 3000.0f;
 	
 	float LifeTime = 10.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UNiagaraSystem* ImpactParticles;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Replicated)
 	float PiercingAmount = 2.f;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	TArray<AActor*> HitEnemies;
 	
-	UPROPERTY(Replicated)
 	FVector CurrentScale;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
 	float ScaleFactor = 4.f;
 	
-	UPROPERTY(Replicated)
 	float AlphaElapsed = 0.f;
 	
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Scale", Replicated)
 	float ScaleDuration = 0.3f;
 };

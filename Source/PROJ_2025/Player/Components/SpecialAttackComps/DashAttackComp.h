@@ -6,7 +6,8 @@
 
 
 class AShadowStrikeRibbon;
-struct FInputActionInstance;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCanRecast);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRecast);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class PROJ_2025_API UDashAttackComp : public UAttackComponentBase
@@ -17,41 +18,45 @@ public:
 	UDashAttackComp();
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-							   FActorComponentTickFunction* ThisTickFunction) override;
+						   FActorComponentTickFunction* ThisTickFunction) override;
 	
-	virtual void SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction) override;
+	UPROPERTY(BlueprintAssignable)
+	FOnCanRecast OnCanRecast;
 	
-	virtual void StartAttack() override;
+	UPROPERTY(BlueprintAssignable)
+	FOnRecast OnRecast;
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	
+	virtual void OnPreAttack(const FInputActionInstance& InputActionInstance) override;
+	virtual void OnStartAttack(const FInputActionInstance& InputActionInstance) override;
+	
+	virtual void StartAttack() override;
 	virtual void PerformAttack() override;
 	
-	virtual void OnPrepareForAttack(const FInputActionInstance& ActionInstance);
-	
-	virtual void OnStartAttack(const FInputActionInstance& ActionInstance);
-	
-	//virtual void OnAttackCanceled(const FInputActionInstance& ActionInstance);
-	
-	void PrepareForAttack();
-	
-	void TryLockingTargetLocation();
+	void RequestDash(const FVector& NewTargetLocation);
+	void Dash(const FVector& NewTargetLocation);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_SetCanDash(const bool Value);
+	void Server_Dash(const FVector& NewTargetLocation);
+	
+	void PerformSweep();
+	
+	virtual float GetCooldownDuration() override;
+	
+	void SetShouldEverRecast(const bool bNewShouldEverRecast);
 	
 	UFUNCTION(Server, Reliable)
-	void Server_SetStartAndTargetLocation(const FVector& NewStartLocation, const FVector& NewLockedLocation);
+	void Server_SetShouldEverRecast(const bool bNewShouldEverRecast);
 	
-	UFUNCTION(Server, Reliable)
-	void Server_SetWentThroughShield(const bool Value);
+	void SetShouldRecast(const bool bNewShouldRecast);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_SetShouldRecast(const bool bNewShouldRecast);
+	
+	void SetDidRecast(const bool bNewDidRecast);
 	
 	UFUNCTION(Server, Reliable)
 	void Server_SetDidRecast(const bool bNewDidRecast);
@@ -59,81 +64,54 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void Server_SetIsDashing(const bool bNewIsDashing);
 	
-	UFUNCTION(Server, Reliable)
-	void Server_SetHasLockedTargetLocation(const bool bNewHasLockedTargetLocation);
+	FVector GetTargetLocation() const;
 	
-	UFUNCTION(Server, Reliable)
-	void Server_SetTargetSweepLocation(const FVector& TargetCenter);
+	void HandlePostAttackState() const;
 	
-	UFUNCTION(Server, Reliable)
-	void Server_PerformSweep();
+	virtual void Reset() override;
 	
-	void Dash();
+	UFUNCTION()
+	void OnRepShouldRecast();
 	
-	UFUNCTION(Server, Reliable)
-	void Server_Dash();
+	UFUNCTION()
+	void OnRepWentThroughShield();
 	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_Dash();
-	
-	void HandlePostAttackState();
-	
-	UFUNCTION(Server, Reliable)
-	void Server_HandlePostAttackState();
-	
-	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_HandlePostAttackState();
-	
-	virtual void ResetAttackCooldown() override;
-	
-	virtual float GetAttackCooldown() const override;
-	
-	virtual float GetDamageAmount() const override;
-	
-	UPROPERTY(Replicated)
-	AShadowStrikeRibbon* Ribbon;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
-	TSubclassOf<AShadowStrikeRibbon> RibbonClass;
-	
-	UPROPERTY(Replicated)
-	FVector TargetLocation;
-	
-	UPROPERTY(Replicated)
-	FVector StartLocation;
-	
-	FVector IndicatorLocation;
-	
-	UPROPERTY(Replicated)
-	FVector TargetSweepLocation;
-	
-	//
 	float DashRange = 1000.f;
-	
 	float DashDuration = 0.2f;
+	float RecastDuration = 5.0f;
+	float ShieldInvincibilityDuration = 5.f;
 	
-	float RecastDuration = 3.0f;
-	
+	UPROPERTY(Replicated)
 	float DashElapsed = 0.0f;
 	
+	bool bIsLockingTargetLocation = false;
+	
 	UPROPERTY(Replicated)
+	bool bIsDashing = false;
+	
+	bool bShouldEverRecast = true;
+	
+	UPROPERTY(ReplicatedUsing = OnRepShouldRecast)
 	bool bShouldRecast = false;
 	
 	UPROPERTY(Replicated)
 	bool bDidRecast = false;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing = OnRepWentThroughShield)
 	bool bWentThroughShield = false;
 	
 	UPROPERTY(Replicated)
-	bool bCanDash = false;
+	FVector StartLocation;
 	
 	UPROPERTY(Replicated)
-	bool bIsDashing = false;
-	
-	UPROPERTY(Replicated)
-	bool bHasLockedTargetLocation = false;
+	FVector TargetLocation;
 	
 	FTimerHandle RecastTimer;
 	FTimerHandle IFrameTimer;
+	
+	UPROPERTY()
+	AShadowStrikeRibbon* Ribbon;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effects")
+	TSubclassOf<AShadowStrikeRibbon> RibbonClass;
 };

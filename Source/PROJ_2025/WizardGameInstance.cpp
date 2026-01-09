@@ -20,10 +20,10 @@ void UWizardGameInstance::Init()
 	{
 		FLootPicker::Initialize(ItemDataTable);
 	}
-	InitDelay();
+	HandleLanProperties();
 }
 
-void UWizardGameInstance::InitDelay()
+void UWizardGameInstance::HandleLanProperties()
 {
 	IOnlineSubsystem* OnlineSubsystem = Online::GetSubsystem(GetWorld());
 	

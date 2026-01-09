@@ -48,6 +48,16 @@ void AWizardGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	
 }
 
+void AWizardGameState::Multicast_EndSuddenDeath_Implementation()
+{
+	OnSuddenDeathEnd.Broadcast();
+}
+
+void AWizardGameState::Multicast_SuddenDeath_Implementation()
+{
+	OnSuddenDeath.Broadcast();
+}
+
 
 void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 {
@@ -59,27 +69,45 @@ void AWizardGameState::DamageHealth_Implementation(float DamageAmount)
 	
 	UE_LOG(LogTemp, Error, TEXT("Damage Taken"));
 	
-
-	if (HealthPercent <= 0 && Cast<UWizardGameInstance>(GetGameInstance())->RoomLoader->CurrentRoom.RoomData->RoomType != ERoomType::Parkour)
+	if (URoomData* RoomData = Cast<UWizardGameInstance>(GetGameInstance())->RoomLoader->CurrentRoom.RoomData)
 	{
-		for (APlayerState* Player : PlayerArray)
+		if (HealthPercent <= 0 && RoomData->RoomType != ERoomType::Parkour)
 		{
-			if (Player->GetPawn())
+			for (APlayerState* Player : PlayerArray)
 			{
-				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
-				OnSuddenDeath.Broadcast();
+				if (Player->GetPawn())
+				{
+					Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+				}
+			}
+			Multicast_SuddenDeath();
+		}
+		else if (HealthPercent <= 0){
+			for (APlayerState* Player : PlayerArray)
+			{
+				if (Player->GetPawn())
+				{
+					Cast<APlayerCharacterBase>(Player->GetPawn())->SetIsAlive(false);
+				}
 			}
 		}
 	}
-	else if (HealthPercent <= 0){
-		for (APlayerState* Player : PlayerArray)
+	else
+	{
+		if (HealthPercent <= 0)
 		{
-			if (Player->GetPawn())
+			for (APlayerState* Player : PlayerArray)
 			{
-				Cast<APlayerCharacterBase>(Player->GetPawn())->SetIsAlive(false);
+				if (Player->GetPawn())
+				{
+					Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
+				}
 			}
+			Multicast_SuddenDeath();
 		}
+		
 	}
+	
 	OnRep_Health();
 	ForceNetUpdate();
 }
@@ -99,11 +127,11 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
-					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}
 		}
+		Multicast_EndSuddenDeath();
 	}
 	if (HealthPercent <= 0)
 	{
@@ -114,6 +142,7 @@ void AWizardGameState::SetHealth_Implementation(float HealthAmount)
 				Cast<APlayerCharacterBase>(Player->GetPawn())->StartSuddenDeath();
 			}
 		}
+		Multicast_SuddenDeath();
 	}
 	OnRep_Health();
 	ForceNetUpdate();
@@ -136,12 +165,13 @@ void AWizardGameState::RestoreHealth_Implementation(float RestoreAmount)
 				if (APlayerCharacterBase* PlayerCharacter = Cast<APlayerCharacterBase>(Player->GetPawn()))
 				{
 					PlayerCharacter->EndSuddenDeath();
-					OnSuddenDeathEnd.Broadcast();
 					PlayerCharacter->SetIsAlive(true);
 				}
 			}
 		}
+		Multicast_EndSuddenDeath();
 	}
+	
 	OnRep_Health();
 	ForceNetUpdate();
 }
