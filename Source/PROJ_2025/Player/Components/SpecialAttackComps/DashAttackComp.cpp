@@ -81,10 +81,16 @@ void UDashAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>
 
 void UDashAttackComp::OnPreAttack(const FInputActionInstance& InputActionInstance)
 {
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started || !bCanAttack)
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Started)
 	{
 		return;
 	}
+	
+	if ((!bCanAttack && !bShouldRecast) || bIsDashing)
+	{
+		return;
+	}
+	
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->RequestSetIsAttacking(true);
@@ -94,7 +100,7 @@ void UDashAttackComp::OnPreAttack(const FInputActionInstance& InputActionInstanc
 
 void UDashAttackComp::OnStartAttack(const FInputActionInstance& InputActionInstance)
 {
-	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed || !bCanAttack)
+	if (InputActionInstance.GetTriggerEvent() != ETriggerEvent::Completed)
 	{
 		return;
 	}
@@ -102,10 +108,17 @@ void UDashAttackComp::OnStartAttack(const FInputActionInstance& InputActionInsta
 	{
 		return;
 	}
+	
+	if ((!bCanAttack && !bShouldRecast) || bIsDashing)
+	{
+		return;
+	}
+	
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->RequestSetIsAttacking(false);
 	}
+	
 	bIsLockingTargetLocation = false;
 	StartAttack();
 }
@@ -180,7 +193,13 @@ void UDashAttackComp::Dash(const FVector& NewTargetLocation)
 	// Perform the sweep and spawn the effect here 
 	PerformSweep();
 	
-	//Disable input, start iframes, set elapsed to 0 while dashing
+	
+	
+	//Disable input, start iframes, set elapsed to 0 while dashing, and handle collison
+	if (OwnerCharacter->GetCapsuleComponent())
+	{
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	}
 	OwnerCharacter->SetInputActive(false);
 	OwnerCharacter->StartIFrame();
 	DashElapsed = 0.0f;
@@ -416,6 +435,10 @@ void UDashAttackComp::HandlePostAttackState() const
 	}
 	
 	OwnerCharacter->SetInputActive(true);
+	if (OwnerCharacter->GetCapsuleComponent())
+	{
+		OwnerCharacter->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Block);
+	}
 	// Check whether the iframe timer has been started by going through a shield
 	if (!GetWorld()->GetTimerManager().IsTimerActive(IFrameTimer))
 	{
