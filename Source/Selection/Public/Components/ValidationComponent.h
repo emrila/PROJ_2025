@@ -68,7 +68,7 @@ protected:
 	FSelectablesContainer SelectablesData;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
-	FSelectionEvaluation SelectionEvaluation;
+	FTaggedEvaluationTimer SelectionEvaluation;
 
 	UPROPERTY()
 	FTimerHandle ValidationTransitionTimerHandle;
