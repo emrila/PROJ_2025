@@ -9,7 +9,11 @@ public class Selection : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core", "CoreUObject",
+                "Core",
+                "CoreUObject",
+                "GameplayTags",
+                "Interact",
+                "GameplayUtils"
             }
         );
 
@@ -20,7 +24,6 @@ public class Selection : ModuleRules
                 "Slate",
                 "SlateCore",
                 "GameplayAbilities",
-                "GameplayTags",
                 "GameplayTasks",
                 "NetCore"
             }
