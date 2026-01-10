@@ -16,6 +16,6 @@ public class PROJ_2025EditorTarget : TargetRules
 
 	private void RegisterModulesCreatedByRider()
 	{
-		ExtraModuleNames.AddRange(new string[] { "Upgrade", "Interact", "GUI", "Selection" });
+		ExtraModuleNames.AddRange(new string[] { "Upgrade", "Interact", "GUI", "Selection", "GameplayUtils" });
 	}
 }
