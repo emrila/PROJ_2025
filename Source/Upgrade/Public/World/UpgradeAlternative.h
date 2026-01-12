@@ -3,92 +3,58 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interactable.h"
-#include "../Core/UpgradeDisplayData.h"
-#include "Core/UpgradeEvents.h"
+#include "BaseActors/Alternative.h"
+#include "Data/SelectablesInfo.h"
+#include "Data/UpgradeDisplayData.h"
 #include "GameFramework/Actor.h"
+#include "Interfaces/UpgradeDisplayInterface.h"
 #include "UpgradeAlternative.generated.h"
 
 class USphereComponent;
 class UWidgetComponent;
 
 UCLASS()
-class UPGRADE_API AUpgradeAlternative : public AActor, public IInteractable
+class UPGRADE_API AUpgradeAlternative : public AAlternative, public IUpgradeDisplayInterface
 {
 	GENERATED_BODY()
-	friend class AUpgradeSpawner;
-	
-public:	
-	AUpgradeAlternative();	
 
-	UFUNCTION(BlueprintCallable)
-	void SetUpgradeDisplayData(const FUpgradeDisplayData& Data);
-
-	virtual void OnInteract_Implementation(UObject* Interactor) override;
-	virtual bool CanInteract_Implementation() override;
-	virtual void OnPostInteract_Implementation() override;
+public:
+	AUpgradeAlternative();
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;	
-	virtual void Tick(float DeltaTime) override;	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION()
-	void OnComponentBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+public:
+	virtual void OnSetUpgradeDisplayData_Implementation(FInstancedStruct Data) override;
+	virtual void OnClearUpgradeDisplayData_Implementation() override;
+	virtual FInstancedStruct OnGetUpgradeDisplayData_Implementation() override;
+	virtual void OnProcessUpgradeDisplayData_Implementation() override;
 
-	UFUNCTION()
-	void OnComponentEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-	
-	void SelectUpgrade();		
-	void SetLocked(bool bToggle);
-	void SetFocus(bool bToggle);	
 
-public:	
-	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-	FOnUpgrade OnUpgrade;	
-	
-	UPROPERTY(BlueprintAssignable, Category="Upgrade Alternative")
-   	FOnUpgradeEvent OnPostUpgrade;
-	
+	virtual void OnProcessSelectablesInfo_Implementation() override;
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Upgrade Alternative|Movement", meta=(AllowPrivateAccess=true))
 	float InterpSpeed;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	AUpgradeSpawner* OwningSpawner;
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<USceneComponent> SceneComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<USphereComponent> SphereComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UWidgetComponent> WidgetComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
+	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+
+
 	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_UpgradeDisplayData, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
 	FUpgradeDisplayData UpgradeDisplayData;
-
 	UFUNCTION()
 	void OnRep_UpgradeDisplayData();
 
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	int32 Index = -1;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bFocus = false;
-	
-	UPROPERTY(BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bLocked = false;
-
-	UPROPERTY(ReplicatedUsing=OnRep_Selected, BlueprintReadWrite, Category = "Upgrade Alternative", meta=(AllowPrivateAccess=true))
-	bool bSelected = false;	
-	
-	UFUNCTION()
-	void OnRep_Selected();	
-	
-private:
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
-    	TObjectPtr<USceneComponent> SceneComponent;
-	
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
-		TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
-    	
-    	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
-    	TObjectPtr<UWidgetComponent> WidgetComponent;
-    
-    	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Alternative|Components", meta=(AllowPrivateAccess=true))
-    	TObjectPtr<USphereComponent> SphereComponent;	
-    	
 };

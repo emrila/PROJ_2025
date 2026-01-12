@@ -3,111 +3,53 @@
 
 #include "World/UpgradeAlternative.h"
 
-#include "Interactor.h"
+#include "Components/InteractableComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Dev/UpgradeLog.h"
+#include "Interfaces/Interactor.h"
 #include "Net/UnrealNetwork.h"
-#include "Util/UpgradeFunctionLibrary.h"
+#include "Util/UpgradeLog.h"
 #include "World/UpgradeSpawner.h"
 
 #include "World/UI/UpgradeAlternativeWidget.h"
-
-namespace UpgradeWidget
-{
-	UUpgradeAlternativeWidget* Get(const UWidgetComponent* WidgetComponent)
-	{
-		if (!WidgetComponent || !WidgetComponent->GetWidget())
-		{
-			UPGRADE_DISPLAY(TEXT("%hs: WidgetComponent or its widget is NULL!"), __FUNCTION__);
-			return nullptr;
-		}
-		return Cast<UUpgradeAlternativeWidget>(WidgetComponent->GetWidget());
-	}
-}
-
-void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
-	DOREPLIFETIME(AUpgradeAlternative, bSelected);
-	DOREPLIFETIME(AUpgradeAlternative, Index);
-}
 
 AUpgradeAlternative::AUpgradeAlternative()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
-	bAlwaysRelevant = true;
-
-	SetNetCullDistanceSquared(0.0); // Disable distance culling
-	SetNetUpdateFrequency(10.0f); // Update more frequently
-	SetMinNetUpdateFrequency(2.0f);
 
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 
-	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
-	WidgetComponent->SetupAttachment(RootComponent);
-
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
-	SphereComponent->SetupAttachment(RootComponent);
 
 	constexpr float SphereRadius = 50.f; //100.0f;
 	SphereComponent->SetSphereRadius(SphereRadius);
-	SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
+	//SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
+	SphereComponent->SetCollisionResponseToChannel(ECC_EngineTraceChannel2, ECR_Block); // ECC_GameTraceChannel2 = Interactable
+	SphereComponent->SetupAttachment(RootComponent);
 
-	SphereComponent->OnComponentBeginOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentBeginOverlap);
-	SphereComponent->OnComponentEndOverlap.AddDynamic(this, &AUpgradeAlternative::OnComponentEndOverlap);		
+	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("UpgradeWidgetComponent"));
+	WidgetComponent->SetupAttachment(RootComponent);
 	
 	StaticMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StaticMeshComponent"));
 	StaticMeshComponent->SetupAttachment(RootComponent);
 	StaticMeshComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
 }
 
-void AUpgradeAlternative::SetUpgradeDisplayData(const FUpgradeDisplayData& Data)
-{
-	UpgradeDisplayData = Data;
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-	{
-		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
-	}
-	
-	if (!StaticMeshComponent)
-	{
-		constexpr float InRate = 0.2f;
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(
-			TimerHandle,
-			FTimerDelegate::CreateLambda([this, Data]()
-			{
-				SetUpgradeDisplayData(Data);
-			}),
-			InRate, false);
-	}
-
-	if (UStaticMesh* NewMesh = Data.Mesh.LoadSynchronous())
-	{
-		StaticMeshComponent->SetStaticMesh(NewMesh);
-	}
-}
-
 void AUpgradeAlternative::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-	{
-		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
-	}
-	
-	bFocus = false;
-	bLocked = false;
-	if (HasAuthority())
-	{
-		bSelected = false;
-	}
+
+	SphereComponent->OnComponentBeginOverlap.AddDynamic(InteractableComponent.Get(), &UInteractableComponent::OnComponentBeginOverlap);
+	SphereComponent->OnComponentEndOverlap.AddDynamic(InteractableComponent.Get(), &UInteractableComponent::OnComponentEndOverlap);
+}
+
+void AUpgradeAlternative::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AUpgradeAlternative, UpgradeDisplayData);
 }
 
 void AUpgradeAlternative::Tick(float DeltaTime)
@@ -118,144 +60,103 @@ void AUpgradeAlternative::Tick(float DeltaTime)
 		const FVector CameraLocation = PlayerController->GetPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
 		const FRotator LookAtRotation = (CameraLocation - GetActorLocation()).Rotation();
 		const FRotator TargetRotation = FRotator(LookAtRotation.Pitch, LookAtRotation.Yaw, GetActorRotation().Roll);
-		
+
 		SetActorRotation(TargetRotation);
 	}
 }
 
-bool AUpgradeAlternative::CanInteract_Implementation()
+void AUpgradeAlternative::OnSetUpgradeDisplayData_Implementation(FInstancedStruct Data)
 {
-	return bFocus && !bSelected&& !bLocked;
-}
-
-void AUpgradeAlternative::OnInteract_Implementation(UObject* Interactor)
-{
-	if (!HasAuthority())
+	const FUpgradeDisplayData* UpgradeData = Data.GetMutablePtr<FUpgradeDisplayData>();
+	if (!UpgradeData)
 	{
-		UPGRADE_DISPLAY(TEXT("%hs: Client tried to interact! This should be handled on the server."), __FUNCTION__);
+		UPGRADE_ERROR(TEXT("%hs: Data does not contain FUpgradeDisplayData!"), __FUNCTION__);
 		return;
 	}
-	if (bSelected)
+	UpgradeDisplayData = *UpgradeData;
+	Execute_OnProcessUpgradeDisplayData(this);
+	//SetUpgradeDisplayData(*UpgradeData);
+}
+
+void AUpgradeAlternative::OnClearUpgradeDisplayData_Implementation()
+{
+	// Will call EndPlay which will then unregister from the owner's validation component
+	 Destroy();
+}
+
+FInstancedStruct AUpgradeAlternative::OnGetUpgradeDisplayData_Implementation()
+{
+	return FInstancedStruct::Make(UpgradeDisplayData);
+}
+
+void AUpgradeAlternative::OnProcessUpgradeDisplayData_Implementation()
+{
+	if (!WidgetComponent || !WidgetComponent->GetWidget() ||!StaticMeshComponent)
 	{
-		UPGRADE_WARNING( TEXT("%hs: Upgrade already selected!"), __FUNCTION__);
+		UPGRADE_ERROR(TEXT("%hs: WidgetComponent is %s, Widget is %s, staticMeshComponent is &s"), __FUNCTION__,
+			WidgetComponent ? TEXT("valid") : TEXT("NULL"),
+			WidgetComponent &&  WidgetComponent->GetWidget() ? TEXT("valid") : TEXT("NULL"),
+			StaticMeshComponent ? TEXT("valid") : TEXT("NULL"));
+
+		constexpr float InRate = 0.2f;
+		FTimerHandle TimerHandle;
+		const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this]
+		{
+			UPGRADE_DISPLAY(TEXT("%hs: Retrying OnRep_UpgradeDisplayData."), __FUNCTION__);
+			Execute_OnProcessUpgradeDisplayData(this);
+		});
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, InRate, false);
 		return;
 	}
-	
-	//DON'T CALL Execute_CanInteract(this);
-	
-	const bool bIsInteractor = Interactor && Interactor->Implements<IInteractor::UClassType>();
 
-	bSelected = true;
-   // UpgradeDisplayData.TargetName = bIsInteractor ? IInteractor::Execute_GetOwnerName(Interactor) : NAME_None;
-    SelectUpgrade();
-
-	if (OwningSpawner)
+	if (WidgetComponent->GetWidget()->Implements<UUpgradeDisplayInterface>())
 	{
-		if (!OwningSpawner->GetUpgradeAlternativePairs().IsValidIndex(Index))
+		if(Execute_OnGetOwner(this) != this)
 		{
-			UPGRADE_ERROR(TEXT("%hs: Owning spawner's UpgradeAlternativePairs does not have a valid index %d!"), __FUNCTION__, Index);
-			return;
+			Execute_OnSetOwner(WidgetComponent->GetWidget(), this);
 		}
-		FUpgradeAlternativePair& UpgradeAlternativePair = OwningSpawner->GetUpgradeAlternativePairs()[Index];
-		if (UpgradeAlternativePair.SelectedByPlayers.Contains(true) || UpgradeAlternativePair.LockedForPlayer.Contains(true))
-		{
-			UPGRADE_WARNING(TEXT("%hs: Upgrade alternative already selected or locked for a player!"), __FUNCTION__);
-			return;
-		}
-		if (UpgradeAlternativePair.SelectedByPlayers.IsValidIndex(Index))
-		{
-			UpgradeAlternativePair.SelectedByPlayers[Index] = true;
-		}
-		if (UpgradeAlternativePair.LockedForPlayer.IsValidIndex(Index))
-		{
-			UpgradeAlternativePair.LockedForPlayer[Index] = true;
-		}
+		Execute_OnSetUpgradeDisplayData(WidgetComponent->GetWidget(), Execute_OnGetUpgradeDisplayData(this));
 	}
 
-	//ForceNetUpdate();
-
-	if (!bIsInteractor)
+	if (UStaticMesh* NewMesh = UpgradeDisplayData.Mesh.LoadSynchronous())
 	{
-		UPGRADE_WARNING(TEXT("%hs: Interactor is null or doesn't implement IInteractor!"), __FUNCTION__);
+		StaticMeshComponent->SetStaticMesh(NewMesh);
+	}
+}
+
+void AUpgradeAlternative::OnProcessSelectablesInfo_Implementation()
+{
+	if (!WidgetComponent || !WidgetComponent->GetWidget())
+	{
+		UPGRADE_ERROR(TEXT("%hs: WidgetComponent is %s, Widget is %s"), __FUNCTION__,
+			WidgetComponent ? TEXT("valid") : TEXT("NULL"),
+		    WidgetComponent && WidgetComponent->GetWidget() ? TEXT("valid") : TEXT("NULL"));
+
+		constexpr float InRate = 0.2f;
+		FTimerHandle TimerHandle;
+		const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this]
+		{
+			UPGRADE_DISPLAY(TEXT("%hs: Retrying OnProcessSelectablesInfo."), __FUNCTION__);
+			Execute_OnProcessSelectablesInfo(this);
+		});
+
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, InRate, false);
 		return;
 	}
-	
-	UPGRADE_DISPLAY(TEXT("%hs: Notifying interactor of finished interaction."), __FUNCTION__);
-	IInteractor::Execute_OnFinishedInteraction(Interactor, this);
-		
-	const FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDisplayData);
-	IInteractor::Execute_OnSuperFinishedInteraction(Interactor, InstancedStruct);
-}
 
-void AUpgradeAlternative::SelectUpgrade()
-{
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
+	if (WidgetComponent->GetWidget()->Implements<USelectionDisplayInterface>())
 	{
-		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
-		UpgradeWidget->OnUpgradeSelected(bSelected);
-		//UpgradeWidget->OnUpgradeHasFocus(true);
-	}
-	
-	if (bSelected && !bLocked)
-	{
-		OnUpgrade.Broadcast(UpgradeDisplayData);
-		SetLocked(true);
-	}
-}
-
-void AUpgradeAlternative::OnPostInteract_Implementation()
-{
-	if (OnPostUpgrade.IsBound())
-	{
-		OnPostUpgrade.Broadcast();
-	}
-}
-
-void AUpgradeAlternative::OnComponentBeginOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComp, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp, [[maybe_unused]] int32 OtherBodyIndex,[[maybe_unused]] bool bFromSweep, [[maybe_unused]] const FHitResult& SweepResult)
-{
-	if (UUpgradeFunctionLibrary::IsLocalPlayer(OtherActor) && !bFocus/* && !bSelected && !bLocked*/)
-	{
-		SetFocus(true);
-	}
-}
-
-void AUpgradeAlternative::OnComponentEndOverlap([[maybe_unused]] UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, [[maybe_unused]] UPrimitiveComponent* OtherComp,[[maybe_unused]] int32 OtherBodyIndex)
-{	
-	if (UUpgradeFunctionLibrary::IsLocalPlayer(OtherActor) && bFocus)
-	{
-		SetFocus(false);	
-	}
-}
-
-void AUpgradeAlternative::SetLocked(const bool bToggle)
-{
-	bLocked = bToggle;
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent); !bSelected)
-	{
-		UpgradeWidget->OnUpgradeSelected(bSelected);		
-	}	
-}
-
-void AUpgradeAlternative::SetFocus(const bool bToggle)
-{
-	bFocus = bToggle;
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-	{
-		UpgradeWidget->OnUpgradeHasFocus(bFocus);
+		if(Execute_OnGetOwner(this) != this)
+		{
+			Execute_OnSetOwner(WidgetComponent->GetWidget(), this);
+		}
+		const FInstancedStruct Data = Execute_OnGetSelectablesInfo(this, nullptr);
+		Execute_OnSetSelectablesInfo(WidgetComponent->GetWidget(), Data);
 	}
 }
 
 void AUpgradeAlternative::OnRep_UpgradeDisplayData()
 {
 	UPGRADE_DISPLAY( TEXT("%hs: UpgradeDisplayData replicated %s."), __FUNCTION__, *UpgradeDisplayData.ToString());
-	if (UUpgradeAlternativeWidget* UpgradeWidget = UpgradeWidget::Get(WidgetComponent))
-	{
-		UpgradeWidget->OnSetUpgradeDisplayData(UpgradeDisplayData);
-	}
-}
-
-void AUpgradeAlternative::OnRep_Selected()
-{
-	UPGRADE_DISPLAY(TEXT("%hs: bUpgradeSelected replicated to %s"), __FUNCTION__, bSelected ? TEXT("true") : TEXT("false"));	
-	SelectUpgrade();
+	Execute_OnProcessUpgradeDisplayData(this);
 }
