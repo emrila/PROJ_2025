@@ -78,7 +78,7 @@ protected:
 	
 	float DashRange = 1000.f;
 	float DashDuration = 0.2f;
-	float RecastDuration = 5.0f;
+	float RecastDuration = 3.0f;
 	float ShieldInvincibilityDuration = 5.f;
 	
 	UPROPERTY(Replicated)
