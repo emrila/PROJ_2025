@@ -12,6 +12,7 @@ public class Selection : ModuleRules
                 "Core",
                 "CoreUObject",
                 "GameplayTags",
+                "GameplayAbilities",
                 "Interact",
                 "GameplayUtils"
             }
@@ -23,7 +24,7 @@ public class Selection : ModuleRules
                 "Engine",
                 "Slate",
                 "SlateCore",
-                "GameplayAbilities",
+
                 "GameplayTasks",
                 "NetCore"
             }
