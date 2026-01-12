@@ -1,21 +1,18 @@
 ﻿// Furkan approves of this
 
-
 #include "World/UpgradeSpawner.h"
 
-#include "Interactor.h"
-#include "Core/UpgradeComponent.h"
-#include "Dev/UpgradeLog.h"
+#include "Async/Async_WaitGameplayEvent.h"
+#include "Components/ValidationComponent.h"
+#include "Components/UpgradeComponent.h"
+#include "Util/UpgradeLog.h"
+#include "Interfaces/UpgradeDisplayInterface.h"
 #include "Net/UnrealNetwork.h"
 #include "Util/UpgradeFunctionLibrary.h"
-#include "World/UpgradeAlternative.h"
+#include "Utility/Tags.h"
 
 AUpgradeSpawner::AUpgradeSpawner()
 {
-	PrimaryActorTick.bCanEverTick = true;
-	bAllowTickBeforeBeginPlay = false;
-	PrimaryActorTick.TickInterval = 1.f;
-	
 	SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
 	RootComponent = SceneComponent;
 	
@@ -27,11 +24,109 @@ AUpgradeSpawner::AUpgradeSpawner()
 	
 	bReplicates = true;
 
+	SpawnClass = TSoftClassPtr<AActor>(FSoftObjectPath(TEXT("/Game/Developer/Emma/BP_UpgradeAlternative.BP_UpgradeAlternative_C")));
 }
 
-void AUpgradeSpawner::OnUpgradeCompleted()
+void AUpgradeSpawner::BeginPlay()
 {
-	UPGRADE_DISPLAY(TEXT("🎶%hs: Upgrade completed."), __FUNCTION__);
+	Super::BeginPlay();
+
+	const FGameplayTag ValidationTag = ValidationComponent ? ValidationComponent->LockTag : EVENT_TAG_VALIDATION_LOCK;
+	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(this, ValidationTag, false, false))->
+	                   EventReceived.AddDynamic(this, &AUpgradeSpawner::OnValidatedLock);
+
+	if (bSpawnOnBeginPlay)
+	{
+		TriggerSpawn();
+	}
+}
+
+void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AUpgradeSpawner, bSpawnOnBeginPlay);
+	DOREPLIFETIME(AUpgradeSpawner, TotalToSpawn);
+	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
+}
+
+void AUpgradeSpawner::OnValidatedLock(FGameplayEventData Payload)
+{
+	if (HasAuthority())
+	{
+		if (AActor* Target = const_cast<AActor*>(Payload.Target.Get());
+			Target && Target->Implements<UUpgradeDisplayInterface>())
+		{
+			const FInstancedStruct SelectablesData = IUpgradeDisplayInterface::Execute_OnGetUpgradeDisplayData(Target);
+			UActorComponent* Component = Payload.Instigator->GetComponentByClass(TSubclassOf<UUpgradeComponent>());
+			if (UUpgradeComponent* UpgradeComp = Component ? Cast<UUpgradeComponent>(Component) : nullptr)
+			{
+				UPGRADE_DISPLAY(TEXT("%hs: Sending selected upgrade data to UpgradeComponent."), __FUNCTION__);
+				UpgradeComp->Server_OnUpgradeReceived(SelectablesData);
+			}
+		}
+
+		if (OnCompletedAllUpgrades.IsBound())
+		{
+			OnCompletedAllUpgrades.Broadcast();
+		}
+	}
+}
+
+void AUpgradeSpawner::SetAllUpgradesDisplayData()
+{
+	int32 Index = 0;
+	for (const FSelectablesInfo& SelectablesInfo : ValidationComponent->GetAllSelectablesInfo())
+	{
+		if (UpgradeDataArray.IsValidIndex(Index) && SelectablesInfo.Selectable && SelectablesInfo.Selectable->Implements<UUpgradeDisplayInterface>())
+		{
+			FInstancedStruct InstancedStruct = FInstancedStruct::Make(UpgradeDataArray[Index++]);
+			IUpgradeDisplayInterface::Execute_OnSetUpgradeDisplayData(SelectablesInfo.Selectable, InstancedStruct);
+		}
+	}
+}
+
+void AUpgradeSpawner::Server_Spawn_Implementation()
+{
+	if (!SpawnSplineComponent || TotalToSpawn < 1 )
+	{
+		return;
+	}
+
+	if (!UpgradeDataArray.IsEmpty())
+	{
+		UPGRADE_DISPLAY(TEXT("%hs: Clearing existing upgrade alternatives before spawning new ones."), __FUNCTION__);
+		Server_ClearAll();
+	}
+
+	UClass* AlternativeClass = SpawnClass.LoadSynchronous();
+
+	if (!AlternativeClass)
+	{
+		return;
+	}
+
+	const float SplineLength = SpawnSplineComponent->GetSplineLength();
+	const float SegmentLength = SplineLength / (TotalToSpawn + 1);
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	for (int32 i = 0; i < TotalToSpawn; ++i)
+	{
+		const float Distance = SegmentLength * (i + 1);
+		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+		if (auto* SpawnedAlternative = GetWorld()->SpawnActor<AActor>(AlternativeClass, Location, Rotation, SpawnParams))
+		{
+			SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
+		}
+	}
+
+	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
+	UpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(TotalToSpawn) : TArray<FUpgradeDisplayData>();
+
 }
 
 void AUpgradeSpawner::TriggerSpawn()
@@ -39,212 +134,42 @@ void AUpgradeSpawner::TriggerSpawn()
 	if (HasAuthority())
 	{
 		Server_Spawn();		
-		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);	
+		UPGRADE_DISPLAY(TEXT("%hs: Server_Spawn completed."), __FUNCTION__);
+		SetAllUpgradesDisplayData();
 	}
-	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
+
 }
 
-void AUpgradeSpawner::ShowAllUpgradeAlternatives(const TArray<FUpgradeAlternativePair> InAssignableUpgrades)
+void AUpgradeSpawner::SetTotalUpgradeNeededForCompletion(const int32 InTotalUpgradeNeededForCompletion)
 {
-	for (const FUpgradeAlternativePair& UpgradeAlternativePair : InAssignableUpgrades)
+	if (GetOwner()->HasAuthority() && ValidationComponent)
 	{
-		AUpgradeAlternative* UpgradeAlternative = UpgradeAlternativePair.Alternative;
-		if (!UpgradeAlternative)
-		{
-			UPGRADE_WARNING(TEXT("%hs: UpgradeAlternativePair.Alternative is null!"), __FUNCTION__);
-			continue;
-		}
-		UpgradeAlternative->SetUpgradeDisplayData(UpgradeAlternativePair.UpgradeData);
-
-		if (UpgradeAlternative->OnPostUpgrade.IsAlreadyBound(this, &AUpgradeSpawner::LockUpgradeAlternatives))
-		{
-			UpgradeAlternative->OnPostUpgrade.RemoveDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
-		}
-		UpgradeAlternative->OnPostUpgrade.AddDynamic(this, &AUpgradeSpawner::LockUpgradeAlternatives);
-		UPGRADE_DISPLAY(TEXT("%hs: Assigned upgrade to spawned alternative."), __FUNCTION__);
+		ValidationComponent->Server_SetTotalExpectedSelections(InTotalUpgradeNeededForCompletion);
 	}
-}
-
-void AUpgradeSpawner::Server_Spawn_Implementation()
-{
-	if (!SpawnSplineComponent || NumberOfSpawnAlternatives <= 0 )
-	{
-		return;
-	}
-
-	if (!UpgradeAlternativePairs.IsEmpty())
-	{
-		UPGRADE_DISPLAY(TEXT("%hs: Clearing existing upgrade alternatives before spawning new ones."), __FUNCTION__);
-		Server_ClearAll();
-	}
-	
-	UClass* AlternativeClass = UpgradeAlternativeClass.LoadSynchronous();
-	if (!AlternativeClass)
-	{
-		return;
-	}
-	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
-	const TArray<FUpgradeDisplayData> LocalUpgradeDataArray = UpgradeComp ? UpgradeComp->GetRandomUpgrades(NumberOfSpawnAlternatives) : TArray<FUpgradeDisplayData>();	
-
-	const float SplineLength = SpawnSplineComponent->GetSplineLength();
-   	const float SegmentLength = SplineLength / (NumberOfSpawnAlternatives + 1);
-	
-	TArray<FUpgradeAlternativePair> LocalUpgradeAlternativePairs; //Waiting to trigger OnRep on clients after all alternatives are spawned	
-	for (int32 i = 0; i < LocalUpgradeDataArray.Num(); ++i)
-	{
-		const float Distance = SegmentLength * (i+1);
-		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;		
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-		AUpgradeAlternative* SpawnedAlternative = GetWorld()->SpawnActor<AUpgradeAlternative>(AlternativeClass, Location, Rotation, SpawnParams);
-		if (!SpawnedAlternative)
-		{
-			continue; // Or break?
-		}
-
-		SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
-		
-		if (!LocalUpgradeDataArray.IsValidIndex(i)) //Shouldn't be needed... But just in case
-		{
-			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, i, LocalUpgradeDataArray.Num());
-			break;
-		}
-		LocalUpgradeAlternativePairs.Emplace(SpawnedAlternative, LocalUpgradeDataArray[i], NumberOfSpawnAlternatives); //Waiting to trigger OnRep on clients after all alternatives are spawned
-		SpawnedAlternative->Index = i;		
-		SpawnedAlternative->OwningSpawner = this;
-		UPGRADE_DISPLAY(TEXT("%hs: Spawned alternative index: %d"), __FUNCTION__, i);
-	}
-	UpgradeAlternativePairs = LocalUpgradeAlternativePairs;
 }
 
 void AUpgradeSpawner::Server_ClearAll_Implementation()
 {
-	if (UpgradeAlternativePairs.IsEmpty())
+	if (!ValidationComponent)
 	{
-		UPGRADE_WARNING( TEXT("%hs: No upgrade alternatives to clear."), __FUNCTION__);
+		 UPGRADE_WARNING(TEXT("%hs: ValidationComponent is null -> nothing to clear."), __FUNCTION__);
 		return;
 	}
-	for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
+	for (const FSelectablesInfo& SelectablesInfo : ValidationComponent->GetAllSelectablesInfo())
 	{
-		if (UpgradeAlternativePair.Alternative)
+		if (SelectablesInfo.Selectable && SelectablesInfo.Selectable->Implements<UUpgradeDisplayInterface>())
 		{
-			UPGRADE_DISPLAY( TEXT("%hs: Cleared upgrade alternative."), __FUNCTION__);
-			UpgradeAlternativePair.Alternative->Destroy();
+			IUpgradeDisplayInterface::Execute_OnClearUpgradeDisplayData(SelectablesInfo.Selectable);
 		}
 	}
-	
-	UpgradeAlternativePairs.Empty();
-	UPGRADE_DISPLAY(TEXT("%hs: All upgrade alternatives cleared."), __FUNCTION__);
+	UpgradeDataArray.Empty();
 }
 
-void AUpgradeSpawner::BeginPlay()
+void AUpgradeSpawner::OnRep_UpgradeDataArray()
 {
-	Super::BeginPlay();
-	
-	if (bSpawnOnBeginPlay) 
-	{
-		TriggerSpawn();
-	}
-	SetActorTickEnabled(HasAuthority());
-}
-
-void AUpgradeSpawner::LockUpgradeAlternatives()
-{
-	int Index = 0;
-	for (FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
-	{
-		if (UpgradeAlternativePair.Alternative)
-		{
-			UpgradeAlternativePair.Alternative->SetLocked(true);	
-			UpgradeAlternativePair.LockedForPlayer[Index++] = true;			
-			UPGRADE_DISPLAY(TEXT("%hs: Locked alternative. Is Selected : %s"), __FUNCTION__, UpgradeAlternativePair.Alternative->bSelected ? TEXT("true") : TEXT("false"));
-		}		
-	}
-}
-
-void AUpgradeSpawner::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AUpgradeSpawner, UpgradeAlternativePairs);
-	DOREPLIFETIME(AUpgradeSpawner, bSpawnOnBeginPlay);
-	DOREPLIFETIME(AUpgradeSpawner, NumberOfSpawnAlternatives);
-	DOREPLIFETIME(AUpgradeSpawner, UpgradeDataArray);
-	DOREPLIFETIME(AUpgradeSpawner, TotalUpgradeNeededForCompletion);
-}
-
-void AUpgradeSpawner::OnRep_UpgradeAlternativePairs()
-{
-	UPGRADE_DISPLAY(TEXT("%hs: called."), __FUNCTION__);
-	ShowAllUpgradeAlternatives(UpgradeAlternativePairs);
-}
-
-void AUpgradeSpawner::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-
-	if (HasAuthority())
-	{
-		int32 Completed = 0;
-		for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
-		{
-			if (UpgradeAlternativePair.Alternative && UpgradeAlternativePair.Alternative->bSelected)
-			{
-				Completed++;
-			}
-		}		
-		if (Completed >= TotalUpgradeNeededForCompletion && OnCompletedAllUpgrades.IsBound()/*Wait for RoomManagerBase*/)
-		{
-			UPGRADE_DISPLAY(TEXT("%hs: All upgrades selected, broadcasting event."), __FUNCTION__);
-			OnCompletedAllUpgrades.Broadcast();
-			SetActorTickEnabled(false);
-		}
-		else
-		{
-			for (const FUpgradeAlternativePair& UpgradeAlternativePair : UpgradeAlternativePairs)
-			{
-				FString SelectedPlayers;
-				int32 LocalCompleted = 0;
-				for (const bool& Selected : UpgradeAlternativePair.SelectedByPlayers)
-				{
-					if (!Selected)
-					{
-						continue;
-					}
-					LocalCompleted++;
-					SelectedPlayers.Append(Selected ? TEXT("1") : TEXT("0"));
-				}
-				if (!SelectedPlayers.IsEmpty())
-				{
-					UPGRADE_DISPLAY(TEXT("Selected: %s"), *SelectedPlayers);
-				}
-			}
-		}
-	}
-	else
-	{
-		UPGRADE_WARNING(TEXT("%hs: Tick called on client!?"), __FUNCTION__);
-	}
-}
-
-void AUpgradeSpawner::OnInteract_Implementation(UObject* Interactor)
-{
-	if (!Execute_CanInteract(this))
+	if (UpgradeDataArray.IsEmpty())
 	{
 		return;
 	}
-	//TriggerSpawn(); 
-	if (Interactor && Interactor->Implements<IInteractor::UClassType>())
-	{
-		IInteractor::Execute_OnFinishedInteraction(Interactor, this);
-	}
-		
-}
-
-bool AUpgradeSpawner::CanInteract_Implementation()
-{
-	return UpgradeAlternativePairs.IsEmpty();
+	SetAllUpgradesDisplayData();
 }
