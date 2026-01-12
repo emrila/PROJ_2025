@@ -2,10 +2,7 @@
 
 
 #include "Util/UpgradeFunctionLibrary.h"
-
 #include "Components/UpgradeComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "World/UpgradeSpawner.h"
 
 UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* WorldContextObject)
 {
