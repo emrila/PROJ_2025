@@ -23,22 +23,17 @@ class INTERACT_API IInteractor
 
 public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void OnSuperFinishedInteraction(FInstancedStruct InteractionData);
-	virtual void OnSuperFinishedInteraction_Implementation(FInstancedStruct InteractionData);
-	
+	void OnSendInteractionData(FInstancedStruct Data);
+	virtual void OnSendInteractionData_Implementation(FInstancedStruct Data){};
+
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnFinishedInteraction(const UObject* Interactable);
-	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable);
+	virtual void OnFinishedInteraction_Implementation(const UObject* Interactable){};
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	bool IsInteracting() const;
-	virtual bool IsInteracting_Implementation() const;
-	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	int32 GetOwnerID() const;
-	virtual int32 GetOwnerID_Implementation() const;
-	
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	FName GetOwnerName() const;
-	virtual FName GetOwnerName_Implementation() const;
+	virtual bool IsInteracting_Implementation() const
+	{
+		return false;
+	}
 };
