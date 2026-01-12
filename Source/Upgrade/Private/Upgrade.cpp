@@ -1,6 +1,6 @@
 ﻿#include "Upgrade.h"
 
-#include "Dev/UpgradeLog.h"
+#include "Util/UpgradeLog.h"
 
 #define LOCTEXT_NAMESPACE "FUpgradeModule"
 

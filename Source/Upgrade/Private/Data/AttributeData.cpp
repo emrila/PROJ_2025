@@ -1,5 +1,5 @@
-﻿#include "Core/AttributeData.h"
-#include "Dev/UpgradeLog.h"
+﻿#include "Data/AttributeData.h"
+#include "Util/UpgradeLog.h"
 
 bool FAttributeBase::IsValidProperty(const FProperty* Property)
 {
