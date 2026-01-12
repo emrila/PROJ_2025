@@ -9,7 +9,4 @@ UCLASS()
 class PROJ_2025_API UChronoRiftDamageType : public UDamageType
 {
 	GENERATED_BODY()
-	
-	public:
-	UChronoRiftDamageType();
 };

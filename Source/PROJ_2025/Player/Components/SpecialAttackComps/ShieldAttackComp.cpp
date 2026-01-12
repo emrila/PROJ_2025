@@ -2,28 +2,20 @@
 
 #include "EnhancedInputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Components/Items/Shield.h"
 
-
 UShieldAttackComp::UShieldAttackComp()
 {
-	PrimaryComponentTick.bCanEverTick = true;
-
-	DamageAmount = 5.f;
+	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bStartWithTickEnabled = false;
+	
+	DamageAmount = 5;
 	AttackCooldown = 5.f;
-	BaseDurability = 200.f;
-	BaseRecoveryRate = 1.f;
 }
 
-void UShieldAttackComp::TickComponent(float DeltaTime, ELevelTick TickType,
-									  FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-}
-
-void UShieldAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp, UInputAction* OwnerInputAction)
+void UShieldAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
+	UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
@@ -31,291 +23,159 @@ void UShieldAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInp
 	}
 }
 
-void UShieldAttackComp::StartAttack()
-{
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-	if (!bCanAttack)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter->IsAlive())
-	{
-		return;
-	}
-	
-	if (!bIsShieldActive)
-	{
-		ActivateShield();
-		Server_Debuging();
-		return;
-	}
-	DeactivateShield();
-}
-
-void UShieldAttackComp::SpawnShield()
-{
-	if (!OwnerCharacter || !ShieldClass)
-	{
-		return;
-	}
-
-	if (!OwnerCharacter->HasAuthority())
-	{
-		return;
-	}
-
-	FVector SpawnLoc = OwnerCharacter->GetActorLocation() + OwnerCharacter->GetActorForwardVector() * 120.f;
-	FRotator SpawnRot = OwnerCharacter->GetActorRotation();
-
-	FActorSpawnParameters Params;
-	Params.Owner = OwnerCharacter;
-
-	if (!OwnerCharacter->GetInstigator())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("OwnerCharacter's Instigator is NULL in %s"), *FString(__FUNCTION__));
-		return;
-	}
-	
-	Params.Instigator = OwnerCharacter->GetInstigator();
-	
-	AShield* Shield = GetWorld()->SpawnActor<AShield>(ShieldClass, SpawnLoc, SpawnRot, Params);
-	if (!Shield)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Shield spawn failed in %s"), *FString(__FUNCTION__));
-		return;
-	}
-	CurrentShield = Shield;
-	CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
-
-	CurrentShield->SetDurability(GetDurability());
-	CurrentShield->SetDamageAmount(GetDamageAmount());
-	CurrentShield->SetRecoveryRate(GetRecoveryRate());
-}
-
-float UShieldAttackComp::GetAttackCooldown() const
-{
-	return Super::GetAttackCooldown() * AttackSpeedModifier;
-}
-
-float UShieldAttackComp::GetDamageAmount() const
-{
-	if (FMath::IsNearlyEqual(AttackDamageModifier, 1.f, 0.0001f)) //if (AttackDamageModifier == 1.f)
-	{
-		return Super::GetDamageAmount();
-	}
-	//5.f is random atm, TBD later
-	return Super::GetDamageAmount() + (AttackDamageModifier * 5.f);
-}
-
-float UShieldAttackComp::GetDurability()
-{
-	if (AttackDamageModifier ==1.f)
-	{
-		return BaseDurability;
-	}
-	//50.f is random atm, TBD later
-	return BaseDurability + (AttackDamageModifier * 50.f);
-}
-
-float UShieldAttackComp::GetRecoveryRate()
-{
-	return BaseRecoveryRate * AttackSpeedModifier;
-}
-
-void UShieldAttackComp::ActivateShield()
-{
-	if (!OwnerCharacter)
-	{
-		return;
-	}
-	if (!CurrentShield)
-	{
-		TArray<AActor*> ShieldActors;
-		OwnerCharacter->GetAllChildActors(ShieldActors);
-
-		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
-
-		for (AActor* Actor : ShieldActors)
-		{
-			if (AShield* Shield = Cast<AShield>(Actor))
-			{
-				CurrentShield = Shield;
-				break;
-			}
-		}
-	}
-	
-	if (!CurrentShield)
-	{
-		return;
-	}
-
-	bIsShieldActive = true;
-	
-	if (bShouldHandleSprint)
-	{
-		OwnerCharacter->SetShouldUseSprintInput(false);
-	}
-
-	// Update shield properties before activation in case of modifiers change, Durability is not updated here because Shield handles it internally
-	CurrentShield->SetDamageAmount(GetDamageAmount());
-	CurrentShield->SetRecoveryRate(GetRecoveryRate());
-	CurrentMoveSpeed = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
-	HandleOwnerMovement(CurrentMoveSpeed * CurrentShield->GetPlayerMovementSpeedMultiplier());
-	CurrentShield->RequestActivateShield();
-}
-
-void UShieldAttackComp::DeactivateShield()
-{
-	if (!OwnerCharacter || !CurrentShield)
-	{
-		return;
-	}
-	bIsShieldActive = false;
-	
-	if (bShouldHandleSprint)
-	{
-		OwnerCharacter->SetShouldUseSprintInput(true);
-	}
-	
-	HandleOwnerMovement(CurrentMoveSpeed);
-	CurrentShield->RequestDeactivateShield();
-}
-
-void UShieldAttackComp::StartAttackCooldown()
-{
-	if (!OwnerCharacter || !bCanAttack)
-	{
-		return;
-	}
-
-	Multicast_StartAttackCooldown();
-}
-
-void UShieldAttackComp::Multicast_StartAttackCooldown_Implementation()
+void UShieldAttackComp::HandleCooldown()
 {
 	bCanAttack = false;
+	bIsShieldActive = false;
+	HandleOwnerMovement(false);
+	Reset();
+}
 
-	// Reset shield durability to max on cooldown start
-	if (CurrentShield)
-	{
-		CurrentShield->SetDurability(GetDurability());
-	}
-	HandleOwnerMovement(CurrentMoveSpeed);
-	
-	FTimerHandle TimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &UShieldAttackComp::ResetAttackCooldown, GetAttackCooldown(), false);
+float UShieldAttackComp::GetDurability() const
+{
+	return BaseDurability * AttackDamageModifier;
+}
+
+void UShieldAttackComp::HandleOnDurabilityChanged(const float NewDurability) const
+{
+	OnDurabilityChanged.Broadcast(NewDurability, GetDurability());
+	Client_HandleOnDurabilityChanged(NewDurability);
 }
 
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (OwnerCharacter)
+	
+	FTimerHandle InitialTimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(InitialTimerHandle, [this] ()
 	{
-		TArray<AActor*> ShieldActors;
-		OwnerCharacter->GetAllChildActors(ShieldActors);
-
-		OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::OnPlayerDied);
-
-		for (AActor* Actor : ShieldActors)
+		if (OwnerCharacter)
 		{
-			if (AShield* Shield = Cast<AShield>(Actor))
+			OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::HandlePlayerDeath);
+			TArray<AActor*> ShieldActors;
+			OwnerCharacter->GetAllChildActors(ShieldActors);
+			
+			//Bind to player died event if needed
+			
+			for (AActor* Actor : ShieldActors)
 			{
-				CurrentShield = Shield;
-				break;
+				if (AShield* FoundShield = Cast<AShield>(Actor))
+				{
+					Shield = FoundShield;
+					Shield->SetOwnerProperties(OwnerCharacter, this, GetDurability());
+					break;
+				}
 			}
 		}
-
-		if (!CurrentShield)
-		{
-			UE_LOG(LogTemp, Error, TEXT("No shield found in %s"), *FString(__FUNCTION__));
-			return;
-		}
-		
-		CurrentShield->SetOwnerCharacter(Cast<APlayerCharacterBase>(OwnerCharacter));
-
-		CurrentShield->SetDurability(GetDurability());
-		CurrentShield->SetDamageAmount(GetDamageAmount());
-		CurrentShield->SetRecoveryRate(GetRecoveryRate());
-		
-		bShouldHandleSprint = OwnerCharacter->GetShouldUseSprintInput();
-	}
+	} , 1.5f, false);
 }
 
-void UShieldAttackComp::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+void UShieldAttackComp::StartAttack()
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(UShieldAttackComp, CurrentShield);
-}
-
-void UShieldAttackComp::OnPlayerDied(bool bNewIsAlive)
-{
-	if (!bNewIsAlive)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, Player Died, Deactivating Shield"), *FString(__FUNCTION__));
-		DeactivateShield();
-		ResetAttackCooldown();
-	}
-}
-
-void UShieldAttackComp::ResetAttackCooldown()
-{
-	if (!CurrentShield)
-	{
-		UE_LOG(LogTemp, Error, TEXT("%s, CurrentShield is NULL"), *FString(__FUNCTION__));
-		return;
-	}
-	Super::ResetAttackCooldown();
-	DeactivateShield();
-}
-
-void UShieldAttackComp::HandleOwnerMovement(const float NewMoveSpeed)
-{
-	if (!CurrentShield || !OwnerCharacter)
+	if (!OwnerCharacter || !Shield || !bCanAttack || !OwnerCharacter->IsAlive())
 	{
 		return;
 	}
 	
+	bIsShieldActive = !bIsShieldActive;
+	RequestToggleShield(bIsShieldActive);
+}
+
+void UShieldAttackComp::RequestToggleShield(const bool bShouldActivate)
+{
+	if (!OwnerCharacter)
+	{
+		return;
+	}
 	if (OwnerCharacter->HasAuthority())
 	{
-		OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
+		ToggleShield(bShouldActivate);
 	}
 	else
 	{
-		Server_HandleOwnerMovement(NewMoveSpeed);
+		Server_ToggleShield(bShouldActivate);
 	}
 }
 
-void UShieldAttackComp::Server_Debuging_Implementation()
+void UShieldAttackComp::ToggleShield(const bool bShouldActivate)
 {
-	if (bDrawDebug)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Current durability: %f"), GetDurability());
-		UE_LOG(LogTemp, Warning, TEXT("Current recovery rate: %f"), GetRecoveryRate());
-	}
-}
-
-void UShieldAttackComp::Server_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
-{
-	if (!CurrentShield || !OwnerCharacter)
+	if (!Shield)
 	{
 		return;
 	}
-	Multicast_HandleOwnerMovement(NewMoveSpeed);
-}
-
-void UShieldAttackComp::Multicast_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
-{
-	if (!CurrentShield || !OwnerCharacter)
+	HandleOwnerMovement(bShouldActivate);
+	if (bShouldActivate)
 	{
-		return;
+		Shield->SetValuesPreActivation(GetDamageAmount(), GetRecoveryRate());
+		Shield->ActivateShield();
+		RequestDebug();
 	}
-	OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
+	else
+	{
+		Shield->DeactivateShield();
+	}
 }
 
+void UShieldAttackComp::Server_ToggleShield_Implementation(const bool bShouldActivate)
+{
+	ToggleShield(bShouldActivate);
+}
+
+float UShieldAttackComp::GetRecoveryRate() const
+{
+	if (FMath::IsNearlyEqual(AttackSpeedModifier, 0.1f, 0.001f))
+	{
+		return BaseRecoveryRate * 0.1f;
+	}
+	return BaseRecoveryRate * AttackSpeedModifier;
+}
+
+void UShieldAttackComp::HandlePlayerDeath(const bool bNewIsAlive)
+{
+	if (!bNewIsAlive)
+	{
+		RequestToggleShield(false);
+	}
+}
+
+void UShieldAttackComp::HandleOwnerMovement(const bool bShouldSlowDown)
+{
+	if (OwnerCharacter && OwnerCharacter->GetCharacterMovement())
+	{
+		if (bShouldSlowDown)
+		{
+			MovementSpeedToStore = OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed;
+			OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed *= OwnerMovementSpeedMultiplier;
+			Client_HandleOwnerMovement(OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
+		}
+		else
+		{
+			OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = MovementSpeedToStore;
+			Client_HandleOwnerMovement(OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed);
+		}
+	}
+}
+
+void UShieldAttackComp::Client_HandleOwnerMovement_Implementation(const float NewMoveSpeed)
+{
+	if (OwnerCharacter && OwnerCharacter->GetCharacterMovement())
+	{
+		OwnerCharacter->GetCharacterMovement()->MaxWalkSpeed = NewMoveSpeed;
+	}
+}
+
+void UShieldAttackComp::Client_HandleOnDurabilityChanged_Implementation(const float NewDurability) const
+{
+	OnDurabilityChanged.Broadcast(NewDurability, GetDurability());
+}
+
+void UShieldAttackComp::Debug()
+{
+	Super::Debug();
+	if (Shield)
+	{
+		UE_LOG(AttackComponentLog, Warning, TEXT("Current shield durability: %f"), Shield->GetDurability());
+	}
+	UE_LOG(AttackComponentLog, Warning, TEXT("Current shield recovery rate: %f"), GetRecoveryRate());
+}
 

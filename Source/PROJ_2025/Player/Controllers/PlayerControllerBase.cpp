@@ -6,7 +6,6 @@
 
 APlayerControllerBase::APlayerControllerBase()
 {
-	
 }
 
 void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -17,6 +16,7 @@ void APlayerControllerBase::GetLifetimeReplicatedProps(TArray<class FLifetimePro
 void APlayerControllerBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	
 }
 
 void APlayerControllerBase::Client_SetSpawnRotation_Implementation(const FRotator& NewRot)

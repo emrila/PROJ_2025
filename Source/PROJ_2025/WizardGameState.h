@@ -75,4 +75,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FOnHealthChanged OnSuddenDeathEnd;
 	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_SuddenDeath();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_EndSuddenDeath();
+	
 };

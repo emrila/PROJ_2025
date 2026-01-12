@@ -41,6 +41,7 @@ class PROJ_2025_API ALobbyGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 public:
+	
 	virtual void BeginPlay() override;
 	
 	virtual void PostLogin(APlayerController* NewPlayer) override;
@@ -61,4 +62,5 @@ private:
 	
 	UPROPERTY()
 	UUserWidget* LobbyWidget;
+	
 };
