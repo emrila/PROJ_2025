@@ -19,10 +19,12 @@
 #define EVENT_TAG_VALIDATION FGameplayTag::RequestGameplayTag(FName("Selection.Event.Validation"))
 #define EVENT_TAG_VALIDATION_LOCK FGameplayTag::RequestGameplayTag(FName("Selection.Event.Validation.Lock"))
 #define EVENT_TAG_VALIDATION_CONFLICT FGameplayTag::RequestGameplayTag(FName("Selection.Event.Validation.Conflict"))
+#define EVENT_TAG_VALIDATION_CONFLICT_RESOLUTION FGameplayTag::RequestGameplayTag(FName("Selection.Event.Validation.Conflict.Resolution"))
 
-#define EVENT_TAG_PROXIMITY FGameplayTag::RequestGameplayTag(FName("Selection.Event.Proximity"))
-#define EVENT_TAG_PROXIMITY_ENTER FGameplayTag::RequestGameplayTag(FName("Selection.Event.Proximity.Enter"))
-#define EVENT_TAG_PROXIMITY_EXIT FGameplayTag::RequestGameplayTag(FName("Selection.Event.Proximity.Exit"))
+
+#define EVENT_TAG_PROXIMITY FGameplayTag::RequestGameplayTag(FName("Interaction.Event.Proximity"))
+#define EVENT_TAG_PROXIMITY_ENTER FGameplayTag::RequestGameplayTag(FName("Interaction.Event.Proximity.Enter"))
+#define EVENT_TAG_PROXIMITY_EXIT FGameplayTag::RequestGameplayTag(FName("Interaction.Event.Proximity.Exit"))
 // ----- END EVENT TAGS -----
 
 // --------------------------------------------------------------------------------------
