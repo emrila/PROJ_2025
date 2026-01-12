@@ -7,6 +7,7 @@
 #include "Data/SelectableContainerData.h"
 #include "Data/SelectablesInfo.h"
 #include "Data/SelectorContainerData.h"
+#include "Data/ValidationData.h"
 #include "Timers/TaggedEvaluationTimer.h"
 #include "ValidationComponent.generated.h"
 
@@ -20,6 +21,7 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	TArray<FSelectablesInfo> GetAllSelectablesInfo() const;
+	FSelectablesInfo GetSelectableInfo(const UObject* Selectable) const;
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetTotalExpectedSelections(int32 InTotalExpectedSelections = -1);
@@ -60,6 +62,9 @@ private:
 	// Using GameState's player count to determine expected selections as fallback if dynamic count is not set
 	int32 GetTotalExpectedSelections() const;
 
+	void OnClearAllValidationFlags(UObject* Selectable = nullptr);
+	void OnSetSelectionInfo(UObject* Selectable = nullptr) const;
+	void OnApplyValidationEffect(const FGameplayTag Tag, const UObject* Selectable = nullptr);
 protected:
 	UPROPERTY(Replicated)
 	FPlayerSelectionContainer SelectionData;
@@ -74,7 +79,7 @@ protected:
 	FTimerHandle ValidationTransitionTimerHandle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TMap<FGameplayTag, float> ValidationDurationPerTag;
+	TMap<FGameplayTag, FValidationData> ValidationDataMap;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 MaxSimultaneousSelections = 1;

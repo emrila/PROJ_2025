@@ -113,6 +113,27 @@ TArray<UObject*> FPlayerSelectionContainer::GetSelectorsSelectables(const UObjec
 	return Selectables;
 }
 
+TArray<UObject*> FPlayerSelectionContainer::GetSelectablesWithMultipleSelectors(const int32 Threshold) const
+{
+	TArray<UObject*> Selectables;
+	TMap<UObject*, int32> SelectionCountMap;
+	for (const auto& Item : Items)
+	{
+		if (Item.Selectable)
+		{
+			SelectionCountMap.FindOrAdd(Item.Selectable)++;
+		}
+	}
+	for (const auto& Pair : SelectionCountMap)
+	{
+		if (Pair.Value > Threshold)
+		{
+			Selectables.Add(Pair.Key);
+		}
+	}
+	return Selectables;
+}
+
 bool FPlayerSelectionContainer::IsCurrentSelectionSelectedBySelector(const UObject* Selector, const UObject* Selectable) const
 {
 	if (!Selector || !Selectable)

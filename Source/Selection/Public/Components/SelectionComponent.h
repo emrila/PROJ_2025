@@ -52,6 +52,9 @@ public:
 	FGameplayTag ConflictTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "Selection")
+	FGameplayTag ConflictResolvedTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "Selection")
 	FGameplayTag RegistrationTag;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "Selection")

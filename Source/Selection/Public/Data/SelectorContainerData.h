@@ -30,6 +30,7 @@ struct FPlayerSelectionContainer : public FFastArraySerializer
 
     TArray<UObject*> GetSelectablesSelectors(const UObject* Selectable) const;
     TArray<UObject*> GetSelectorsSelectables(const UObject* Selector) const;
+    TArray<UObject*> GetSelectablesWithMultipleSelectors(const int32 Threshold) const;
 
     bool IsCurrentSelectionSelectedBySelector(const UObject* Selector, const UObject* Selectable) const;
 

@@ -4,29 +4,33 @@
 #include "Components/ValidationComponent.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "AbilitySystemInterface.h"
 #include "Async/Async_WaitGameplayEvent.h"
 #include "GameFramework/GameStateBase.h"
+#include "Interfaces/SelectionDisplayInterface.h"
 #include "Net/UnrealNetwork.h"
 #include "Utility/SelectionLog.h"
 #include "Utility/Tags.h"
 
 UValidationComponent::UValidationComponent()
 {
-	ValidationDurationPerTag.Add(LockTag, 2.0f);
-	ValidationDurationPerTag.Add(ConflictTag, 5.0f);
+	ValidationDataMap.Add(LockTag, 2.0f);
+	ValidationDataMap.Add(ConflictTag, 5.0f);
 }
 
 TArray<FSelectablesInfo> UValidationComponent::GetAllSelectablesInfo() const
 {
 	TArray<FSelectablesInfo> SelectablesInfo;
-
 	for (const auto& Item : SelectablesData.Items)
 	{
 		FSelectablesInfo Info;
 		Info.Selectable = Item.Selectable;
 		Info.Selectors = SelectionData.GetSelectablesSelectors(Item.Selectable);
 		Info.TotalSelectors = Info.Selectors.Num();
-		Info.EvaluationFlags = Item.EvaluationFlags;
+		Info.Flags = Item.EvaluationFlags;
+		Info.ValidationTag = Item.HasConflictFlag() ? ConflictTag : Item.HasCompletedLock() ? LockTag : FGameplayTag::EmptyTag;
 
 		SelectablesInfo.Add(Info);
 	}
@@ -34,20 +38,37 @@ TArray<FSelectablesInfo> UValidationComponent::GetAllSelectablesInfo() const
 	return SelectablesInfo;
 }
 
+FSelectablesInfo UValidationComponent::GetSelectableInfo(const UObject* Selectable) const
+{
+	FSelectablesInfo Info;
+	for (const auto& Item : SelectablesData.Items)
+	{
+		if (Item.Selectable == Selectable)
+		{
+			Info.Selectable = Item.Selectable;
+			Info.Selectors = SelectionData.GetSelectablesSelectors(Item.Selectable);
+			Info.TotalSelectors = Info.Selectors.Num();
+			Info.Flags = Item.EvaluationFlags;
+			Info.ValidationTag = Item.HasConflictFlag() ? ConflictTag : Item.HasCompletedLock() ? LockTag : FGameplayTag::EmptyTag;
+			break;
+		}
+	}
+	return Info;
+}
+
 void UValidationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
 	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), RegistrationTag, false, false))->EventReceived.AddDynamic(
-	this, &UValidationComponent::Server_OnRegisterSelectable);
+		this, &UValidationComponent::Server_OnRegisterSelectable);
 
 	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), UnregistrationTag, false, false))->EventReceived.AddDynamic(
 		this, &UValidationComponent::Server_OnUnregisterSelectable);
 
 	if (GetOwner()->HasAuthority())
 	{
-		GetOwner()->GetWorldTimerManager().SetTimer(ValidationTransitionTimerHandle,
-										FTimerDelegate::CreateUObject(this, &UValidationComponent::Server_ProcessValidationTransition), 1.0f, true, 2.0f);
+		GetOwner()->GetWorldTimerManager().SetTimer(ValidationTransitionTimerHandle, FTimerDelegate::CreateUObject(this, &UValidationComponent::Server_ProcessValidationTransition), 1.0f, true, 2.0f);
 	}
 }
 
@@ -83,9 +104,9 @@ void UValidationComponent::OnRegisterSelectable_Implementation(FInstancedStruct 
 		return;
 	}
 
-	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Registering: %s with: %s as Selectable."), *Selectable->GetName(), *GetName());
+	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Registering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
 	SelectablesData.AddOrUpdate(Selectable, Selectable->GetActorLocation());
-	PostProcessRegistrationEvent();
+//	PostProcessRegistrationEvent();
 }
 
 void UValidationComponent::OnUnregisterSelectable_Implementation(FInstancedStruct UnregistrationData)
@@ -95,9 +116,9 @@ void UValidationComponent::OnUnregisterSelectable_Implementation(FInstancedStruc
 	{
 		return;
 	}
-	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Unregistering: %s with: %s as Selectable."), *Selectable->GetName(), *GetName());
+	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Unregistering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
 	SelectablesData.Remove(Selectable);
-	PostProcessRegistrationEvent();
+//	PostProcessRegistrationEvent();
 }
 
 void UValidationComponent::OnRequestSelection_Implementation(FInstancedStruct RequestData)
@@ -180,6 +201,9 @@ void UValidationComponent::OnSelected_Implementation(FInstancedStruct Data)
 	Payload.Instigator = Selector;//GetOwner();
 	Payload.Target = Selectable;
 	Payload.EventTag = SelectTag;
+
+	OnSetSelectionInfo(Selectable);
+
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Selectable, Payload.EventTag, Payload);
 }
 
@@ -202,7 +226,7 @@ void UValidationComponent::OnDeselected_Implementation(FInstancedStruct Data)
 	if (SelectionData.GetSelectablesSelectors(Selectable).Num() > MaxSimultaneousSelections && SelectablesData.HasAnyConflict())
 	{
 		SELECTION_WARNING(TEXT("⚠️ Selectable %s conflict potentially resolved due to selector %s deselecting."), *Selectable->GetName(), *Selector->GetName());
-		SelectablesData.ClearAllValidationFlags(Selectable);
+		OnClearAllValidationFlags(Selectable);
 	}
 
 	// Handle deselection
@@ -213,6 +237,9 @@ void UValidationComponent::OnDeselected_Implementation(FInstancedStruct Data)
 	Payload.Instigator = Selector;//GetOwner();
 	Payload.Target = Selectable;
 	Payload.EventTag = DeselectTag;
+
+	OnSetSelectionInfo(Selectable);
+
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Selectable, Payload.EventTag, Payload);
 }
 
@@ -263,7 +290,16 @@ void UValidationComponent::PostProcessSelectionEvent()
 			if (bHasUnresolvedConflict)
 			{
 				SELECTION_WARNING(TEXT("⚠️ Selectable %s has conflict with %d selectors."), *Item.Selectable->GetName(), TotalSelectors);
-				SelectablesData.SetWaiting(ConflictTag, Item.Selectable); //SelectablesData.SetWaitingConflict(Item.Selectable);
+				SelectablesData.SetWaiting(ConflictTag, Item.Selectable);
+
+				OnApplyValidationEffect(ConflictTag, Item.Selectable);
+
+				FGameplayEventData Payload;
+				Payload.Instigator = GetOwner();
+				AActor* Selectable = Cast<AActor>(Item.Selectable);
+				Payload.Target = Selectable;
+				Payload.EventTag = ConflictTag;
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Selectable, Payload.EventTag, Payload);
 				continue;
 			}
 
@@ -274,12 +310,12 @@ void UValidationComponent::PostProcessSelectionEvent()
 				if (Item.HasConflictFlag())
 				{
 					SELECTION_WARNING(TEXT("✅ Selectable %s conflict resolved."), *Item.Selectable->GetName());
-					SelectablesData.ClearAllValidationFlags(Item.Selectable);
+					OnClearAllValidationFlags(Item.Selectable);
 				}
 			}
 			else if (TotalSelectors == 0 && Item.HasConflictFlag())
 			{
-				SelectablesData.ClearAllValidationFlags(Item.Selectable);
+				OnClearAllValidationFlags(Item.Selectable);
 			}
 		}
 
@@ -295,7 +331,7 @@ void UValidationComponent::PostProcessSelectionEvent()
 	if (SelectablesData.HasAnyLock())
 	{
 		SELECTION_WARNING(TEXT("⚠️ Selection count changed. Clearing lock evaluations."));
-		SelectablesData.ClearAllValidationFlags();
+		OnClearAllValidationFlags();
 
 		// A lock and conflict cannot be active at the same time, so the timer should only be active if a lock process is ongoing. But just in case, we check conflicts too.
 		if (SelectablesData.HasAnyConflict())
@@ -303,7 +339,6 @@ void UValidationComponent::PostProcessSelectionEvent()
 			SELECTION_ERROR(TEXT("SelectableData has conflict evaluations active while lock evaluations are cleared."));
 			return;
 		}
-
 		if (SelectionEvaluation.IsActive(GetWorld()))
 		{
 			SELECTION_WARNING(TEXT("⏱️ Clearing selection evaluation timer due to lock evaluations being cleared."));
@@ -322,7 +357,7 @@ bool UValidationComponent::ProcessedWaitingValidations(const FGameplayTag Evalua
 	SELECTION_DISPLAY(TEXT("🧠IS WAITING FOR VALIDATION"));
 	if (EvaluationTag == FGameplayTag::EmptyTag)
 	{
-		SelectablesData.ClearAllValidationFlags();
+		OnClearAllValidationFlags();
 		SelectionEvaluation.ClearIfActive(GetWorld());
 		return false;
 	}
@@ -347,17 +382,34 @@ bool UValidationComponent::ProcessedPendingValidations(const FGameplayTag Evalua
 	}
 	else
 	{
-		SelectablesData.ClearAllValidationFlags();
+		OnClearAllValidationFlags();
 		SelectionEvaluation.ClearIfActive(GetWorld());
 	}
 
 	if (SelectablesData.HasAnyNotified())
 	{
-		if (ValidationDurationPerTag.Contains(EvaluationTag))
+		if (ValidationDataMap.Contains(EvaluationTag))
 		{
-			SelectionEvaluation.BaseDuration = ValidationDurationPerTag[EvaluationTag];
+			SelectionEvaluation.BaseDuration = ValidationDataMap[EvaluationTag].Duration;
 		}
+
 		SelectionEvaluation.StartTimer(GetWorld(), FTimerDelegate::CreateUObject(this, &UValidationComponent::Server_ProcessValidationTimer), EvaluationTag);
+
+		if (EvaluationTag.MatchesTag(ConflictTag))
+		{
+
+			FGameplayEventData Payload;
+			Payload.Instigator = GetOwner();
+			Payload.Target = GetOwner();
+			Payload.EventTag = ConflictTag;
+
+			for (const UObject* Object : SelectionData.GetSelectablesWithMultipleSelectors(MaxSimultaneousSelections))
+			{
+				OnApplyValidationEffect(ConflictTag, Object);
+			}
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), Payload.EventTag, Payload);
+		}
 
 		SELECTION_WARNING(TEXT("⏱️ Starting selection evaluation timer for tag: %s."), *EvaluationTag.ToString());
 	}
@@ -463,6 +515,7 @@ void UValidationComponent::Server_CompleteValidation_Implementation(FInstancedSt
 void UValidationComponent::CompleteLockValidation()
 {
 	SELECTION_WARNING(TEXT("✅ Processing completed lock evaluation."));
+
 	for (const FSelectableItem& Item : SelectablesData.Items)
 	{
 		if (!SelectablesData.HasCompleted(LockTag, Item.Selectable))
@@ -475,9 +528,13 @@ void UValidationComponent::CompleteLockValidation()
 		Payload.Instigator = GetOwner();
 		Payload.Target = Cast<AActor>(SelectionData.GetSelector(Item.Selectable));
 		Payload.EventTag = LockTag;
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Cast<AActor>(Item.Selectable), Payload.EventTag, Payload);
-		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), Payload.EventTag, Payload);
 
+		OnApplyValidationEffect(LockTag, Item.Selectable);
+		AActor* Selectable = Cast<AActor>(Item.Selectable);
+
+		OnSetSelectionInfo(Selectable);
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Selectable, Payload.EventTag, Payload);
 	}
 
 	if (SelectablesData.HasCompleted(LockTag))
@@ -489,6 +546,7 @@ void UValidationComponent::CompleteLockValidation()
 void UValidationComponent::CompleteConflictValidation()
 {
 	SELECTION_WARNING(TEXT("⚠️ Processing completed conflict evaluation."));
+
 	for (const FSelectableItem& Item : SelectablesData.Items)
 	{
 		if (!SelectablesData.HasCompleted(ConflictTag, Item.Selectable))
@@ -496,28 +554,48 @@ void UValidationComponent::CompleteConflictValidation()
 			continue;
 		}
 		TArray<UObject*> Selectors = SelectionData.GetSelectablesSelectors(Item.Selectable);
-		if (Selectors.Num() < 2)
+		if (Selectors.Num() <= MaxSimultaneousSelections)
 		{
-			SELECTION_ERROR(TEXT("Selectable %s does not have multiple selectors when processing completed conflict evaluation."), *Item.Selectable->GetName());
+			//SELECTION_ERROR(TEXT("Selectable %s does not have multiple selectors when processing completed conflict evaluation."), *Item.Selectable->GetName());
 			continue;
 		}
 
-		const int32 RandomIndex = FMath::RandRange(0, Selectors.Num() - 1);
+		const int32 WinnerIndex = FMath::RandRange(0, Selectors.Num() - 1);
+		AActor* Selectable = Cast<AActor>(Item.Selectable);
+
+		for (int32 i = 0; i < Selectors.Num(); i++)
+		{
+			if (WinnerIndex == i)
+			{
+				continue;
+			}
+
+			FGameplayEventData Payload;
+			UObject* Selector = Selectors[i];
+			Payload.Instigator = Cast<AActor>(Selector);
+			Payload.EventTag = EVENT_TAG_INTERACT;
+			Payload.Target = Selectable;
+
+			SELECTION_WARNING(TEXT("✅ Selector %s chosen randomly to resolve conflict on selectable %s."), *Payload.Instigator->GetName(), *Payload.Target->GetName());
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), Payload.EventTag,Payload);
+		}
+
+		OnApplyValidationEffect(ConflictResolvedTag, Item.Selectable);
+
 		FGameplayEventData Payload;
-		Payload.Instigator = Cast<AActor>(Selectors[RandomIndex]);
-		Payload.Target = Cast<AActor>(Item.Selectable);
-		Payload.EventTag = EVENT_TAG_INTERACT;
+		Payload.Instigator = GetOwner();
+		Payload.Target = Cast<AActor>(Selectors[WinnerIndex]);
+		Payload.EventTag = ConflictResolvedTag;
 
-		SELECTION_WARNING(TEXT("✅ Selector %s chosen randomly to resolve conflict on selectable %s."), *Payload.Instigator->GetName(), *Payload.Target->GetName());
+		OnSetSelectionInfo(Selectable);
 
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), Payload.EventTag, Payload);
-
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Selectable, Payload.EventTag,Payload);
 	}
 }
 
 FGameplayTag UValidationComponent::GetValidationTag()
 {
-	int32 TotalExpectedSelections = GetTotalExpectedSelections();
+	const int32 TotalExpectedSelections = GetTotalExpectedSelections();
 	int32 UniqueSelections = 0, ConflictingSelections = 0;
 
 	for (const FSelectableItem& Item : SelectablesData.Items) //Assuming that selectionData's elements all contain a unique and valid selectors
@@ -532,7 +610,6 @@ FGameplayTag UValidationComponent::GetValidationTag()
 			UniqueSelections++;
 		}
 	}
-
 
 	if (UniqueSelections == TotalExpectedSelections && ConflictingSelections == 0)
 	{
@@ -553,4 +630,81 @@ int32 UValidationComponent::GetTotalExpectedSelections() const
 		return GetWorld()->GetGameState()->PlayerArray.Num();
 	}
 	return DynamicExpectedSelectionCount;
+}
+
+void UValidationComponent::OnClearAllValidationFlags(UObject* Selectable)
+{
+	SelectablesData.ClearAllValidationFlags(Selectable);
+
+	auto ClearEffects = [this](const AActor* InSelectable)
+	{
+		UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(InSelectable);
+		if (!ASC)
+		{
+			return;
+		}
+		for (const TPair DataMap : ValidationDataMap)
+		{
+			if (const TSubclassOf<UGameplayEffect> EffectClass = DataMap.Value.EffectClass)
+			{
+				ASC->RemoveActiveGameplayEffectBySourceEffect(EffectClass, ASC);
+			}
+		}
+	};
+
+	if (Selectable)
+	{
+		ClearEffects(Cast<AActor>(Selectable));
+		OnSetSelectionInfo(Selectable);
+	}
+	else
+	{
+		for (const FSelectableItem& Item : SelectablesData.Items)
+		{
+			ClearEffects(Cast<AActor>(Item.Selectable));
+			OnSetSelectionInfo(Item.Selectable);
+		}
+	}
+}
+
+void UValidationComponent::OnSetSelectionInfo(UObject* Selectable) const
+{
+	if (Selectable && Selectable->Implements<USelectionDisplayInterface>())
+	{
+		const FInstancedStruct SelectablesInfo = FInstancedStruct::Make<FSelectablesInfo>(GetSelectableInfo(Selectable));
+		ISelectionDisplayInterface::Execute_OnSetSelectablesInfo(Selectable, SelectablesInfo);
+	}
+}
+
+void UValidationComponent::OnApplyValidationEffect(const FGameplayTag Tag, const UObject* Selectable)
+{
+	FValidationData* ValidationData = ValidationDataMap.Find(Tag);
+	if (!ValidationData || !ValidationData->EffectClass)
+	{
+		SELECTION_ERROR(TEXT("%hs: No validation data found for tag %s."), __FUNCTION__, *Tag.ToString());
+		return;
+	}
+	auto ApplyEffect = [this, ValidationData](const AActor* InSelectable)
+	{
+		UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(InSelectable);
+		if (!ASC)
+		{
+			SELECTION_ERROR(TEXT("%hs: No AbilitySystemComponent found on selectable %s."), __FUNCTION__, *InSelectable->GetName());
+			return;
+		}
+		SELECTION_DISPLAY(TEXT("%hs: Applying validation effect %s to selectable %s."), __FUNCTION__, *ValidationData->EffectClass->GetName(), *InSelectable->GetName());
+		ASC->ApplyGameplayEffectToSelf(ValidationData->EffectClass->GetDefaultObject<UGameplayEffect>(), 1.0f, ASC->MakeEffectContext());
+	};
+
+	if (Selectable)
+	{
+		ApplyEffect(Cast<AActor>(Selectable));
+	}
+	else
+	{
+		for (const FSelectableItem& Item : SelectablesData.Items)
+		{
+			ApplyEffect(Cast<AActor>(Item.Selectable));
+		}
+	}
 }

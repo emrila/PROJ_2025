@@ -24,7 +24,8 @@ public:
 	virtual bool CanRegister_Implementation() const override;
 
 	virtual void OnRequestSelection_Implementation(FInstancedStruct RequestData) override;
-private:
+	virtual void OnValidation_Implementation(FInstancedStruct ValidationData) override;
+
 	AActor* GetTargetOwner() const;
 
 protected:

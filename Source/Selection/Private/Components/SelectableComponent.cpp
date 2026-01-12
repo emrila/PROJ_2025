@@ -69,6 +69,11 @@ void USelectableComponent::OnRequestSelection_Implementation(FInstancedStruct Re
 	}
 }
 
+void USelectableComponent::OnValidation_Implementation(const FInstancedStruct ValidationData)
+{
+	Execute_OnValidation(GetOwner(), ValidationData);
+}
+
 AActor* USelectableComponent::GetTargetOwner() const
 {
 	return bUseOwnersOwnerAsTarget && GetOwner()
