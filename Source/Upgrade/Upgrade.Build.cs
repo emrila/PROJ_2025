@@ -9,14 +9,25 @@ public class Upgrade : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core", "Engine", "Interact",
+                "Core",
+                "Engine",
+                "Interact",
+                "GameplayTags",
+                "Selection",
+                "GameplayUtils"
             }
         );
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "CoreUObject", "Engine", "Slate", "SlateCore", "UMG"
+                "CoreUObject",
+                "Engine",
+                "Slate",
+                "SlateCore",
+                "UMG",
+                "GameplayAbilities",
+                "GameplayTasks",
             }
         );
     }
