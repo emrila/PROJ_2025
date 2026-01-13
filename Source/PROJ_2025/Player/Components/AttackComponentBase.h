@@ -80,6 +80,9 @@ protected:
 	bool bIsAttacking = false;
 	bool bIsFirstAttackAnimSet = false;
 	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bCanAlwaysBeUsed = false;
+	
 	float AttackSweepRadius = 200.f;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)

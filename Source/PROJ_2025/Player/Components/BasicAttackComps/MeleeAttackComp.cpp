@@ -25,7 +25,10 @@ void UMeleeAttackComp::StartAttack()
 	
 	if (OwnerCharacter->IsAttacking())
 	{
-		return;
+		if (!bCanAlwaysBeUsed)
+		{
+			return;
+		}
 	}
 	
 	Super::StartAttack();
