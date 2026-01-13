@@ -9,13 +9,13 @@ UShieldAttackComp::UShieldAttackComp()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	
+
 	DamageAmount = 5;
 	AttackCooldown = 5.f;
 }
 
 void UShieldAttackComp::SetupOwnerInputBinding(UEnhancedInputComponent* OwnerInputComp,
-	UInputAction* OwnerInputAction)
+                                               UInputAction* OwnerInputAction)
 {
 	if (OwnerInputComp && OwnerInputAction)
 	{
@@ -29,6 +29,23 @@ void UShieldAttackComp::HandleCooldown()
 	bIsShieldActive = false;
 	HandleOwnerMovement(false);
 	Reset();
+
+	if (bShouldUseBrokenMontageAnimation)
+	{
+		PlayAnimation();
+	}
+	else
+	{
+		if (OwnerCharacter)
+		{
+			OwnerCharacter->RequestSetIsBroken(true);
+		}
+	}
+
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->RequestSetIsAttacking(false);
+	}
 }
 
 float UShieldAttackComp::GetDurability() const
@@ -45,18 +62,18 @@ void UShieldAttackComp::HandleOnDurabilityChanged(const float NewDurability) con
 void UShieldAttackComp::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
 	FTimerHandle InitialTimerHandle;
-	GetWorld()->GetTimerManager().SetTimer(InitialTimerHandle, [this] ()
+	GetWorld()->GetTimerManager().SetTimer(InitialTimerHandle, [this]()
 	{
 		if (OwnerCharacter)
 		{
 			OwnerCharacter->OnPlayerDied.AddDynamic(this, &UShieldAttackComp::HandlePlayerDeath);
 			TArray<AActor*> ShieldActors;
 			OwnerCharacter->GetAllChildActors(ShieldActors);
-			
+
 			//Bind to player died event if needed
-			
+
 			for (AActor* Actor : ShieldActors)
 			{
 				if (AShield* FoundShield = Cast<AShield>(Actor))
@@ -67,7 +84,7 @@ void UShieldAttackComp::BeginPlay()
 				}
 			}
 		}
-	} , 1.5f, false);
+	}, 1.5f, false);
 }
 
 void UShieldAttackComp::StartAttack()
@@ -76,9 +93,10 @@ void UShieldAttackComp::StartAttack()
 	{
 		return;
 	}
-	
+
 	bIsShieldActive = !bIsShieldActive;
 	RequestToggleShield(bIsShieldActive);
+	OwnerCharacter->RequestSetIsAttacking(bIsShieldActive);
 }
 
 void UShieldAttackComp::RequestToggleShield(const bool bShouldActivate)
@@ -108,11 +126,13 @@ void UShieldAttackComp::ToggleShield(const bool bShouldActivate)
 	{
 		Shield->SetValuesPreActivation(GetDamageAmount(), GetRecoveryRate());
 		Shield->ActivateShield();
+		//PlayAnimation(ActivateShieldAnimation);
 		RequestDebug();
 	}
 	else
 	{
 		Shield->DeactivateShield();
+		//PlayAnimation(DeactivateShieldAnimation);
 	}
 }
 
@@ -169,6 +189,62 @@ void UShieldAttackComp::Client_HandleOnDurabilityChanged_Implementation(const fl
 	OnDurabilityChanged.Broadcast(NewDurability, GetDurability());
 }
 
+void UShieldAttackComp::PlayAnimation()
+{
+	if (!OwnerCharacter || !ShieldBrokenAnimation)
+	{
+		return;
+	}
+	if (OwnerCharacter->HasAuthority())
+	{
+		Multicast_PlayAnimation();
+	}
+	else
+	{
+		Server_PlayAnimation();
+	}
+}
+
+void UShieldAttackComp::Server_PlayAnimation_Implementation()
+{
+	Multicast_PlayAnimation();
+}
+
+void UShieldAttackComp::Multicast_PlayAnimation_Implementation()
+{
+	if (OwnerCharacter && ShieldBrokenAnimation)
+	{
+		OwnerCharacter->PlayAnimMontage(ShieldBrokenAnimation);
+	}
+}
+
+void UShieldAttackComp::Reset()
+{
+	bCanAttack = false;
+	if (const float Delay = GetCooldownDuration(); Delay <= 0.f)
+	{
+		Super::Reset();
+		if (OwnerCharacter)
+		{
+			OwnerCharacter->RequestSetIsBroken(false);
+		}
+	}
+	else
+	{
+		if (!GetWorld()->GetTimerManager().IsTimerActive(CooldownTimerHandle))
+		{
+			GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, [this]()
+			{
+				Super::Reset();
+				if (OwnerCharacter)
+				{
+					OwnerCharacter->RequestSetIsBroken(false);
+				}
+			}, Delay, false);
+		}
+	}
+}
+
 void UShieldAttackComp::Debug()
 {
 	Super::Debug();
@@ -178,4 +254,3 @@ void UShieldAttackComp::Debug()
 	}
 	UE_LOG(AttackComponentLog, Warning, TEXT("Current shield recovery rate: %f"), GetRecoveryRate());
 }
-

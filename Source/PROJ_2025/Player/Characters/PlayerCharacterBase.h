@@ -77,6 +77,11 @@ public:
 	
 	bool IsAttacking() const { return bIsAttacking; }
 	
+	void RequestSetIsBroken(bool bNewIsBroken);
+	
+	UFUNCTION(Server, Reliable)
+	void Server_SetIsBroken(const bool bNewIsBroken);
+	
 	//Handle Damage
 	virtual void StartIFrame();
 	
@@ -248,6 +253,9 @@ protected:
 	
 	UPROPERTY(Replicated, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
 	bool bIsAttacking = false;
+	
+	UPROPERTY(Replicated, BlueprintReadWrite, meta = (AllowPrivateAccess = true))
+	bool bIsBroken = false;
 
 	//Handle components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category="Components|Ability")
