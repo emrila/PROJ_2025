@@ -141,3 +141,12 @@ void ACactusCharacter::Tick(float DeltaSeconds)
 		}
 	}
 }
+
+float ACactusCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent,class AController* EventInstigator, AActor* DamageCauser)
+{
+	if (!bIsBurrowing)
+	{
+		return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	}
+	return 0;
+}
