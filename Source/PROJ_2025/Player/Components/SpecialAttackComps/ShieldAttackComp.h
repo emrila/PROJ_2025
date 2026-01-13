@@ -51,9 +51,22 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void Client_HandleOnDurabilityChanged(const float NewDurability) const;
 	
+	void PlayAnimation();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_PlayAnimation();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_PlayAnimation();
+	
+	virtual void Reset() override;
+	
 	virtual void Debug() override;
 	
 	bool bIsShieldActive = false;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	bool bShouldUseBrokenMontageAnimation = false;
 	
 	UPROPERTY()
 	AShield* Shield;
@@ -65,4 +78,6 @@ protected:
 	
 	FTimerHandle RecoveryTimerHandle;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "Animation")
+	UAnimMontage* ShieldBrokenAnimation;
 };
