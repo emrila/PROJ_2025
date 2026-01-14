@@ -21,4 +21,7 @@ public:
 	UFUNCTION(BlueprintPure, Category="Gameplay Utils|Events")
 	static FGameplayEventData CreateGameplayEventData(AActor* PayloadInstigator, AActor* PayloadTarget, const FGameplayTag EventTag);
 
+	UFUNCTION(BlueprintCallable, Category="Gameplay Utils|Events")
+	static void ApplyGameplayEffectToActor(AActor* TargetActor, TSubclassOf<UGameplayEffect> GameplayEffectClass);
+
 };

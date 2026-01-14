@@ -11,7 +11,8 @@ public class GameplayUtils : ModuleRules
             {
                 "Core",
                 "GameplayAbilities",
-                "GameplayTags"
+                "GameplayTags",
+                "GameplayTasks",
             }
         );
 
@@ -21,8 +22,7 @@ public class GameplayUtils : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "Slate",
-                "SlateCore",
-                "GameplayTasks",
+                "SlateCore"
             }
         );
     }
