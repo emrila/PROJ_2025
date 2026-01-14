@@ -272,24 +272,6 @@ void APlayerCharacterBase::Server_SetIsAttacking_Implementation(const bool bNewI
 	bIsAttacking = bNewIsAttacking;
 }
 
-void APlayerCharacterBase::RequestSetIsBroken(bool bNewIsBroken)
-{
-	if (!bIsAlive)
-	{
-		bNewIsBroken = false;
-	}
-	bIsBroken = bNewIsBroken;
-	if (!HasAuthority())
-	{
-		Server_SetIsBroken(bNewIsBroken);
-	}
-}
-
-void APlayerCharacterBase::Server_SetIsBroken_Implementation(const bool bNewIsBroken)
-{
-	bIsBroken = bNewIsBroken;
-}
-
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -501,7 +483,6 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	
 	DOREPLIFETIME(APlayerCharacterBase, bIsInputActive);
 	DOREPLIFETIME(APlayerCharacterBase, bIsAttacking);
-	DOREPLIFETIME(APlayerCharacterBase, bIsBroken);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)

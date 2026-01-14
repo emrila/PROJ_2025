@@ -27,24 +27,26 @@ void UShieldAttackComp::HandleCooldown()
 {
 	bCanAttack = false;
 	bIsShieldActive = false;
+	
 	HandleOwnerMovement(false);
-	Reset();
-
-	if (bShouldUseBrokenMontageAnimation)
-	{
-		PlayAnimation();
-	}
-	else
-	{
-		if (OwnerCharacter)
-		{
-			OwnerCharacter->RequestSetIsBroken(true);
-		}
-	}
-
+	
+	PlayShieldBrokenAnimation();
+	
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->RequestSetIsAttacking(false);
+	}
+	
+	if (const float Delay = GetCooldownDuration(); Delay <= 0.f)
+	{
+		Reset();
+	}
+	else
+	{
+		if (!GetWorld()->GetTimerManager().IsTimerActive(CooldownTimerHandle))
+		{
+			GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, this, &UShieldAttackComp::Reset, Delay, false);
+		}
 	}
 }
 
@@ -189,7 +191,7 @@ void UShieldAttackComp::Client_HandleOnDurabilityChanged_Implementation(const fl
 	OnDurabilityChanged.Broadcast(NewDurability, GetDurability());
 }
 
-void UShieldAttackComp::PlayAnimation()
+void UShieldAttackComp::PlayShieldBrokenAnimation()
 {
 	if (!OwnerCharacter || !ShieldBrokenAnimation)
 	{
@@ -197,51 +199,24 @@ void UShieldAttackComp::PlayAnimation()
 	}
 	if (OwnerCharacter->HasAuthority())
 	{
-		Multicast_PlayAnimation();
+		Multicast_PlayShieldBrokenAnimation();
 	}
 	else
 	{
-		Server_PlayAnimation();
+		Server_PlayShieldBrokenAnimation();
 	}
 }
 
-void UShieldAttackComp::Server_PlayAnimation_Implementation()
+void UShieldAttackComp::Server_PlayShieldBrokenAnimation_Implementation()
 {
-	Multicast_PlayAnimation();
+	Multicast_PlayShieldBrokenAnimation();
 }
 
-void UShieldAttackComp::Multicast_PlayAnimation_Implementation()
+void UShieldAttackComp::Multicast_PlayShieldBrokenAnimation_Implementation()
 {
 	if (OwnerCharacter && ShieldBrokenAnimation)
 	{
 		OwnerCharacter->PlayAnimMontage(ShieldBrokenAnimation);
-	}
-}
-
-void UShieldAttackComp::Reset()
-{
-	bCanAttack = false;
-	if (const float Delay = GetCooldownDuration(); Delay <= 0.f)
-	{
-		Super::Reset();
-		if (OwnerCharacter)
-		{
-			OwnerCharacter->RequestSetIsBroken(false);
-		}
-	}
-	else
-	{
-		if (!GetWorld()->GetTimerManager().IsTimerActive(CooldownTimerHandle))
-		{
-			GetWorld()->GetTimerManager().SetTimer(CooldownTimerHandle, [this]()
-			{
-				Super::Reset();
-				if (OwnerCharacter)
-				{
-					OwnerCharacter->RequestSetIsBroken(false);
-				}
-			}, Delay, false);
-		}
 	}
 }
 
