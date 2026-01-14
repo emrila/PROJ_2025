@@ -50,8 +50,6 @@ void AAlternative::OnSetSelectablesInfo_Implementation(FInstancedStruct Data)
 	{
 		SelectablesInfo = *Info;
 	}
-
-	OnRep_SelectablesInfo();
 }
 
 void AAlternative::OnClearSelectablesInfo_Implementation()
@@ -63,7 +61,8 @@ FInstancedStruct AAlternative::OnGetSelectablesInfo_Implementation(const UObject
 {
 	if (!SelectablesInfo.Selectable && SelectableComponent->GetTargetOwner())
 	{
-		Execute_OnSetSelectablesInfo(this, Execute_OnGetSelectablesInfo(SelectableComponent->GetTargetOwner(), Selectable));
+		const FInstancedStruct Data = Execute_OnGetSelectablesInfo(SelectableComponent->GetTargetOwner(), Selectable);
+		Execute_OnSetSelectablesInfo(this, Data);
 	}
 	return FInstancedStruct::Make<FSelectablesInfo>(SelectablesInfo);
 }

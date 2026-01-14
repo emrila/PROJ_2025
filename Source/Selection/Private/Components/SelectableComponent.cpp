@@ -10,12 +10,15 @@ void USelectableComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), SelectionTag, false, false))->
-	EventReceived.AddDynamic(this, &USelectableComponent::Server_OnRequestSelection);
-
-	if (bAutoRegister && Execute_CanRegister(this))
+	if (GetOwner()->HasAuthority())
 	{
-		Server_OnRegisterSelectable(FGameplayEventData());
+		WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), SelectionTag, false, false))->
+		                   EventReceived.AddDynamic(this, &USelectableComponent::Server_OnRequestSelection);
+
+		if (bAutoRegister && Execute_CanRegister(this))
+		{
+			Server_OnRegisterSelectable(FGameplayEventData());
+		}
 	}
 }
 
@@ -40,7 +43,7 @@ void USelectableComponent::OnRegisterSelectable_Implementation(FInstancedStruct 
 
 void USelectableComponent::OnUnregisterSelectable_Implementation(FInstancedStruct UnregistrationData)
 {
-	FGameplayEventData Payload ;
+	FGameplayEventData Payload;
 	Payload.Instigator = GetOwner();
 	Payload.Target = GetOwner();
 	Payload.EventTag = UnregistrationTag;

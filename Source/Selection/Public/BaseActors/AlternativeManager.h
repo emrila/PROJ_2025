@@ -10,6 +10,7 @@
 #include "Interfaces/SelectionDisplayInterface.h"
 #include "AlternativeManager.generated.h"
 
+class UCustomAbilitySystemComponent;
 class UAsync_WaitGameplayEvent;
 class UValidationComponent;
 class UAsyncWaitGameplayEvent;
@@ -35,7 +36,7 @@ public:
 
 protected:
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category= "Ability System")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UCustomAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category= "Ability System")
 	TObjectPtr<UValidationComponent> ValidationComponent;

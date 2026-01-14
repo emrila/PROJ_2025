@@ -11,6 +11,15 @@ struct FSelectablesInfo
 {
 	GENERATED_USTRUCT_BODY()
 
+	FSelectablesInfo() = default;
+	FSelectablesInfo(UObject* InSelectable, const TArray<UObject*>& InSelectors, int32 InFlags, FGameplayTag InValidationTag)
+		: Selectable(InSelectable)
+		, TotalSelectors(InSelectors.Num())
+		, Selectors(InSelectors)
+		, Flags(InFlags)
+		, ValidationTag(InValidationTag)
+	{
+	}
 	UPROPERTY(BlueprintReadOnly)
 	UObject* Selectable = nullptr;
 

@@ -3,6 +3,7 @@
 #include "BaseActors/AlternativeManager.h"
 
 #include "AbilitySystemComponent.h"
+#include "Components/CustomAbilitySystemComponent.h"
 #include "Components/ValidationComponent.h"
 #include "GameplayUtils/Public/Async/Async_WaitGameplayEvent.h"
 #include "GameplayUtils/Public/Utility/Tags.h"
@@ -16,7 +17,7 @@ AAlternativeManager::AAlternativeManager()
 
 	bReplicates = true;
 
-	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
+	AbilitySystemComponent = CreateDefaultSubobject<UCustomAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
