@@ -80,7 +80,7 @@ void UValidationComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (GetOwner()->HasAuthority())
+	if (GetOwner() && GetOwner()->HasAuthority())
 	{
 		WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), RegistrationTag, false, false))->EventReceived.AddDynamic(
 			this, &UValidationComponent::Server_OnRegisterSelectable);
@@ -88,6 +88,7 @@ void UValidationComponent::BeginPlay()
 		WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), UnregistrationTag, false, false))->EventReceived.AddDynamic(
 			this, &UValidationComponent::Server_OnUnregisterSelectable);
 
+		
 		GetOwner()->GetWorldTimerManager().SetTimer(ValidationTransitionTimerHandle, FTimerDelegate::CreateUObject(this, &UValidationComponent::Server_ProcessValidationTransition), 1.0f, true, 2.0f);
 	}
 }
@@ -193,7 +194,7 @@ void UValidationComponent::OnRequestSelection_Implementation(FInstancedStruct Re
 void UValidationComponent::OnSelected_Implementation(FInstancedStruct Data)
 {
 	const FGameplayEventData* GameplayEventData = Data.GetPtr<FGameplayEventData>();
-	if (!GetOwner()->HasAuthority() || !GameplayEventData)
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !GameplayEventData)
 	{
 		return;
 	}
@@ -224,7 +225,7 @@ void UValidationComponent::OnSelected_Implementation(FInstancedStruct Data)
 void UValidationComponent::OnDeselected_Implementation(FInstancedStruct Data)
 {
 	const FGameplayEventData* GameplayEventData = Data.GetPtr<FGameplayEventData>();
-	if (!GetOwner()->HasAuthority() || !GameplayEventData || !bAllowDeselection)
+	if (!GetOwner() || !GetOwner()->HasAuthority() || !GameplayEventData || !bAllowDeselection)
 	{
 		return;
 	}
@@ -299,8 +300,6 @@ void UValidationComponent::PostProcessSelectionEvent()
 			{
 				SELECTION_WARNING(TEXT("⚠️ Selectable %s has conflict with %d selectors."), *Item.Selectable->GetName(), TotalSelectors);
 				SelectablesData.SetWaiting(ConflictTag, Item.Selectable);
-
-				//OnApplyValidationEffect(ConflictTag, Item.Selectable);
 
 				AActor* Selectable = Cast<AActor>(Item.Selectable);
 				SendEventToSelectable(GetOwner(), Selectable, ConflictTag, Selectable);
@@ -607,7 +606,8 @@ FGameplayTag UValidationComponent::GetValidationTag()
 
 int32 UValidationComponent::GetTotalExpectedSelections() const
 {
-	if (!bAllowDynamicExpectedSelectionCount || DynamicExpectedSelectionCount < 0)
+	if ((!bAllowDynamicExpectedSelectionCount || DynamicExpectedSelectionCount < 0)
+		&& GetWorld() && GetWorld()->GetGameState())
 	{
 		return GetWorld()->GetGameState()->PlayerArray.Num();
 	}

@@ -127,7 +127,7 @@ void AUpgradeSpawner::TriggerSpawn()
 
 void AUpgradeSpawner::SetTotalUpgradeNeededForCompletion(const int32 InTotalUpgradeNeededForCompletion)
 {
-	if (GetOwner()->HasAuthority() && ValidationComponent)
+	if (GetOwner() && GetOwner()->HasAuthority() && ValidationComponent)
 	{
 		ValidationComponent->Server_SetTotalExpectedSelections(InTotalUpgradeNeededForCompletion);
 	}
