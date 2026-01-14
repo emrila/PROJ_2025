@@ -214,8 +214,12 @@ void UWizardGameInstance::OpenMainMenuMap(const FString& MainMenuMap)
 		}
 		
 		World->GetTimerManager().SetTimer(DestroySessionTimerHandle, this, &UWizardGameInstance::TriggerDestroySession, DestroySessionDelaySeconds, false, false);
+		return;
 	}
+	UE_LOG(LogTemp, Warning, TEXT("%s: Not a server, opening main menu locally."), *FString(__FUNCTION__));
+	UGameplayStatics::OpenLevel(this, FName(*MainMenuMap));
 }
+
 
 void UWizardGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
 {
