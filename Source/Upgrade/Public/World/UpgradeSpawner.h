@@ -7,7 +7,6 @@
 #include "Components/SplineComponent.h"
 #include "Data/UpgradeDisplayData.h"
 #include "Data/UpgradeEvents.h"
-#include "GameFramework/Actor.h"
 #include "UpgradeSpawner.generated.h"
 
 UCLASS()
@@ -26,9 +25,6 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(BlueprintCallable, Category="Upgrade Spawner")
-	void OnValidatedLock(FGameplayEventData Payload);
-
-	UFUNCTION(BlueprintCallable, Category="Upgrade Spawner")
 	void SetAllUpgradesDisplayData();
 
 	UFUNCTION(Server, Reliable)
@@ -44,12 +40,20 @@ public:
 	UFUNCTION(Server, Reliable)
 	void Server_ClearAll();
 
+	virtual void OnValidation_Implementation(FInstancedStruct Data) override;
+
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USceneComponent> SceneComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ability System")
+	TArray<TSubclassOf<UGameplayAbility>> StartupAbilities;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<UStaticMeshComponent> MeshComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
+	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner", meta=(AllowPrivateAccess=true))
 	TObjectPtr<USplineComponent> SpawnSplineComponent;

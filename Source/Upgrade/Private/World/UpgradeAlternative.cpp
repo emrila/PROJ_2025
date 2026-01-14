@@ -9,7 +9,6 @@
 #include "Interfaces/Interactor.h"
 #include "Net/UnrealNetwork.h"
 #include "Util/UpgradeLog.h"
-#include "World/UpgradeSpawner.h"
 
 #include "World/UI/UpgradeAlternativeWidget.h"
 
@@ -24,9 +23,8 @@ AUpgradeAlternative::AUpgradeAlternative()
 
 	SphereComponent = CreateDefaultSubobject<USphereComponent>(TEXT("UpgradeTriggerComponent"));
 
-	constexpr float SphereRadius = 50.f; //100.0f;
-	SphereComponent->SetSphereRadius(SphereRadius);
-	//SphereComponent->SetRelativeLocation(FVector(0.0f, 0.0f, SphereRadius / 2.f));
+	SphereComponent->SetSphereRadius(50.f);
+
 	SphereComponent->SetCollisionResponseToChannel(ECC_EngineTraceChannel2, ECR_Block); // ECC_GameTraceChannel2 = Interactable
 	SphereComponent->SetupAttachment(RootComponent);
 
@@ -74,8 +72,6 @@ void AUpgradeAlternative::OnSetUpgradeDisplayData_Implementation(FInstancedStruc
 		return;
 	}
 	UpgradeDisplayData = *UpgradeData;
-	Execute_OnProcessUpgradeDisplayData(this);
-	//SetUpgradeDisplayData(*UpgradeData);
 }
 
 void AUpgradeAlternative::OnClearUpgradeDisplayData_Implementation()
@@ -93,19 +89,17 @@ void AUpgradeAlternative::OnProcessUpgradeDisplayData_Implementation()
 {
 	if (!WidgetComponent || !WidgetComponent->GetWidget() ||!StaticMeshComponent)
 	{
-		UPGRADE_ERROR(TEXT("%hs: WidgetComponent is %s, Widget is %s, staticMeshComponent is &s"), __FUNCTION__,
+		UPGRADE_WARNING(TEXT("%hs: Still waiting -> WidgetComponent is %s, Widget is %s, staticMeshComponent is %s"), __FUNCTION__,
 			WidgetComponent ? TEXT("valid") : TEXT("NULL"),
 			WidgetComponent &&  WidgetComponent->GetWidget() ? TEXT("valid") : TEXT("NULL"),
 			StaticMeshComponent ? TEXT("valid") : TEXT("NULL"));
 
-		constexpr float InRate = 0.2f;
 		FTimerHandle TimerHandle;
-		const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this]
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, FTimerDelegate::CreateLambda([this]
 		{
-			UPGRADE_DISPLAY(TEXT("%hs: Retrying OnRep_UpgradeDisplayData."), __FUNCTION__);
+			UPGRADE_DISPLAY(TEXT("%hs: Retrying OnProcessUpgradeDisplayData."), __FUNCTION__);
 			Execute_OnProcessUpgradeDisplayData(this);
-		});
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, InRate, false);
+		}), 0.2f, false);
 		return;
 	}
 
@@ -128,19 +122,16 @@ void AUpgradeAlternative::OnProcessSelectablesInfo_Implementation()
 {
 	if (!WidgetComponent || !WidgetComponent->GetWidget())
 	{
-		UPGRADE_ERROR(TEXT("%hs: WidgetComponent is %s, Widget is %s"), __FUNCTION__,
+		UPGRADE_WARNING(TEXT("%hs: Still waiting -> WidgetComponent is %s, Widget is %s"), __FUNCTION__,
 			WidgetComponent ? TEXT("valid") : TEXT("NULL"),
 		    WidgetComponent && WidgetComponent->GetWidget() ? TEXT("valid") : TEXT("NULL"));
 
-		constexpr float InRate = 0.2f;
 		FTimerHandle TimerHandle;
-		const FTimerDelegate TimerDelegate = FTimerDelegate::CreateLambda([this]
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle,  FTimerDelegate::CreateLambda([this]
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Retrying OnProcessSelectablesInfo."), __FUNCTION__);
 			Execute_OnProcessSelectablesInfo(this);
-		});
-
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDelegate, InRate, false);
+		}), 0.2f, false);
 		return;
 	}
 
@@ -150,7 +141,9 @@ void AUpgradeAlternative::OnProcessSelectablesInfo_Implementation()
 		{
 			Execute_OnSetOwner(WidgetComponent->GetWidget(), this);
 		}
-		const FInstancedStruct Data = Execute_OnGetSelectablesInfo(this, nullptr);
+
+		UPGRADE_DISPLAY(TEXT("%hs: Setting SelectablesInfo on WidgetComponent."), __FUNCTION__);
+		const FInstancedStruct Data = Execute_OnGetSelectablesInfo(this, this);
 		Execute_OnSetSelectablesInfo(WidgetComponent->GetWidget(), Data);
 	}
 }

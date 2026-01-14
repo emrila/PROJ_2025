@@ -3,6 +3,7 @@
 
 #include "Util/UpgradeFunctionLibrary.h"
 #include "Components/UpgradeComponent.h"
+#include "Interfaces/UpgradeSystemInterface.h"
 
 UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* WorldContextObject)
 {
@@ -30,4 +31,9 @@ UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* Wo
 	}
 
 	 return UpgradeComponent;
+}
+
+UUpgradeComponent* UUpgradeFunctionLibrary::GetUpgradeComponentFromActor(const AActor* Actor)
+{
+	return Actor->Implements<UUpgradeSystemInterface>() ? Cast<IUpgradeSystemInterface>(Actor)->GetUpgradeComponent() : nullptr;
 }

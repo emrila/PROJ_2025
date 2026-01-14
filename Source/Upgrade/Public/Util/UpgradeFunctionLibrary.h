@@ -18,4 +18,7 @@ class UPGRADE_API UUpgradeFunctionLibrary : public UBlueprintFunctionLibrary
 public:
 	UFUNCTION(BlueprintCallable, Category="Upgrade|Util", meta=(WorldContext="WorldContextObject"))
 	static UUpgradeComponent* GetLocalUpgradeComponent(UObject* WorldContextObject);
+
+	UFUNCTION(BlueprintCallable, Category="Upgrade|Util", meta=(WorldContext="WorldContextObject"))
+	static UUpgradeComponent* GetUpgradeComponentFromActor(const AActor* Actor);
 };

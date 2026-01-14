@@ -426,7 +426,15 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	UE_LOG(PlayerBaseLog, Log, TEXT("Possesed"));
-	if (UpgradeComponent && IsLocallyControlled())
+
+	if (HasAuthority())
+	{
+		SetupBindAttributes();
+	}
+
+
+	/*
+	if (UpgradeComponent && HasAuthority())
 	{
 		UpgradeComponent->Server_BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 
@@ -461,11 +469,10 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 				});
 
 			}
-			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
-			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
 
 		}
 	}
+*/
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -663,7 +670,7 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 {
 	if (InteractorComponent && bIsAlive)
 	{
-        InteractorComponent->Execute_OnInteract(InteractorComponent, InteractorComponent->GetTargetInteractableObject());
+        InteractorComponent->Server_OnInteract();
 	}
 }
 
@@ -900,4 +907,9 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	Server_SetCustomPlayerName(NewName);	
 	CustomPlayerName = NewName;
 	OnRep_CustomPlayerName();
+}
+
+UUpgradeComponent* APlayerCharacterBase::GetUpgradeComponent() const
+{
+	return UpgradeComponent;
 }

@@ -7,6 +7,7 @@
 #include "Flags/UpgradeFlags.h"
 #include "Net/UnrealNetwork.h"
 #include "Util/UpgradeUtil.h"
+#include "Utility/GameplayUtilFunctionLibrary.h"
 
 struct FAttributeUpgradeData;
 
@@ -122,12 +123,13 @@ void UUpgradeComponent::Server_BindAttribute_Implementation(UObject* Owner, cons
 		{
 			NewAttributeRaw->OnAttributeModified.Broadcast();
 		}
-	
 	});
 
 	AttributesByRow.FindOrAdd(RowName).Add(NewAttributeRaw);
 	AttributesByKey.Add(Key, NewAttributeRaw);
 	RegisteredAttributes.Add(MoveTemp(NewAttribute));
+
+	NewAttributeRaw->OnAddModifier.Broadcast(); //Apply initial modifier
 
 	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString());
 }
@@ -141,7 +143,8 @@ void UUpgradeComponent::Server_UpgradeByRow_Implementation(FName RowName)
 		TargetAttribute->OnAddModifier.Broadcast();		
 		UPGRADE_DISPLAY(TEXT("⬆️%hs: Upgraded attribute %s with row %s."), __FUNCTION__, *UpgradeUtils::GetClassNameKey(TargetAttribute->Owner.Get()), *RowName.ToString());
 		if (CurrentUpgradeLevel != TargetAttribute->CurrentUpgradeLevel && OnUpgraded.IsBound())
-		{		
+		{
+			UGameplayUtilFunctionLibrary::SendGameplayEventToActor(GetOwner(), GetOwner(), FGameplayTag::RequestGameplayTag("Event.Abilities.Upgrade"), GetOwner());
 			OnUpgraded.Broadcast();
 		}
 	}
@@ -189,8 +192,7 @@ void UUpgradeComponent::OnUpgradeReceived(FInstancedStruct InstancedStruct)
 	else
 	{
 		UPGRADE_ERROR(TEXT("%hs: Failed to get FUpgradeDisplayData from InstancedStruct!"), __FUNCTION__);		
-	}	
-	
+	}
 }
 
 void UUpgradeComponent::Server_OnUpgradeReceived_Implementation(FInstancedStruct InstancedStruct)
@@ -201,7 +203,6 @@ void UUpgradeComponent::Server_OnUpgradeReceived_Implementation(FInstancedStruct
 TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 NumberOfUpgrades)
 {
 	TArray<FUpgradeDisplayData> OutUpgrades;
-	
 	TArray<FAttributeUpgradeData*> UpgradeDataArrayCopy;
 	if (!UpgradeDataTable)
 	{
@@ -220,17 +221,14 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetRandomUpgrades(const int32 Num
 
 	for (int i = 1; i <= NumberOfUpgrades; ++i)
 	{
-		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);		
+		const int32 RandomIndex = FMath::RandRange(0, UpgradeDataArrayCopy.Num() - 1);
 		if (!UpgradeDataArrayCopy.IsValidIndex(RandomIndex)) //Shouldn't be needed... But just in case
 		{
 			UPGRADE_ERROR(TEXT("%hs: RandomIndex %d is invalid!? Actual size: %d"), __FUNCTION__, RandomIndex,UpgradeDataArrayCopy.Num());
 			break;
 		}
 		const FAttributeUpgradeData* Item = UpgradeDataArrayCopy[RandomIndex];
-		if (!Item)
-		{
-		}
-		OutUpgrades.Add(Item->UpgradeDisplayData);	
+		OutUpgrades.Add(Item->UpgradeDisplayData);
 		UpgradeDataArrayCopy.RemoveAt(RandomIndex); // To avoid duplicates
 	}
 	

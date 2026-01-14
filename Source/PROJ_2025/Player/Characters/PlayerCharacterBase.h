@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/UpgradeSystemInterface.h"
 #include "PlayerCharacterBase.generated.h"
 
 class UInventory;
@@ -24,7 +25,7 @@ UDELEGATE(BlueprintCallable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnIFrameChangedVisuals, bool, bIFrameActive);
 
 UCLASS()
-class PROJ_2025_API APlayerCharacterBase : public ACharacter
+class PROJ_2025_API APlayerCharacterBase : public ACharacter, public IUpgradeSystemInterface
 {
 	GENERATED_BODY()
 	
@@ -306,10 +307,12 @@ private:
 	UFUNCTION(BlueprintCallable)
 	void SetUpLocalCustomPlayerName();
 
+public:
+	virtual UUpgradeComponent* GetUpgradeComponent() const override;
+
+private:
 	UPROPERTY(Replicated)
 	bool SuddenDeath;
-
-	
 
 	//Handle editor debug
 #if WITH_EDITORONLY_DATA
