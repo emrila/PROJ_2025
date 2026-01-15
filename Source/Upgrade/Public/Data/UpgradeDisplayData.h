@@ -48,6 +48,17 @@ struct FUpgradeDisplayData
 	}
 };
 
+
+USTRUCT(BlueprintType)
+struct FUpgradeStatsDisplay
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta =(TitleProperty="RowName"))
+	TArray<FUpgradeDisplayData> Items;
+};
+
+
 USTRUCT(BlueprintType)
 struct UPGRADE_API FAttributeUpgradeData : public FTableRowBase
 {
