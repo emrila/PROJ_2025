@@ -129,7 +129,9 @@ void UUpgradeComponent::Server_BindAttribute_Implementation(UObject* Owner, cons
 	AttributesByKey.Add(Key, NewAttributeRaw);
 	RegisteredAttributes.Add(MoveTemp(NewAttribute));
 
+/*#if !UE_BUILD_SHIPPING
 	NewAttributeRaw->OnAddModifier.Broadcast(); //Apply initial modifier
+#endif*/
 
 	UPGRADE_DISPLAY(TEXT("%hs: Bound attribute %s with row %s."), __FUNCTION__,*UpgradeUtils::GetClassNameKey(Owner), *RowName.ToString());
 }
@@ -285,7 +287,7 @@ TArray<FUpgradeDisplayData> UUpgradeComponent::GetPlayerUpgrades()
 				if (ByRow)
 				{
 					UPGRADE_DISPLAY(TEXT("%hs: Found player attribute for row %s with current upgrade level %d."), __FUNCTION__,*Key.ToString(), ByRow->CurrentUpgradeLevel);
-					ValueCopy.CurrentUpgradeLevel = ByRow->CurrentUpgradeLevel;
+					ValueCopy.CurrentUpgradeLevel = ByRow->CurrentUpgradeLevel +1;  //+1 to convert from index to level
 				}
 				Out.Add(ValueCopy);
 			}
