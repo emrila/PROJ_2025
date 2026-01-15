@@ -9,7 +9,12 @@ public class Interact : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core", "Engine",
+                "Core",
+                "Engine",
+                "GameplayUtils",
+                "GameplayAbilities",
+                "GameplayTags",
+                "GameplayTasks"
             }
         );
 

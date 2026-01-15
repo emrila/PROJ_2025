@@ -2,20 +2,8 @@
 
 
 #include "Util/UpgradeFunctionLibrary.h"
-
-#include "Core/UpgradeComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "World/UpgradeSpawner.h"
-
-AUpgradeSpawner* UUpgradeFunctionLibrary::GetLocalUpgradeSpawner(UObject* WorldContextObject)
-{
-	if (!WorldContextObject)
-	{
-		return nullptr;
-	}
-	AActor* ActorOfClass = UGameplayStatics::GetActorOfClass(WorldContextObject, AUpgradeSpawner::StaticClass());	
-	return ActorOfClass ? Cast<AUpgradeSpawner>(ActorOfClass) : nullptr;		
-}
+#include "Components/UpgradeComponent.h"
+#include "Interfaces/UpgradeSystemInterface.h"
 
 UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* WorldContextObject)
 {
@@ -45,11 +33,7 @@ UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* Wo
 	 return UpgradeComponent;
 }
 
-bool UUpgradeFunctionLibrary::IsLocalPlayer(const AActor* OtherActor)
+UUpgradeComponent* UUpgradeFunctionLibrary::GetUpgradeComponentFromActor(const AActor* Actor)
 {
-	if (const APawn* Pawn = Cast<APawn>(OtherActor))
-	{
-		return Pawn->IsPlayerControlled() && Pawn->IsLocallyControlled();
-	}
-	return false;
+	return Actor->Implements<UUpgradeSystemInterface>() ? Cast<IUpgradeSystemInterface>(Actor)->GetUpgradeComponent() : nullptr;
 }

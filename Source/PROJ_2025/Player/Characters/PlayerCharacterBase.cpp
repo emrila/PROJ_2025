@@ -6,13 +6,13 @@
 #include "WizardGameState.h"
 #include "WizardPlayerState.h"
 #include "Camera/CameraComponent.h"
+#include "Components/InteractorComponent.h"
+#include "Components/UpgradeComponent.h"
 #include "Components/WidgetComponent.h"
-#include "Core/UpgradeComponent.h"
 #include "Engine/ActorChannel.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Interact/Public/InteractorComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 #include "Player/Components/AttackComponentBase.h"
@@ -272,24 +272,6 @@ void APlayerCharacterBase::Server_SetIsAttacking_Implementation(const bool bNewI
 	bIsAttacking = bNewIsAttacking;
 }
 
-void APlayerCharacterBase::RequestSetIsBroken(bool bNewIsBroken)
-{
-	if (!bIsAlive)
-	{
-		bNewIsBroken = false;
-	}
-	bIsBroken = bNewIsBroken;
-	if (!HasAuthority())
-	{
-		Server_SetIsBroken(bNewIsBroken);
-	}
-}
-
-void APlayerCharacterBase::Server_SetIsBroken_Implementation(const bool bNewIsBroken)
-{
-	bIsBroken = bNewIsBroken;
-}
-
 void APlayerCharacterBase::StartIFrame()
 {
 	IFrame = true;
@@ -392,24 +374,24 @@ void APlayerCharacterBase::BeginPlay()
 	UE_LOG(PlayerBaseLog, Log, TEXT("BeginPLay"));
 	if (UpgradeComponent && IsLocallyControlled())
 	{	
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		UpgradeComponent->Server_BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 		
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 		
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 		
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));		
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
 		
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
-			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+			UpgradeComponent->Server_BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->Server_BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
@@ -444,26 +426,34 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 	Super::PossessedBy(NewController);
 
 	UE_LOG(PlayerBaseLog, Log, TEXT("Possesed"));
-	if (UpgradeComponent && IsLocallyControlled())
+
+	if (HasAuthority())
 	{
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		SetupBindAttributes();
+	}
+
+
+	/*
+	if (UpgradeComponent && HasAuthority())
+	{
+		UpgradeComponent->Server_BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
 
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
-			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+			UpgradeComponent->Server_BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->Server_BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
@@ -479,11 +469,10 @@ void APlayerCharacterBase::PossessedBy(AController* NewController)
 				});
 
 			}
-			//UpgradeComponent->UpgradeByRow( TEXT("PlayerMaxHealth"));
-			//UpgradeComponent->UpgradeByRow( TEXT("PlayerLifeSteal"));
 
 		}
 	}
+*/
 }
 
 void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -501,7 +490,6 @@ void APlayerCharacterBase::GetLifetimeReplicatedProps(TArray<class FLifetimeProp
 	
 	DOREPLIFETIME(APlayerCharacterBase, bIsInputActive);
 	DOREPLIFETIME(APlayerCharacterBase, bIsAttacking);
-	DOREPLIFETIME(APlayerCharacterBase, bIsBroken);
 }
 
 float APlayerCharacterBase::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
@@ -682,7 +670,7 @@ void APlayerCharacterBase::Interact(const FInputActionValue& Value)
 {
 	if (InteractorComponent && bIsAlive)
 	{
-        InteractorComponent->Execute_OnInteract(InteractorComponent,InteractorComponent->GetTargetInteractable().GetObject());
+        InteractorComponent->Server_OnInteract();
 	}
 }
 
@@ -794,24 +782,24 @@ void APlayerCharacterBase::SetupBindAttributes_Implementation()
 {
 	if (UpgradeComponent && IsLocallyControlled())
 	{
-		UpgradeComponent->BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
+		UpgradeComponent->Server_BindAttribute(GetMovementComponent(), TEXT("MaxWalkSpeed"), TEXT("MovementSpeed"));
 
 		const FName AttackSpeedModifierPropName = "AttackSpeedModifier";
 		const FName AttackDamageModifierPropName = "AttackDamageModifier";
 
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
-		UpgradeComponent->BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackSpeedModifierPropName, TEXT("BasicAttackSpeed"));
+		UpgradeComponent->Server_BindAttribute(BasicAttackComponent, AttackDamageModifierPropName, TEXT("BasicAttackDamage"));
 
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
-		UpgradeComponent->BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackSpeedModifierPropName, TEXT("SpecialCooldown"));
+		UpgradeComponent->Server_BindAttribute(SpecialAttackComponent, AttackDamageModifierPropName, TEXT("SpecialDamage"));
 
 		if (AWizardGameState* GameState = GetWorld()->GetGameState<AWizardGameState>())
 		{
 			const FName MaxHealthPropName = "MaxHealth";
 			const FName LifeStealMultiplierPropName = "LifeStealMultiplier";
 
-			UpgradeComponent->BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
-			UpgradeComponent->BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
+			UpgradeComponent->Server_BindAttribute(GameState, MaxHealthPropName, TEXT("PlayerMaxHealth"));
+			UpgradeComponent->Server_BindAttribute(GameState, LifeStealMultiplierPropName, TEXT("PlayerLifeSteal"));
 
 			UE_LOG(PlayerBaseLog, Log, TEXT("Binding LifeStealMultiplier to MaxHealth changes"));
 			if (FAttributeData* AttributeData = UpgradeComponent->GetByKey(GameState, GameState->GetClass()->FindPropertyByName(MaxHealthPropName)))
@@ -891,7 +879,6 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	}
 
 	const int32 PlayerId = GetPlayerState()->GetPlayerId(); //FMath::RandRange(10, 99);		
-	InteractorComponent->Server_SetOwnerID(PlayerId);
 	UE_LOG(PlayerBaseLog, Log, TEXT("%hs, Local player id: %d"), __FUNCTION__, PlayerId);
 
 	FString NewName = FString::Printf(TEXT("Player_%d"), PlayerId);
@@ -920,4 +907,9 @@ void APlayerCharacterBase::SetUpLocalCustomPlayerName()
 	Server_SetCustomPlayerName(NewName);	
 	CustomPlayerName = NewName;
 	OnRep_CustomPlayerName();
+}
+
+UUpgradeComponent* APlayerCharacterBase::GetUpgradeComponent() const
+{
+	return UpgradeComponent;
 }

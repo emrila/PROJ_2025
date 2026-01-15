@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../../Core/UpgradeDisplayData.h"
 #include "Blueprint/UserWidget.h"
+#include "Data/UpgradeDisplayData.h"
 #include "UpgradeAlternativeWidget.generated.h"
 
 UCLASS()
@@ -24,5 +24,4 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
 	void OnUpgradeHasFocus(bool bHasFocus);
 	void OnUpgradeHasFocus_Implementation(bool bHasFocus){}
-
 };

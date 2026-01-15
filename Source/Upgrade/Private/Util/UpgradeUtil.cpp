@@ -1,5 +1,5 @@
 ﻿#include "UpgradeUtil.h"
-#include "Core/AttributeData.h"
+#include "Data/AttributeData.h"
 
 FProperty* UpgradeUtils::GetProperty(const UObject* Owner, const FName PropertyName)
 {

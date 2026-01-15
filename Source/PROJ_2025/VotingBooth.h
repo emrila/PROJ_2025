@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Core/UpgradeDisplayData.h"
+#include "Data/TeamModifierData.h"
 #include "GameFramework/Actor.h"
 #include "StructUtils/InstancedStruct.h"
 #include "VotingBooth.generated.h"

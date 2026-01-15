@@ -3,7 +3,7 @@
 
 #include "VotingBooth.h"
 
-#include "Core/UpgradeComponent.h"
+#include "Components/UpgradeComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 #include "Util/UpgradeFunctionLibrary.h"
@@ -126,4 +126,3 @@ void AVotingBooth::StartVote_Implementation(int NumberOfChoices)
 {
 	
 }
-

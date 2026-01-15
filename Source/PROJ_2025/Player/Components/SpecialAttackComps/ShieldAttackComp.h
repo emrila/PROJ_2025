@@ -7,7 +7,6 @@
 
 class AShield;
 
-//UDELEGATE(Blueprintable)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDurabilityChanged, float, CurrentDurability, float, MaxDurability);
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
@@ -51,22 +50,17 @@ protected:
 	UFUNCTION(Client, Reliable)
 	void Client_HandleOnDurabilityChanged(const float NewDurability) const;
 	
-	void PlayAnimation();
+	void PlayShieldBrokenAnimation();
 	
 	UFUNCTION(Server, Reliable)
-	void Server_PlayAnimation();
+	void Server_PlayShieldBrokenAnimation();
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void Multicast_PlayAnimation();
-	
-	virtual void Reset() override;
+	void Multicast_PlayShieldBrokenAnimation();
 	
 	virtual void Debug() override;
 	
 	bool bIsShieldActive = false;
-	
-	UPROPERTY(EditDefaultsOnly, Category = "Animation")
-	bool bShouldUseBrokenMontageAnimation = false;
 	
 	UPROPERTY()
 	AShield* Shield;
