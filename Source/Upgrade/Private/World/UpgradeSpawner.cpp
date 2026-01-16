@@ -70,8 +70,8 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 	{
 		return;
 	}
-
-	if (!UpgradeDataArray.IsEmpty())
+	
+	if (!UpgradeDataArray.IsEmpty() || !ValidationComponent->GetAllSelectablesInfo().IsEmpty())
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Clearing existing upgrade alternatives before spawning new ones."), __FUNCTION__);
 		Server_ClearAll();
@@ -121,7 +121,7 @@ void AUpgradeSpawner::TriggerSpawn()
 		{
 			UPGRADE_DISPLAY(TEXT("%hs: Event.Object.Open"), __FUNCTION__);
 			UGameplayUtilFunctionLibrary::SendGameplayEventToActor(this, this, FGameplayTag::RequestGameplayTag("Event.Object.Open"), this);
-		}),3.0f, false);
+		}),InRate, false);
 	}
 }
 
@@ -193,7 +193,7 @@ void AUpgradeSpawner::OnValidation_Implementation(FInstancedStruct Data)
 	{
 		UPGRADE_DISPLAY(TEXT("%hs: Event.Object.Open"), __FUNCTION__);
 		UGameplayUtilFunctionLibrary::SendGameplayEventToActor(this, this, FGameplayTag::RequestGameplayTag("Event.Object.Close"), this);
-	}),3.0f, false);
+	}),InRate, false);
 
 	if (OnCompletedAllUpgrades.IsBound())
 	{
@@ -208,7 +208,11 @@ void AUpgradeSpawner::Server_ClearAll_Implementation()
 		 UPGRADE_WARNING(TEXT("%hs: ValidationComponent is null -> nothing to clear."), __FUNCTION__);
 		return;
 	}
-	for (const FSelectablesInfo& SelectablesInfo : ValidationComponent->GetAllSelectablesInfo())
+	TArray<FSelectablesInfo> SelectablesInfos = ValidationComponent->GetAllSelectablesInfo();
+
+	ValidationComponent->ClearAll();
+
+	for (const FSelectablesInfo& SelectablesInfo : SelectablesInfos)
 	{
 		if (SelectablesInfo.Selectable && SelectablesInfo.Selectable->Implements<UUpgradeDisplayInterface>())
 		{
