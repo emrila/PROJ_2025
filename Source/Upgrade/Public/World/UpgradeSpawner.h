@@ -69,6 +69,9 @@ protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_UpgradeDataArray, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true, TitleProperty="RowName"))
 	TArray<FUpgradeDisplayData> UpgradeDataArray = {};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Upgrade Spawner|Spawning", meta=(AllowPrivateAccess=true))
+	float InRate = 3.0f;
 
 	UFUNCTION()
 	void OnRep_UpgradeDataArray();
