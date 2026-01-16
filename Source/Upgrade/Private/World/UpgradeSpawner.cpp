@@ -77,30 +77,33 @@ void AUpgradeSpawner::Server_Spawn_Implementation()
 		Server_ClearAll();
 	}
 
-	UClass* AlternativeClass = SpawnClass.LoadSynchronous();
-
-	if (!AlternativeClass)
+	if (ValidationComponent->GetAllSelectablesInfo().IsEmpty())
 	{
-		return;
-	}
+		UClass* AlternativeClass = SpawnClass.LoadSynchronous();
 
-	const float SplineLength = SpawnSplineComponent->GetSplineLength();
-	const float SegmentLength = SplineLength / (TotalToSpawn + 1);
+        	if (!AlternativeClass)
+        	{
+        		return;
+        	}
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = this;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+        	const float SplineLength = SpawnSplineComponent->GetSplineLength();
+        	const float SegmentLength = SplineLength / (TotalToSpawn + 1);
 
-	for (int32 i = 0; i < TotalToSpawn; ++i)
-	{
-		const float Distance = SegmentLength * (i + 1);
-		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
-		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+        	FActorSpawnParameters SpawnParams;
+        	SpawnParams.Owner = this;
+        	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		if (auto* SpawnedAlternative = GetWorld()->SpawnActor<AActor>(AlternativeClass, Location, Rotation, SpawnParams))
-		{
-			SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
-		}
+        	for (int32 i = 0; i < TotalToSpawn; ++i)
+        	{
+        		const float Distance = SegmentLength * (i + 1);
+        		const FVector Location = SpawnSplineComponent->GetLocationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+        		const FRotator Rotation = SpawnSplineComponent->GetRotationAtDistanceAlongSpline(Distance, ESplineCoordinateSpace::World);
+
+        		if (auto* SpawnedAlternative = GetWorld()->SpawnActor<AActor>(AlternativeClass, Location, Rotation, SpawnParams))
+        		{
+        			SpawnedAlternative->AttachToComponent(SpawnSplineComponent, FAttachmentTransformRules::KeepWorldTransform);
+        		}
+        	}
 	}
 
 	UUpgradeComponent* UpgradeComp = UUpgradeFunctionLibrary::GetLocalUpgradeComponent(this);
@@ -210,7 +213,7 @@ void AUpgradeSpawner::Server_ClearAll_Implementation()
 	}
 	TArray<FSelectablesInfo> SelectablesInfos = ValidationComponent->GetAllSelectablesInfo();
 
-	ValidationComponent->ClearAll();
+	ValidationComponent->Server_ClearAll();
 
 	for (const FSelectablesInfo& SelectablesInfo : SelectablesInfos)
 	{
