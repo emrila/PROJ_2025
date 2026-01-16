@@ -24,4 +24,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Gameplay Utils|Events")
 	static void ApplyGameplayEffectToActor(AActor* TargetActor, TSubclassOf<UGameplayEffect> GameplayEffectClass);
 
+	UFUNCTION(BlueprintPure, Category="Gameplay Utils|Events", meta=(WorldContext="WorldContextObject"))
+	static APlayerController* GetLocalPlayerController(UObject* WorldContextObject);
 };

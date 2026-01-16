@@ -35,3 +35,19 @@ void UGameplayUtilFunctionLibrary::ApplyGameplayEffectToActor(AActor* TargetActo
 	}
 	ASC->ApplyGameplayEffectToSelf(GameplayEffectClass->GetDefaultObject<UGameplayEffect>(), 1.0f, ASC->MakeEffectContext());
 }
+
+APlayerController* UGameplayUtilFunctionLibrary::GetLocalPlayerController(UObject* WorldContextObject)
+{
+	const UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	if (const ULocalPlayer* PlayerController = World->GetFirstLocalPlayerFromController())
+	{
+		return PlayerController->GetPlayerController(World);
+
+	}
+	return nullptr;
+}
