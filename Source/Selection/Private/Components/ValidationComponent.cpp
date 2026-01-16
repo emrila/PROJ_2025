@@ -76,6 +76,31 @@ TArray<FSelectablesInfo> UValidationComponent::GetSelectableInfoForSelector(cons
 	return SelectablesInfo;
 }
 
+void UValidationComponent::ClearAll()
+{
+	SELECTION_DISPLAY(TEXT("%hs: Clearing all selection and selectable data."), __FUNCTION__);
+	for (int i = SelectablesData.Items.Num() - 1; i >= 0; --i)
+	{
+		if (SelectablesData.Items.IsValidIndex(i))
+		{
+			UObject* Selectable = SelectablesData.Items[i].Selectable;
+			SELECTION_DISPLAY(TEXT("Clearing selection for Selectable: %s"), Selectable ? *Selectable->GetName() : TEXT("Invalid"));
+
+			SelectablesData.Remove(Selectable);
+		}
+	}    
+	for (int i = SelectionData.Items.Num() - 1; i >= 0; --i)
+	{
+		if (SelectionData.Items.IsValidIndex(i))
+		{
+			UObject* Selector = SelectionData.Items[i].Selectable;    
+            
+			SELECTION_DISPLAY(TEXT("Clearing selection for Selector: %s"), Selector ? *Selector->GetName() : TEXT("Invalid"));
+			SelectionData.Remove(Selector);
+		}
+	}    
+}
+
 void UValidationComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -125,7 +150,7 @@ void UValidationComponent::OnRegisterSelectable_Implementation(FInstancedStruct 
 		return;
 	}
 
-	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Registering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
+	SELECTION_DISPLAY(TEXT(" Registering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
 	SelectablesData.AddOrUpdate(Selectable, Selectable->GetActorLocation());
 	//	PostProcessRegistrationEvent();
 }
@@ -137,7 +162,7 @@ void UValidationComponent::OnUnregisterSelectable_Implementation(FInstancedStruc
 	{
 		return;
 	}
-	SELECTION_DISPLAY(TEXT("👨‍👩‍👧‍👦 Unregistering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
+	SELECTION_DISPLAY(TEXT(" Unregistering: %s with: %s as Selectable at location %s."), *Selectable->GetName(), *GetName(), *Selectable->GetActorLocation().ToString());
 	SelectablesData.Remove(Selectable);
 	//	PostProcessRegistrationEvent();
 }
@@ -212,11 +237,11 @@ void UValidationComponent::OnSelected_Implementation(FInstancedStruct Data)
 	// Handle potential selection conflicts
 	if (SelectionData.GetSelectablesSelectors(Selectable).Num() > MaxSimultaneousSelections && !SelectablesData.HasAnyConflict())
 	{
-		SELECTION_WARNING(TEXT("⚠️ Selectable %s has conflict with multiple selectors."), *Selectable->GetName());
+		SELECTION_WARNING(TEXT(" Selectable %s has conflict with multiple selectors."), *Selectable->GetName());
 		SelectablesData.SetWaiting(ConflictTag, Selectable);
 	}
 
-	SELECTION_DISPLAY(TEXT("🛜 Selector %s selected Selectable %s."), *Selector->GetName(), *Selectable->GetName());
+	SELECTION_DISPLAY(TEXT(" Selector %s selected Selectable %s."), *Selector->GetName(), *Selectable->GetName());
 
 	OnApplySelectionEffectToSelector(SelectionTag, Selector);
 	SendEventToSelectable(Selector, Selectable, SelectTag, Selectable);
@@ -240,7 +265,7 @@ void UValidationComponent::OnDeselected_Implementation(FInstancedStruct Data)
 	// Handle potential selection conflicts
 	if (SelectionData.GetSelectablesSelectors(Selectable).Num() > MaxSimultaneousSelections && SelectablesData.HasAnyConflict())
 	{
-		SELECTION_DISPLAY(TEXT("⚠️ Selectable %s conflict potentially resolved due to selector %s deselecting."), *Selectable->GetName(), *Selector->GetName());
+		SELECTION_DISPLAY(TEXT(" Selectable %s conflict potentially resolved due to selector %s deselecting."), *Selectable->GetName(), *Selector->GetName());
 		OnClearAllValidationFlags(Selectable);
 	}
 
@@ -298,7 +323,7 @@ void UValidationComponent::PostProcessSelectionEvent()
 			const bool bHasUnresolvedConflict = TotalSelectors > MaxSimultaneousSelections && !Item.HasConflictFlag();
 			if (bHasUnresolvedConflict)
 			{
-				SELECTION_WARNING(TEXT("⚠️ Selectable %s has conflict with %d selectors."), *Item.Selectable->GetName(), TotalSelectors);
+				SELECTION_WARNING(TEXT(" Selectable %s has conflict with %d selectors."), *Item.Selectable->GetName(), TotalSelectors);
 				SelectablesData.SetWaiting(ConflictTag, Item.Selectable);
 
 				AActor* Selectable = Cast<AActor>(Item.Selectable);
@@ -332,7 +357,7 @@ void UValidationComponent::PostProcessSelectionEvent()
 
 	if (SelectablesData.HasAnyLock())
 	{
-		SELECTION_WARNING(TEXT("⚠️ Selection count changed. Clearing lock evaluations."));
+		SELECTION_WARNING(TEXT(" Selection count changed. Clearing lock evaluations."));
 		OnClearAllValidationFlags();
 
 		// A lock and conflict cannot be active at the same time, so the timer should only be active if a lock process is ongoing. But just in case, we check conflicts too.
@@ -343,12 +368,12 @@ void UValidationComponent::PostProcessSelectionEvent()
 		}
 		if (SelectionEvaluation.IsActive(GetWorld()))
 		{
-			SELECTION_WARNING(TEXT("⏱️ Clearing selection evaluation timer due to lock evaluations being cleared."));
+			SELECTION_WARNING(TEXT(" Clearing selection evaluation timer due to lock evaluations being cleared."));
 			SelectionEvaluation.ClearTimer(GetWorld());
 		}
 		else
 		{
-			SELECTION_WARNING(TEXT("🧠 No active selection evaluation timer to clear."));
+			SELECTION_WARNING(TEXT(" No active selection evaluation timer to clear."));
 			SelectionEvaluation.Reset();
 		}
 	}
@@ -356,7 +381,7 @@ void UValidationComponent::PostProcessSelectionEvent()
 
 bool UValidationComponent::ProcessedWaitingValidations(const FGameplayTag EvaluationTag)
 {
-	SELECTION_DISPLAY(TEXT("🧠IS WAITING FOR VALIDATION"));
+	SELECTION_DISPLAY(TEXT("IS WAITING FOR VALIDATION"));
 	if (EvaluationTag == FGameplayTag::EmptyTag)
 	{
 		OnClearAllValidationFlags();
@@ -369,12 +394,12 @@ bool UValidationComponent::ProcessedWaitingValidations(const FGameplayTag Evalua
 
 bool UValidationComponent::ProcessedPendingValidations(const FGameplayTag EvaluationTag)
 {
-	SELECTION_WARNING(TEXT("🧠HAS PENDING EVALUATIONS"));
+	SELECTION_WARNING(TEXT("HAS PENDING EVALUATIONS"));
 
 	if (SelectionEvaluation.IsActiveWithTag(GetWorld(), EvaluationTag))
 	{
 		SelectablesData.ClearPendingValidationNotification();
-		SELECTION_WARNING(TEXT("⏱️ Selection evaluation timer already active for tag: %s."), *EvaluationTag.ToString());
+		SELECTION_WARNING(TEXT(" Selection evaluation timer already active for tag: %s."), *EvaluationTag.ToString());
 		return true;
 	}
 	if (EvaluationTag != FGameplayTag::EmptyTag)
@@ -406,9 +431,9 @@ bool UValidationComponent::ProcessedPendingValidations(const FGameplayTag Evalua
 			SendEventToOwner(GetOwner(), GetOwner(), ConflictTag);
 		}
 
-		SELECTION_WARNING(TEXT("⏱️ Starting selection evaluation timer for tag: %s."), *EvaluationTag.ToString());
+		SELECTION_WARNING(TEXT(" Starting selection evaluation timer for tag: %s."), *EvaluationTag.ToString());
 	}
-	SELECTION_DISPLAY(TEXT("🧠Processed pending validations for tag: %s."), *EvaluationTag.ToString());
+	SELECTION_DISPLAY(TEXT("Processed pending validations for tag: %s."), *EvaluationTag.ToString());
 	return false;
 }
 
@@ -418,7 +443,7 @@ void UValidationComponent::Server_ProcessValidationTransition_Implementation()
 
 	if (SelectablesData.HasAnyWaiting())
 	{
-		SELECTION_DISPLAY(TEXT("🧠%hs IS WAITING FOR VALIDATION"), __FUNCTION__);
+		SELECTION_DISPLAY(TEXT("%hs IS WAITING FOR VALIDATION"), __FUNCTION__);
 		if (ProcessedWaitingValidations(EvaluationTag))
 		{
 			return;
@@ -426,7 +451,7 @@ void UValidationComponent::Server_ProcessValidationTransition_Implementation()
 	}
 	else if (SelectablesData.HasAnyPending())
 	{
-		SELECTION_WARNING(TEXT("🧠%hs HAS PENDING VALIDATIONS"), __FUNCTION__);
+		SELECTION_WARNING(TEXT("%hs HAS PENDING VALIDATIONS"), __FUNCTION__);
 		if (ProcessedPendingValidations(EvaluationTag))
 		{
 			return;
@@ -435,7 +460,7 @@ void UValidationComponent::Server_ProcessValidationTransition_Implementation()
 
 	if (SelectionData.HasPendingNotifications() || SelectablesData.HasPendingSelectionNotifications())
 	{
-		SELECTION_WARNING(TEXT("🛜There are pending selection notifications to be processed."));
+		SELECTION_WARNING(TEXT("There are pending selection notifications to be processed."));
 		SelectionData.ClearPendingNotifications();
 		SelectablesData.ClearPendingNotifications();
 
@@ -445,7 +470,7 @@ void UValidationComponent::Server_ProcessValidationTransition_Implementation()
 		}
 		if (SelectionEvaluation.IsActive(GetWorld()) && !SelectionEvaluation.EvaluationTag.MatchesTag(EvaluationTag))
 		{
-			SELECTION_WARNING(TEXT("⏱️ Clearing existing selection evaluation timer due to new selection notifications."));
+			SELECTION_WARNING(TEXT(" Clearing existing selection evaluation timer due to new selection notifications."));
 			SelectionEvaluation.ClearTimer(GetWorld());
 		}
 
@@ -460,7 +485,7 @@ void UValidationComponent::Server_ProcessValidationTimer_Implementation()
 	if (SelectablesData.HasAnyCompleted())
 	{
 		SelectionEvaluation.ClearTimer(GetWorld());
-		SELECTION_WARNING(TEXT("🧠HAS COMPLETED %s"), *EventTag.ToString());
+		SELECTION_WARNING(TEXT("HAS COMPLETED %s"), *EventTag.ToString());
 
 		SendEventToOwner(GetOwner(), GetOwner(), EventTag);
 	}
@@ -468,7 +493,7 @@ void UValidationComponent::Server_ProcessValidationTimer_Implementation()
 	if (SelectablesData.HasAnyNotified())
 	{
 		SelectionEvaluation.DecreaseRemainingDuration(SelectionEvaluation.Rate);
-		SELECTION_WARNING(TEXT("⏱️ Selection evaluation timer elapsed. Evaluating selections now. %s %d"), *EventTag.ToString(), SelectionEvaluation.GetRemainingDurationInSeconds());
+		SELECTION_WARNING(TEXT(" Selection evaluation timer elapsed. Evaluating selections now. %s %d"), *EventTag.ToString(), SelectionEvaluation.GetRemainingDurationInSeconds());
 		if (!SelectionEvaluation.IsComplete())
 		{
 			return;
@@ -538,7 +563,7 @@ void UValidationComponent::CompleteLockValidation()
 
 void UValidationComponent::CompleteConflictValidation()
 {
-	SELECTION_WARNING(TEXT("⚠️ Processing completed conflict evaluation."));
+	SELECTION_WARNING(TEXT(" Processing completed conflict evaluation."));
 
 	for (const FSelectableItem& Item : SelectablesData.Items)
 	{

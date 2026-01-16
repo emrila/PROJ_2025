@@ -27,6 +27,7 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	TArray<FSelectablesInfo> GetSelectableInfoForSelector(const UObject* Selector) const;
+	void ClearAll();
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetTotalExpectedSelections(int32 InTotalExpectedSelections = -1);
