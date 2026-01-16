@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "RoomManagerBase.generated.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(CLogRoomManager, Log, All);
+
 class ARoomExit;
 class ADroppedItem;
 class URoomModifierBase;
@@ -53,6 +55,8 @@ class PROJ_2025_API ARoomManagerBase : public AActor
 public:	
 	ARoomManagerBase();
 
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	virtual void OnRoomInitialized(const FRoomInstance& Room);
 
 	UFUNCTION(BlueprintCallable)
@@ -67,8 +71,8 @@ public:
 
 private:
 
-	UPROPERTY(Replicated)
-	class AUpgradeSpawner* LootSpawnLocation;
+	/*UPROPERTY(Replicated)
+	class AUpgradeSpawner* LootSpawnLocation;*/
 
 	UPROPERTY(Replicated)
 	TArray<URoomModifierBase*> RoomModifiers;
