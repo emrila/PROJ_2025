@@ -10,7 +10,7 @@ URangeAttackComp::URangeAttackComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	
-	DamageAmount = 10.f;
+	DamageAmount = 15.f;
 	AttackCooldown = 0.5f;
 }
 

@@ -10,7 +10,7 @@ UShieldAttackComp::UShieldAttackComp()
 	PrimaryComponentTick.bCanEverTick = false;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 
-	DamageAmount = 5;
+	DamageAmount = 10;
 	AttackCooldown = 5.f;
 }
 

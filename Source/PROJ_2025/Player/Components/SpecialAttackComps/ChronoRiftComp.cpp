@@ -10,8 +10,8 @@ UChronoRiftComp::UChronoRiftComp()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	
-	DamageAmount = 2.f;
-	AttackCooldown = 15.f;
+	DamageAmount = 8.f;
+	AttackCooldown = 12.f;
 }
 
 

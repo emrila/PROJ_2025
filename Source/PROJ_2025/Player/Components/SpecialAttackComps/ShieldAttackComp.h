@@ -65,10 +65,10 @@ protected:
 	UPROPERTY()
 	AShield* Shield;
 	
-	float BaseDurability = 200.f;
-	float BaseRecoveryRate = 1.f;
+	float BaseDurability = 300.f;
+	float BaseRecoveryRate = 2.f;
 	float MovementSpeedToStore = 0.f;
-	float OwnerMovementSpeedMultiplier = 0.75f;
+	float OwnerMovementSpeedMultiplier = 1.f;
 	
 	FTimerHandle RecoveryTimerHandle;
 	

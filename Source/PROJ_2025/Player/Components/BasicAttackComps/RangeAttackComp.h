@@ -34,5 +34,5 @@ protected:
 	TSubclassOf<AMageProjectile> ProjectileClass;
 	
 	float ProjectileOffsetDistanceInFront = 250.f;
-	float DefaultProjectileSpeed = 3000.f;
+	float DefaultProjectileSpeed = 4000.f;
 };
