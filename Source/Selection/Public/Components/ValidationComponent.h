@@ -27,13 +27,16 @@ public:
 
 	UFUNCTION(BlueprintPure)
 	TArray<FSelectablesInfo> GetSelectableInfoForSelector(const UObject* Selector) const;
-	void ClearAll();
+
+	UFUNCTION(Server, Reliable)
+	void Server_ClearAll();
 
 	UFUNCTION(Server, Reliable)
 	void Server_SetTotalExpectedSelections(int32 InTotalExpectedSelections = -1);
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	virtual void OnRegisterSelectable_Implementation(FInstancedStruct RegistrationData) override;
@@ -79,7 +82,6 @@ private:
 	void OnApplyValidationEffect(const FGameplayTag Tag, UObject* Selectable = nullptr);
 	void OnApplySelectionEffectToSelector(const FGameplayTag Tag, UObject* Selector = nullptr);
 	void OnApplySelectionEffectToSelectable(const FGameplayTag Tag, UObject* Selectable = nullptr);
-
 
 	void SendEventToOwner(AActor* PayloadInstigator, AActor* PayloadTarget, const FGameplayTag EventTag) const;
 	void SendEventToSelectable(AActor* PayloadInstigator, AActor* PayloadTarget, const FGameplayTag EventTag, AActor* Selectable) const;

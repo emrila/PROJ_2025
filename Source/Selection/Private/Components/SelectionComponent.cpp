@@ -26,6 +26,7 @@ USelectionComponent::USelectionComponent()
 void USelectionComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	WaitGameplayEvents.Empty();
 
 	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(GetOwner(), ValidationTag, false, false))->EventReceived.AddDynamic(
 		this, &USelectionComponent::Server_OnValidation);

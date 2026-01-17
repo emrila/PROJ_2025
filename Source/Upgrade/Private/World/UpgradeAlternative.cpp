@@ -77,7 +77,12 @@ void AUpgradeAlternative::OnSetUpgradeDisplayData_Implementation(FInstancedStruc
 void AUpgradeAlternative::OnClearUpgradeDisplayData_Implementation()
 {
 	// Will call EndPlay which will then unregister from the owner's validation component
-	 Destroy();
+	 if (SelectableComponent && HasAuthority())
+	 {
+	 	SetOwner(nullptr);
+	 	Destroy();
+		// Execute_OnUnregisterSelectable(SelectableComponent, FInstancedStruct());
+	 }
 }
 
 FInstancedStruct AUpgradeAlternative::OnGetUpgradeDisplayData_Implementation()

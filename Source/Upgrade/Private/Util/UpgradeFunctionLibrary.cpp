@@ -4,6 +4,21 @@
 #include "Util/UpgradeFunctionLibrary.h"
 #include "Components/UpgradeComponent.h"
 #include "Interfaces/UpgradeSystemInterface.h"
+#include "Kismet/GameplayStatics.h"
+#include "World/UpgradeSpawner.h"
+
+AUpgradeSpawner* UUpgradeFunctionLibrary::GetUpgradeSpawner(UObject* WorldContextObject)
+{
+	const UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	AActor* FoundSpawner = UGameplayStatics::GetActorOfClass(World, AUpgradeSpawner::StaticClass());
+
+	return FoundSpawner ? Cast<AUpgradeSpawner>(FoundSpawner) : nullptr;
+}
 
 UUpgradeComponent* UUpgradeFunctionLibrary::GetLocalUpgradeComponent(UObject* WorldContextObject)
 {

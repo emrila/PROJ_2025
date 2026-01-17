@@ -128,7 +128,6 @@ void ARoomLoader::OnNextLevelLoaded()
 	}
 }
 
-
 void ARoomLoader::OnPreviousLevelUnloaded()
 {
 	if (!PendingNextRoomData.RoomData)
@@ -136,24 +135,21 @@ void ARoomLoader::OnPreviousLevelUnloaded()
 		UE_LOG(LogTemp, Warning, TEXT("PendingNextRoomData is null, skipping level load."));
 		return;
 	}
+
+	GEngine->ForceGarbageCollection(true);
+
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Loading level: %s"),
 	   *PendingNextRoomData.RoomData->RoomLevel.ToString()));
 	
 	FName LevelName = PendingNextRoomData.RoomData->RoomLevel.GetLongPackageFName();
-	
+
 	FLatentActionInfo LatentInfo;
 	LatentInfo.CallbackTarget = this;
 	LatentInfo.ExecutionFunction = FName("OnNextLevelLoaded");
 	LatentInfo.Linkage = 0;
 	LatentInfo.UUID = __LINE__;
-	
-	UGameplayStatics::LoadStreamLevel(
-		this,                  
-		LevelName,             
-		true,                 
-		true,                  
-		LatentInfo 
-	);
+
+	UGameplayStatics::LoadStreamLevel(this, LevelName, true, true, LatentInfo);
 	
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Success")));
 	CurrentLoadedLevelName = LevelName;

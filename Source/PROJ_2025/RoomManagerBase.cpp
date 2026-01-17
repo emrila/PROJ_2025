@@ -4,7 +4,6 @@
 #include "RoomManagerBase.h"
 
 #include "DroppedItem.h"
-#include "ItemBase.h"
 #include "LootPicker.h"
 #include "RoomExit.h"
 #include "RoomLoader.h"
@@ -16,13 +15,36 @@
 #include "Net/UnrealNetwork.h"
 #include "Player/Characters/PlayerCharacterBase.h"
 #include "Player/Controllers/PlayerControllerBase.h"
+#include "Util/UpgradeFunctionLibrary.h"
 #include "World/UpgradeSpawner.h"
+
+DEFINE_LOG_CATEGORY(CLogRoomManager)
+#define ROOM_LOG(Severity, Text, ...) UE_LOG(CLogRoomManager, Severity, Text, ##__VA_ARGS__)
 
 ARoomManagerBase::ARoomManagerBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+}
 
+void ARoomManagerBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	//Destroy all dropped items that players left behind (will might persist if players gets the same room again)
+	if (GetWorld())
+	{
+		TArray<AActor*> FoundItems;
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), ADroppedItem::StaticClass(), FoundItems);
+		for (int i = FoundItems.Num() - 1; i >= 0; --i)
+		{
+			if (AActor* FoundItem = FoundItems[i])
+			{
+				ROOM_LOG(Display, TEXT("Destroying dropped item: %s"), *FoundItem->GetName());
+				FoundItem->SetOwner(nullptr);
+				FoundItem->Destroy();
+			}
+		}
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
@@ -233,11 +255,6 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 		UE_LOG(LogTemp, Display, TEXT("Teleported %s to room spawn point."), *PlayerPawn->GetName());
 	}
 
-	AActor* LootSpawnLoc = UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass());
-	if (LootSpawnLoc)
-	{
-		LootSpawnLocation = Cast<AUpgradeSpawner>(LootSpawnLoc);
-	}
 	FTimerHandle EnableInputHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 	EnableInputHandle,
@@ -251,18 +268,16 @@ void ARoomManagerBase::OnRoomInitialized(const FRoomInstance& Room)
 void ARoomManagerBase::SpawnLoot()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SPAWNING LOOT!"));
-	
-	if (!LootSpawnLocation)
-	{
-		LootSpawnLocation = Cast<AUpgradeSpawner>(UGameplayStatics::GetActorOfClass(GetWorld(), AUpgradeSpawner::StaticClass()));
-		UE_LOG(LogTemp, Warning, TEXT("🔮Found Loot Spawn Location: %s"), LootSpawnLocation ? TEXT("True") : TEXT("False"));
-	}
+
+	AUpgradeSpawner* LootSpawnLocation = UUpgradeFunctionLibrary::GetUpgradeSpawner(this);
+
 	if (LootSpawnLocation)
 	{
 		LootSpawnLocation->Server_ClearAll();
 		LootSpawnLocation->TriggerSpawn();
 		LootSpawnLocation->OnCompletedAllUpgrades.AddDynamic(this, &ARoomManagerBase::EnableExits);
 		UE_LOG(LogTemp, Warning, TEXT("🔮OnCompletedAllUpgrades.AddDynamic!"));
+
 		for (URoomModifierBase* Mod : RoomModifiers)
 		{
 			Mod->OnLootSpawned();
@@ -278,7 +293,8 @@ void ARoomManagerBase::SpawnLoot()
 				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
 				DroppedItem->ItemRowName = RandomLoot;
 				DroppedItem->Initialize(1.f);
-			}else
+			}
+			else
 			{
 				UWizardGameInstance* GI = Cast<UWizardGameInstance>(GetGameInstance());
 				FName RandomLoot = FLootPicker::PickLoot(true);
@@ -287,6 +303,7 @@ void ARoomManagerBase::SpawnLoot()
 				DroppedItem->ItemMesh->SetStaticMesh(LootData.DroppedMesh);
 				DroppedItem->ItemRowName = RandomLoot;
 				DroppedItem->Initialize(1.f);
+
 				FName RandomLoot2 = FLootPicker::PickLoot();
 				FItemDataRow LootData2 = FLootPicker::GetItem(RandomLoot2);
 				ADroppedItem* DroppedItem2 = GetWorld()->SpawnActor<ADroppedItem>(GI->RoomLoader->DroppedItemClass, LootSpawnLocation->GetActorLocation() + FVector(0.f,0.f,125.f), LootSpawnLocation->GetActorRotation() + FRotator(0.f,90.f,0.f));
@@ -294,7 +311,8 @@ void ARoomManagerBase::SpawnLoot()
 				DroppedItem2->ItemRowName = RandomLoot2;
 				DroppedItem2->Initialize(1.f);
 			}
-		}else
+		}
+		else
 		{
 			if (FMath::FRand() <= 0.2f)
 			{
@@ -307,11 +325,13 @@ void ARoomManagerBase::SpawnLoot()
 				DroppedItem->Initialize(1.f);
 			}
 		}
-	}else
+	}
+	else
 	{
 		UE_LOG (LogTemp, Error, TEXT("🔮No Loot Spawn Location found in room!"));
 		EnableExits();
 	}
+
 	if (AWizardGameState* GameState = Cast<AWizardGameState>(GetWorld()->GetGameState()))
 	{
 		if (GameState->Health <= 0)
@@ -329,12 +349,10 @@ void ARoomManagerBase::SpawnLoot()
 
 void ARoomManagerBase::EnableExits()
 {
-
 	TArray<AActor*> FoundExits;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ARoomExit::StaticClass(), FoundExits);
 
-	
-	if (LootSpawnLocation)
+	if (AUpgradeSpawner* LootSpawnLocation =  UUpgradeFunctionLibrary::GetUpgradeSpawner(this))
 	{
 		LootSpawnLocation->OnCompletedAllUpgrades.RemoveDynamic(this, &ARoomManagerBase::EnableExits);
 		LootSpawnLocation->Server_ClearAll();
@@ -362,7 +380,6 @@ void ARoomManagerBase::EnableExits()
 void ARoomManagerBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ARoomManagerBase, LootSpawnLocation);
 	DOREPLIFETIME(ARoomManagerBase, RoomModifiers);
 }
 

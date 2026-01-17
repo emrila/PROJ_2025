@@ -29,6 +29,13 @@ void UInteractableComponent::BeginPlay()
 	this, &UInteractableComponent::OnProximityEvent);
 }
 
+void UInteractableComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	GetOwner()->OnActorBeginOverlap.RemoveDynamic(this, &UInteractableComponent::OnActorBeginOverlap);
+	GetOwner()->OnActorEndOverlap.RemoveDynamic(this, &UInteractableComponent::OnActorEndOverlap);
+	Super::EndPlay(EndPlayReason);
+}
+
 void UInteractableComponent::OnActorBeginOverlap([[maybe_unused]] AActor* OverlappedActor, AActor* OtherActor)
 {
 	OnOverlap(OtherActor, EnterTag);

@@ -34,6 +34,7 @@ void AAlternativeManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	WaitGameplayEvents.Empty();
 	WaitGameplayEvents.Add_GetRef(UAsync_WaitGameplayEvent::ActivateAndWaitGameplayEventToActor(this, EVENT_TAG_INTERACT, false, false))->
 	EventReceived.AddDynamic(this, &AAlternativeManager::WrapperOnInteractionEvent);
 }

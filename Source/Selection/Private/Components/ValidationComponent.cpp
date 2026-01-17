@@ -72,33 +72,59 @@ TArray<FSelectablesInfo> UValidationComponent::GetSelectableInfoForSelector(cons
 			break;
 		}
 	}
-
 	return SelectablesInfo;
 }
 
-void UValidationComponent::ClearAll()
+void UValidationComponent::Server_ClearAll_Implementation()
 {
 	SELECTION_DISPLAY(TEXT("%hs: Clearing all selection and selectable data."), __FUNCTION__);
+	for (int i = SelectionData.Items.Num() - 1; i >= 0; --i)
+	{
+		if (SelectionData.Items.IsValidIndex(i))
+		{
+			UObject* Selector = SelectionData.Items[i].Selector;
+			SELECTION_DISPLAY(TEXT("Clearing selection for Selector: %s"), Selector ? *Selector->GetName() : TEXT("Invalid"));
+			if (Selector)
+			{
+				OnApplySelectionEffectToSelector(DeselectTag, Selector);
+				SelectionData.Remove(Selector);
+			}
+		}
+		else
+		{
+			SELECTION_DISPLAY(TEXT("Invalid index %d in SelectionData during ClearAll."), i);
+		}
+	}
 	for (int i = SelectablesData.Items.Num() - 1; i >= 0; --i)
 	{
 		if (SelectablesData.Items.IsValidIndex(i))
 		{
 			UObject* Selectable = SelectablesData.Items[i].Selectable;
 			SELECTION_DISPLAY(TEXT("Clearing selection for Selectable: %s"), Selectable ? *Selectable->GetName() : TEXT("Invalid"));
-
-			SelectablesData.Remove(Selectable);
+			if (Selectable)
+			{
+				OnClearAllValidationFlags(Selectable);
+				SelectablesData.Remove(Selectable);
+			}
 		}
-	}    
-	for (int i = SelectionData.Items.Num() - 1; i >= 0; --i)
-	{
-		if (SelectionData.Items.IsValidIndex(i))
+		else
 		{
-			UObject* Selector = SelectionData.Items[i].Selectable;    
-            
-			SELECTION_DISPLAY(TEXT("Clearing selection for Selector: %s"), Selector ? *Selector->GetName() : TEXT("Invalid"));
-			SelectionData.Remove(Selector);
+			SELECTION_DISPLAY(TEXT("Invalid index %d in SelectablesData during ClearAll."), i);
 		}
-	}    
+	}
+
+	SelectablesData.CleanUpInvalidSelectables();
+	SelectablesData.ClearPendingNotifications();
+
+	SelectionData.CleanUpInvalidSelections();
+	SelectionData.ClearPendingNotifications();
+
+	SelectablesData.Items.Empty();
+	SelectionData.Items.Empty();
+
+	SelectionData = FPlayerSelectionContainer();
+	SelectablesData = FSelectablesContainer();
+	SelectionEvaluation = FTaggedEvaluationTimer();
 }
 
 void UValidationComponent::BeginPlay()
@@ -116,6 +142,15 @@ void UValidationComponent::BeginPlay()
 		
 		GetOwner()->GetWorldTimerManager().SetTimer(ValidationTransitionTimerHandle, FTimerDelegate::CreateUObject(this, &UValidationComponent::Server_ProcessValidationTransition), 1.0f, true, 2.0f);
 	}
+}
+
+void UValidationComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (GetOwner() && GetOwner()->HasAuthority())
+	{
+		Server_ClearAll();
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void UValidationComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -541,16 +576,14 @@ void UValidationComponent::CompleteLockValidation()
 
 		OnApplyValidationEffect(LockTag, Item.Selectable);
 		SendEventToSelectable(Selectable, Selector, LockTag, Selectable);
-
 		SelectablesInfoArray.Items.Add(GetSelectableInfo(Item.Selectable));
-
 	}
 
 	Execute_OnValidation(GetOwner(), FInstancedStruct::Make<FSelectablesInfos>(SelectablesInfoArray));
 
 	if (SelectablesData.HasCompleted(LockTag))
 	{
-		SetComponentTickEnabled(false);
+		GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
 	}
 
 	FValidationData* ValidationData = ValidationDataMap.Find(LockTag);

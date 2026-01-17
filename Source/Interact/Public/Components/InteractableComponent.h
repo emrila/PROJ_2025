@@ -18,6 +18,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	void EndPlay(EEndPlayReason::Type EndPlayReason);
 
 public:
 	UFUNCTION(BlueprintCallable, Server, Reliable)
