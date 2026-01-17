@@ -200,7 +200,7 @@ bool ARoomLoader::RollForCampRoom(bool OnlyIncrementChance)
 
 bool ARoomLoader::RollForChoiceRoom() const
 {
-	if (ClearedRooms == 3)
+	if (ClearedRooms == 100)
 	{
 		return true;
 	}
